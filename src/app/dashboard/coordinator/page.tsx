@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/navbar';
 import { MonthlyReports } from '@/components/coordinator/monthly-reports';
 import { CompanyCrud } from '@/components/coordinator/company-crud';
@@ -21,7 +22,8 @@ import {
 } from 'lucide-react';
 
 export default function CoordinatorDashboardPage() {
-  const { isSupabaseConnected } = useAuth();
+  const router = useRouter();
+  const { user, isLoading: authLoading, isSupabaseConnected } = useAuth();
   
   const [activeTab, setActiveTab] = useState<'reports' | 'companies' | 'users'>('reports');
 
@@ -30,8 +32,21 @@ export default function CoordinatorDashboardPage() {
   const [allEntries, setAllEntries] = useState<TimeEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Protección de ruta: Si no hay usuario va a login; si no es coordinadora va a su panel de empleado
+  useEffect(() => {
+    if (!authLoading) {
+      if (!user) {
+        router.replace('/login');
+      } else if (user.role !== 'coordinator') {
+        router.replace('/dashboard/employee');
+      }
+    }
+  }, [user, authLoading, router]);
+
   // Cargar todos los datos clasificados por empresa y empleados
   useEffect(() => {
+    if (!user || user.role !== 'coordinator') return;
+
     async function loadCoordinatorData() {
       setIsLoading(true);
 
@@ -247,6 +262,19 @@ export default function CoordinatorDashboardPage() {
     }
     setCompanies((prev) => prev.filter((c) => c.id !== id));
   };
+
+  if (authLoading || !user || user.role !== 'coordinator') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#FFFFFF]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#D8CFF0] border-t-[#8E0E75]" />
+          <p className="text-xs font-bold uppercase tracking-wider text-[#292929]">
+            Verificando permisos de coordinación...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FFFFFF]">

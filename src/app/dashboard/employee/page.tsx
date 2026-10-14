@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/navbar';
 import { TimeTrackerBar } from '@/components/employee/time-tracker-bar';
 import { EmployeeStats } from '@/components/employee/employee-stats';
@@ -12,18 +13,27 @@ import { Company, TimeEntry } from '@/types/database';
 import { Clock, ShieldCheck } from 'lucide-react';
 
 export default function EmployeeDashboardPage() {
-  const { user, isSupabaseConnected } = useAuth();
+  const router = useRouter();
+  const { user, isLoading: authLoading, isSupabaseConnected } = useAuth();
 
   const [companies, setCompanies] = useState<Company[]>([]);
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Cargar datos por empresa
+  // Redirigir a login si no hay sesión
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.replace('/login');
+    }
+  }, [user, authLoading, router]);
+
+  // Cargar datos estrictamente aislados del usuario actual
   useEffect(() => {
     async function fetchData() {
+      if (!user) return;
       setIsLoading(true);
 
-      if (isSupabaseConnected && user) {
+      if (isSupabaseConnected) {
         try {
           const supabase = createClient();
 
@@ -34,7 +44,7 @@ export default function EmployeeDashboardPage() {
             .eq('is_active', true)
             .order('name');
 
-          // 2. Cargar Horas del usuario actual vinculadas a empresas
+          // 2. Cargar exclusivamente las horas del usuario actual
           const { data: entriesData } = await supabase
             .from('time_entries')
             .select('*, company:companies(*), profile:profiles(*)')
@@ -47,18 +57,21 @@ export default function EmployeeDashboardPage() {
         } catch (err) {
           console.error('Error cargando datos de Supabase:', err);
           setCompanies(MOCK_COMPANIES);
-          setEntries(MOCK_TIME_ENTRIES.filter((e) => e.user_id === (user?.id || 'u3')));
+          const userEntries = MOCK_TIME_ENTRIES.filter((e) => e.user_id === user.id);
+          setEntries(userEntries);
         }
       } else {
         setCompanies(MOCK_COMPANIES);
-        const currentUserId = user?.id || 'u3';
-        const userEntries = MOCK_TIME_ENTRIES.filter((e) => e.user_id === currentUserId);
-        setEntries(userEntries.length > 0 ? userEntries : MOCK_TIME_ENTRIES);
+        // Filtrado estricto por user.id para proteger datos privados entre trabajadores
+        const userEntries = MOCK_TIME_ENTRIES.filter((e) => e.user_id === user.id);
+        setEntries(userEntries);
       }
       setIsLoading(false);
     }
 
-    fetchData();
+    if (user) {
+      fetchData();
+    }
   }, [user, isSupabaseConnected]);
 
   // Handler para agregar nuevo registro
@@ -138,6 +151,19 @@ export default function EmployeeDashboardPage() {
       })
     );
   };
+
+  if (authLoading || !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#FFFFFF]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#D8CFF0] border-t-[#8E0E75]" />
+          <p className="text-xs font-bold uppercase tracking-wider text-[#292929]">
+            Cargando sesión...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#FFFFFF] flex flex-col w-full">

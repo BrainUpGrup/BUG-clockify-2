@@ -15,11 +15,10 @@ import {
   ShieldCheck,
   Building2
 } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/context/auth-context';
 
 export default function RegisterEmployeePage() {
-  const { isSupabaseConnected } = useAuth();
+  const { signUp, isSupabaseConnected } = useAuth();
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -38,46 +37,19 @@ export default function RegisterEmployeePage() {
       return;
     }
 
+    if (!password.trim() || password.length < 6) {
+      setErrorMsg('Por seguridad, la contraseña debe tener al menos 6 caracteres.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      if (isSupabaseConnected) {
-        const supabase = createClient();
-        
-        // 1. Crear en auth si aplica o insertar directamente en profiles con status: 'pending'
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            full_name: fullName.trim(),
-            email: email.trim().toLowerCase(),
-            role: 'employee',
-            status: 'pending',
-            department: department.trim(),
-          });
-
-        if (profileError) {
-          console.error(profileError);
-          // Si falla por RLS o clave duplicada, intentamos fallback informativo
-          if (profileError.code === '23505') {
-            setErrorMsg('Este correo ya tiene una solicitud o cuenta registrada.');
-            setIsSubmitting(false);
-            return;
-          }
-        }
+      const res = await signUp(fullName, email, password, department);
+      if (res?.error) {
+        setErrorMsg(res.error);
+        return;
       }
-
-      // Guardar también en localStorage para que el coordinador local lo visualice al instante
-      const pendingUsers = JSON.parse(localStorage.getItem('bug_clockify_pending_users') || '[]');
-      pendingUsers.push({
-        id: `u_${Date.now()}`,
-        full_name: fullName.trim(),
-        email: email.trim().toLowerCase(),
-        role: 'employee',
-        status: 'pending',
-        department: department.trim(),
-        created_at: new Date().toISOString(),
-      });
-      localStorage.setItem('bug_clockify_pending_users', JSON.stringify(pendingUsers));
 
       setIsSubmitted(true);
     } catch (err: unknown) {
