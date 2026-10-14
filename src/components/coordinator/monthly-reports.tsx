@@ -226,9 +226,9 @@ export function MonthlyReports({
   }, [currentEmployee, employeeEntries, companies]);
 
   // Handlers de exportación según la vista activa
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     if (statsView === 'general') {
-      exportGeneralReportToPDF({
+      await exportGeneralReportToPDF({
         monthName,
         year: selectedYear,
         companies,
@@ -236,13 +236,13 @@ export function MonthlyReports({
         entries: monthEntries,
       });
     } else if (statsView === 'company' && currentCompany) {
-      exportCompanyReportToPDF(currentCompany, {
+      await exportCompanyReportToPDF(currentCompany, {
         monthName,
         year: selectedYear,
         entries: monthEntries,
       });
     } else if (statsView === 'employee' && currentEmployee) {
-      exportEmployeeReportToPDF(currentEmployee, {
+      await exportEmployeeReportToPDF(currentEmployee, {
         monthName,
         year: selectedYear,
         entries: monthEntries,
