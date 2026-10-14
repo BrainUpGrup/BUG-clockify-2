@@ -177,4 +177,42 @@
     - Incorporada la **Ficha Oficial del Cliente** con dos columnas de información exhaustiva (CIF, Contacto, Email, Modalidad, Cuota y Account Manager).
     - Gráfico vectorial de cuotas rediseñado en tarjetas limpias sin colisión de textos entre títulos y leyendas.
 
+### [v2.2.0] - 2026-10-14 - Muro de Autenticación Obligatorio, Aprobación Previa de Cuentas y Aislamiento Estricto de Datos (RLS)
+- **Solicitud del Usuario:**
+  1. Enlace de registro compartido por la coordinadora para nuevos empleados.
+  2. Muro de login obligatorio (`/login`) antes de poder acceder a cualquier pantalla o dato de usuario.
+  3. Protección estricta de la información de cada usuario en la base de datos (Supabase RLS) y separación estricta según el rol y la identidad del trabajador.
+- **Decisión Técnica:**
+  - `src/app/page.tsx`:
+    - Redirección automática de usuarios no autenticados hacia `/login`. Si el usuario tiene sesión activa, redirige a `/dashboard/coordinator` o `/dashboard/employee` según su rol.
+  - `src/app/login/page.tsx`:
+    - Interfaz de autenticación con identidad corporativa de Brain Up Grup.
+    - Detección de cuentas con estado `pending`: si un empleado intenta iniciar sesión antes de que la coordinadora apruebe su cuenta, el sistema bloquea el acceso mostrando un aviso explicativo de espera.
+    - Botones de acceso rápido para validación inmediata de roles (Coordinadora, Trabajador y Cuenta Pendiente).
+  - `src/app/register/page.tsx`:
+    - Conexión directa con `signUp` de `useAuth`. Todo registro entra con `role: 'employee'` y `status: 'pending'`.
+    - Cierre de sesión automático inmediato tras el registro para forzar la validación previa de la coordinadora.
+  - `src/app/dashboard/coordinator/page.tsx`:
+    - Guard de seguridad: Redirección inmediata a `/login` si no hay sesión, o a `/dashboard/employee` si el usuario no tiene rol `coordinator`.
+    - Bloqueo de renderizado con pantalla de verificación para prevenir fugas de datos de clientes o métricas.
+  - `src/app/dashboard/employee/page.tsx`:
+    - Guard de seguridad: Redirección inmediata a `/login` si no hay sesión.
+    - Aislamiento total de consultas: tanto en Supabase (`.eq('user_id', user.id)`) como en el modo mock (`MOCK_TIME_ENTRIES.filter(e => e.user_id === user.id)`), garantizando que ningún trabajador pueda ver o consultar registros de otros compañeros.
+  - `src/components/navbar.tsx`:
+    - La pestaña "Panel Coordinador" solo se renderiza si `user.role === 'coordinator'`.
+    - Botón de cierre de sesión seguro (`LogOut`) que destruye la sesión y redirige a `/login`.
+  - `schema.sql`:
+    - **Trigger `handle_new_user()`:** Todo nuevo usuario registrado vía Auth se crea con `status: 'pending'` (excepto coordinadores).
+    - **Row Level Security (RLS) en `time_entries`:**
+      - `SELECT`: `auth.uid() = user_id or public.is_coordinator()` (aislamiento criptográfico en base de datos).
+      - `INSERT`: `auth.uid() = user_id or public.is_coordinator()`.
+      - `UPDATE/DELETE`: `auth.uid() = user_id or public.is_coordinator()`.
+    - **Row Level Security en `profiles`:**
+      - `SELECT`: `auth.uid() = id or public.is_coordinator()`.
+      - `UPDATE`: `auth.uid() = id or public.is_coordinator()`.
+      - `DELETE`: `public.is_coordinator()`.
+    - **Row Level Security en `companies`:**
+      - Solo la coordinadora puede insertar, actualizar o eliminar clientes/empresas.
+
+
 
