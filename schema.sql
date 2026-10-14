@@ -234,9 +234,9 @@ create policy "time_entries_delete_policy" on public.time_entries
   );
 
 -- ==============================================================================
--- CUENTA MAESTRA SUPER ADMINISTRADOR (Brain Up Grup)
+-- CUENTAS INICIALES DE PRUEBA Y PRODUCCIÓN (Brain Up Grup)
 -- ==============================================================================
--- Provee el perfil inicial de Super Admin en profiles para appadmin@brainupgrup.com
+-- 1. Super Administrador Maestro
 insert into public.profiles (id, full_name, email, role, status, department, created_at)
 values (
   '00000000-0000-0000-0000-000000000001',
@@ -254,8 +254,45 @@ set
   full_name = 'Super Administrador',
   department = 'Sistemas & Seguridad';
 
+-- 2. Coordinación Brain Up (Rol Dual: Coordinadora & Empleada)
+insert into public.profiles (id, full_name, email, role, status, department, created_at)
+values (
+  '00000000-0000-0000-0000-000000000002',
+  'Coordinación Brain Up',
+  'coordinacion@brainupgrup.com',
+  'coordinator',
+  'active',
+  'Dirección de Operaciones',
+  now()
+)
+on conflict (email) do update
+set
+  role = 'coordinator',
+  status = 'active',
+  full_name = 'Coordinación Brain Up',
+  department = 'Dirección de Operaciones';
+
+-- 3. Empleado de Prueba (Vista de Trabajador)
+insert into public.profiles (id, full_name, email, role, status, department, created_at)
+values (
+  '00000000-0000-0000-0000-000000000003',
+  'Empleado de Prueba',
+  'empleado@brainupgrup.com',
+  'employee',
+  'active',
+  'Creatividad & Operaciones',
+  now()
+)
+on conflict (email) do update
+set
+  role = 'employee',
+  status = 'active',
+  full_name = 'Empleado de Prueba',
+  department = 'Creatividad & Operaciones';
+
 -- ==============================================================================
 -- SISTEMA LISTO PARA PRODUCCIÓN (Base de datos limpia)
 -- Las empresas y clientes se darán de alta por la coordinadora desde el panel.
 -- ==============================================================================
+
 

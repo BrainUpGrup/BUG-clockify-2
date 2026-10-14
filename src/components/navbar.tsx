@@ -134,7 +134,7 @@ export function Navbar() {
                 {user?.full_name || 'Usuario'}
               </span>
               <span className="inline-block text-[10px] font-extrabold uppercase tracking-wider text-[#8E0E75] whitespace-nowrap">
-                {isAdmin ? 'Super Administrador' : isCoordinator ? 'Coordinadora' : 'Empleado / Trabajador'}
+                {isAdmin ? 'Super Administrador' : isCoordinator ? 'Coordinadora & Empleada' : 'Empleado / Trabajador'}
               </span>
             </div>
 

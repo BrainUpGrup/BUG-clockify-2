@@ -116,6 +116,66 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { user: adminProfile };
     }
 
+    // Cuenta de Prueba de Coordinadora (Rol Dual: Coordinadora & Empleada)
+    if (cleanEmail === 'coordinacion@brainupgrup.com' && pass === 'BrainUp2026!') {
+      const coordProfile: Profile = {
+        id: 'u_coord',
+        full_name: 'Coordinación Brain Up',
+        email: 'coordinacion@brainupgrup.com',
+        role: 'coordinator',
+        status: 'active',
+        department: 'Dirección de Operaciones',
+        created_at: '2026-01-01T00:00:00Z',
+      };
+
+      if (isSupabaseConnected) {
+        try {
+          const supabase = createClient();
+          await supabase.from('profiles').upsert(coordProfile);
+        } catch (e) {
+          console.warn('Upsert coord profile notice:', e);
+        }
+      }
+
+      setUser(coordProfile);
+      try {
+        localStorage.setItem('bug_clockify_current_user', JSON.stringify(coordProfile));
+      } catch (e) {
+        console.error(e);
+      }
+      return { user: coordProfile };
+    }
+
+    // Cuenta de Prueba de Empleado (Para verificar vista aislada de trabajador)
+    if (cleanEmail === 'empleado@brainupgrup.com' && pass === 'BrainUp2026!') {
+      const empProfile: Profile = {
+        id: 'u_empleado_demo',
+        full_name: 'Empleado de Prueba',
+        email: 'empleado@brainupgrup.com',
+        role: 'employee',
+        status: 'active',
+        department: 'Creatividad & Operaciones',
+        created_at: '2026-01-01T00:00:00Z',
+      };
+
+      if (isSupabaseConnected) {
+        try {
+          const supabase = createClient();
+          await supabase.from('profiles').upsert(empProfile);
+        } catch (e) {
+          console.warn('Upsert employee profile notice:', e);
+        }
+      }
+
+      setUser(empProfile);
+      try {
+        localStorage.setItem('bug_clockify_current_user', JSON.stringify(empProfile));
+      } catch (e) {
+        console.error(e);
+      }
+      return { user: empProfile };
+    }
+
     if (isSupabaseConnected) {
       try {
         const supabase = createClient();
