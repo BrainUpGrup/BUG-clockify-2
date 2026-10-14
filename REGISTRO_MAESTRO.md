@@ -236,17 +236,44 @@
   - `src/components/coordinator/monthly-reports.tsx` y `src/components/coordinator/user-management.tsx`:
     - Implementados estados vacíos (*empty states*) profesionales y limpios para cuando no existan empresas o registros aún.
 
-### [v2.3.1] - 2026-10-14 - Blindaje Exclusivo por Enlace de Invitación y Retirada de Registro Público
+### [v2.4.0] - 2026-10-14 - Rol Super Administrador y Gobernanza Global de Cuentas
 - **Solicitud del Usuario:**
-  1. Suprimir el enlace de registro (`¿Aún no tienes cuenta? Solicitar alta con enlace`) de la pantalla de login.
-  2. Restringir el registro para que sea obligatorio acceder mediante el enlace oficial de invitación facilitado por la coordinadora ("si quieres registrarte tienes que tener el enlace sí o sí").
+  1. Crear un apartado exclusivo de Super Admin para dar de alta cuentas de coordinadores directamente y administrar las cuentas de usuario en caso de incidencias o posibles errores.
+  2. Preservar la privacidad y separación de responsabilidades: el Super Admin no necesita ni debe visualizar datos operativos ni económicos de la empresa (horas de trabajo de clientes, cuotas ni tarifas), solo administrar cuentas y velar por el correcto funcionamiento del sistema.
+  3. Credenciales maestras fijadas:
+     - Email: `appadmin@brainupgrup.com`
+     - Contraseña: `fn.5loDnrTTfI2z!`
+  4. Mantener la pantalla de login unificada (`/login`) sin alterar el modo de inicio de sesión: el sistema detecta de forma automática e instantánea si el usuario es `admin`, `coordinator` o `employee`, redirigiéndolo a su panel correspondiente y cargando las pestañas y opciones adecuadas a su nivel de acceso.
 - **Decisión Técnica:**
-  - `src/app/login/page.tsx`:
-    - Eliminado el enlace público inferior a `/register`. La pantalla de login queda dedicada única y exclusivamente al inicio de sesión.
-  - `src/components/coordinator/user-management.tsx`:
-    - El enlace oficial copiable por la coordinadora incluye el parámetro de invitación autorizada (`/register?invite=brainup`).
-  - `src/app/register/page.tsx`:
-    - Incorporada validación de token de invitación mediante `useSearchParams`. Si se intenta entrar directamente a `/register` sin el enlace emitido por la coordinadora, el sistema bloquea el formulario mostrando una pantalla informativa de acceso restringido (*"INVITACIÓN REQUERIDA"*) y un botón para volver a `/login`.
+  - `src/types/database.ts`:
+    - Ampliado el tipo unión `UserRole` para soportar `'admin' | 'coordinator' | 'employee'`.
+  - `src/context/auth-context.tsx`:
+    - Integrada validación de la cuenta maestra `appadmin@brainupgrup.com` con `fn.5loDnrTTfI2z!`. Asigna el rol `'admin'` y estado `'active'` con persistencia y sincronización en Supabase `profiles`.
+  - `src/app/page.tsx` & `src/app/login/page.tsx`:
+    - Enrutamiento por rol: si el usuario es `admin`, es conducido de inmediato a `/dashboard/admin`. Si es `coordinator`, a `/dashboard/coordinator`; si es `employee`, a `/dashboard/employee`.
+  - `src/components/navbar.tsx`:
+    - Adaptada la barra de navegación para Super Admin: muestra el enlace directo a *"Panel Super Admin"*, la insignia de *Super Administrador* y oculta los enlaces operativos de registro horario y cuotas de clientes.
+    - Soporte completo y coherente tanto en escritorio como en la barra inferior móvil.
+  - `src/app/dashboard/admin/page.tsx`:
+    - **Guardia de Seguridad de Ruta:** Redirección automática de usuarios no autenticados a `/login`, y de usuarios coordinadores o empleados a sus respectivos paneles.
+    - **Garantía de Privacidad y Aislamiento:** Tarjeta informativa y arquitectura restringida a la gobernanza de usuarios y autenticación, sin consultas ni exposición de `time_entries` ni cuotas de empresas.
+    - **Tarjetas de Métricas Globales:** Conteo de Cuentas Totales, Coordinadores Activos, Empleados en Plantilla y Cuentas en Espera/Revisión.
+    - **Pestaña 1 - Gestión y Corrección de Cuentas:**
+      - Buscador en tiempo real (por nombre, correo o departamento).
+      - Filtros combinados por Rol (`Todos`, `Admin`, `Coordinadores`, `Empleados`) y Estado (`Todos`, `Activos`, `Pendientes`, `Rechazados`).
+      - Acciones directas: alternancia rápida de rol (ascender a Coordinador o degradar a Empleado), botón de activación inmediata para cuentas bloqueadas, modal de corrección de datos y borrado seguro de cuentas duplicadas o erróneas (con protección sobre la cuenta maestra).
+    - **Pestaña 2 - Alta Directa de Coordinadora:**
+      - Formulario corporativo para provisionar nuevas coordinadoras con activación inmediata sin pasar por enlaces de invitación ni esperas.
+      - Generador de contraseñas seguras y botón de copiado de credenciales al portapapeles.
+    - **Pestaña 3 - Diagnóstico del Sistema:**
+      - Verificación de estado de base de datos Supabase, políticas RLS activas, dominio corporativo y resumen de credenciales maestras.
+  - `src/app/dashboard/coordinator/page.tsx` & `src/app/dashboard/employee/page.tsx`:
+    - Reforzadas las guardias de ruta para que un usuario `admin` sea redirigido a `/dashboard/admin`, evitando cualquier acceso involuntario a datos de horas o empresas.
+  - `schema.sql`:
+    - Actualizada la restricción de comprobación `check (role in ('admin', 'coordinator', 'employee'))`.
+    - Nuevas funciones de seguridad `is_admin()` y `is_coordinator_or_admin()`.
+    - Políticas RLS actualizadas en `profiles` para permitir que los administradores gestionen las cuentas.
+    - Semilla inicial para la cuenta maestra `appadmin@brainupgrup.com` en la tabla `profiles`.
 
 
 

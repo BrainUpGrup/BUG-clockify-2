@@ -37,6 +37,8 @@ export default function CoordinatorDashboardPage() {
     if (!authLoading) {
       if (!user) {
         router.replace('/login');
+      } else if (user.role === 'admin') {
+        router.replace('/dashboard/admin');
       } else if (user.role !== 'coordinator') {
         router.replace('/dashboard/employee');
       }

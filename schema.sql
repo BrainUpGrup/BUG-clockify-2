@@ -12,7 +12,7 @@ create table if not exists public.profiles (
   id uuid primary key default gen_random_uuid(),
   full_name text not null,
   email text not null unique,
-  role text not null check (role in ('coordinator', 'employee')) default 'employee',
+  role text not null check (role in ('admin', 'coordinator', 'employee')) default 'employee',
   status text not null check (status in ('active', 'pending', 'rejected')) default 'active',
   department text null default 'Creatividad & Operaciones',
   created_at timestamptz not null default now()
@@ -53,7 +53,7 @@ create index if not exists idx_time_entries_user_date on public.time_entries(use
 create index if not exists idx_time_entries_company on public.time_entries(company_id);
 create index if not exists idx_time_entries_date on public.time_entries(work_date);
 
--- FUNCIÓN DE SEGURIDAD (Evita recursión infinita en RLS)
+-- FUNCIONES DE SEGURIDAD (Evita recursión infinita en RLS)
 create or replace function public.is_coordinator()
 returns boolean
 language sql
@@ -69,8 +69,37 @@ as $$
   );
 $$;
 
+create or replace function public.is_admin()
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1
+    from public.profiles
+    where id = auth.uid()
+      and role = 'admin'
+  );
+$$;
+
+create or replace function public.is_coordinator_or_admin()
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1
+    from public.profiles
+    where id = auth.uid()
+      and role in ('coordinator', 'admin')
+  );
+$$;
+
 -- TRIGGER: Sincronización automática de nuevos usuarios registrados vía auth.users -> profiles
--- Todo nuevo usuario entra en estado 'pending' (a la espera de aprobación de la coordinadora)
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -89,14 +118,14 @@ begin
   );
   
   v_role := coalesce(new.raw_user_meta_data->>'role', 'employee');
-  if v_role not in ('coordinator', 'employee') then
+  if v_role not in ('admin', 'coordinator', 'employee') then
     v_role := 'employee';
   end if;
 
   v_dept := coalesce(new.raw_user_meta_data->>'department', 'Creatividad & Operaciones');
 
-  -- Solo los coordinadores entran activos por defecto, los empleados entran pendientes
-  v_status := case when v_role = 'coordinator' then 'active' else 'pending' end;
+  -- Coordinadores y Admins entran activos por defecto, empleados entran pendientes
+  v_status := case when v_role in ('admin', 'coordinator') then 'active' else 'pending' end;
 
   insert into public.profiles (id, full_name, email, role, status, department, created_at)
   values (new.id, v_full_name, new.email, v_role, v_status, v_dept, now())
@@ -126,7 +155,7 @@ drop policy if exists "profiles_select_all" on public.profiles;
 drop policy if exists "profiles_select_policy" on public.profiles;
 create policy "profiles_select_policy" on public.profiles
   for select using (
-    auth.uid() = id or public.is_coordinator()
+    auth.uid() = id or public.is_coordinator_or_admin()
   );
 
 drop policy if exists "profiles_insert_registration" on public.profiles;
@@ -137,14 +166,14 @@ drop policy if exists "profiles_update_self_or_coordinator" on public.profiles;
 drop policy if exists "profiles_update_policy" on public.profiles;
 create policy "profiles_update_policy" on public.profiles
   for update using (
-    auth.uid() = id or public.is_coordinator()
+    auth.uid() = id or public.is_coordinator_or_admin()
   );
 
 drop policy if exists "profiles_delete_coordinator" on public.profiles;
 drop policy if exists "profiles_delete_policy" on public.profiles;
 create policy "profiles_delete_policy" on public.profiles
   for delete using (
-    public.is_coordinator()
+    public.is_coordinator_or_admin()
   );
 
 -- ==============================================================================
@@ -205,6 +234,28 @@ create policy "time_entries_delete_policy" on public.time_entries
   );
 
 -- ==============================================================================
+-- CUENTA MAESTRA SUPER ADMINISTRADOR (Brain Up Grup)
+-- ==============================================================================
+-- Provee el perfil inicial de Super Admin en profiles para appadmin@brainupgrup.com
+insert into public.profiles (id, full_name, email, role, status, department, created_at)
+values (
+  '00000000-0000-0000-0000-000000000001',
+  'Super Administrador',
+  'appadmin@brainupgrup.com',
+  'admin',
+  'active',
+  'Sistemas & Seguridad',
+  now()
+)
+on conflict (email) do update
+set
+  role = 'admin',
+  status = 'active',
+  full_name = 'Super Administrador',
+  department = 'Sistemas & Seguridad';
+
+-- ==============================================================================
 -- SISTEMA LISTO PARA PRODUCCIÓN (Base de datos limpia)
 -- Las empresas y clientes se darán de alta por la coordinadora desde el panel.
 -- ==============================================================================
+

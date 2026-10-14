@@ -86,6 +86,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, pass: string): Promise<{ error?: string; user?: Profile }> => {
     const cleanEmail = email.trim().toLowerCase();
 
+    // Cuenta Maestra Super Admin de Brain Up Grup
+    if (cleanEmail === 'appadmin@brainupgrup.com' && pass === 'fn.5loDnrTTfI2z!') {
+      const adminProfile: Profile = {
+        id: 'u_superadmin',
+        full_name: 'Super Administrador',
+        email: 'appadmin@brainupgrup.com',
+        role: 'admin',
+        status: 'active',
+        department: 'Sistemas & Seguridad',
+        created_at: '2026-01-01T00:00:00Z',
+      };
+
+      if (isSupabaseConnected) {
+        try {
+          const supabase = createClient();
+          await supabase.from('profiles').upsert(adminProfile);
+        } catch (e) {
+          console.warn('Upsert admin profile notice:', e);
+        }
+      }
+
+      setUser(adminProfile);
+      try {
+        localStorage.setItem('bug_clockify_current_user', JSON.stringify(adminProfile));
+      } catch (e) {
+        console.error(e);
+      }
+      return { user: adminProfile };
+    }
+
     if (isSupabaseConnected) {
       try {
         const supabase = createClient();

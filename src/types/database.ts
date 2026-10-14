@@ -1,4 +1,4 @@
-export type UserRole = 'coordinator' | 'employee';
+export type UserRole = 'admin' | 'coordinator' | 'employee';
 export type ProfileStatus = 'active' | 'pending' | 'rejected';
 export type ClientType = 'cuota' | 'puntual';
 export type EntryComputeType = 'cuota' | 'puntual';

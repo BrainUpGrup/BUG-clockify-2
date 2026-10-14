@@ -20,10 +20,14 @@ export default function EmployeeDashboardPage() {
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Redirigir a login si no hay sesión
+  // Redirigir a login si no hay sesión o a admin si es super admin
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.replace('/login');
+    if (!authLoading) {
+      if (!user) {
+        router.replace('/login');
+      } else if (user.role === 'admin') {
+        router.replace('/dashboard/admin');
+      }
     }
   }, [user, authLoading, router]);
 
