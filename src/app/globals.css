@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #FFFFFF;
+  --foreground: #4A4A4A;
+}
+
+body {
+  color: var(--foreground);
+  background-color: var(--background);
+  font-family: var(--font-montserrat), sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Estilo Editorial Secundario (Inspirado en el botón "QUIERO MI TARIFA PLANA" de Brain Up Grup) */
+.btn-editorial-secondary {
+  border: 1.5px solid #8E0E75;
+  background-color: #FFFFFF;
+  color: #8E0E75;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: 0.125rem;
+  transition: all 0.2s ease-in-out;
+}
+
+.btn-editorial-secondary:hover {
+  background-color: #8E0E75;
+  color: #FFFFFF;
+}
+
+/* Botón Primario Corporativo */
+.btn-editorial-primary {
+  background-color: #8E0E75;
+  color: #FFFFFF;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: 0.125rem;
+  transition: all 0.2s ease-in-out;
+}
+
+.btn-editorial-primary:hover {
+  background-color: #700B5C;
+}
+
+/* Contadores numéricos tabulares alineados */
+.time-counter, .tabular-numbers {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Scrollbars personalizados con acento La Abuela */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F8F6FC;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D8CFF0;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #8E0E75;
+}
