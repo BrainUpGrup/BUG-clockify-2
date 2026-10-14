@@ -108,14 +108,14 @@ export function AppSelect({
                   key={option.value}
                   type="button"
                   onClick={() => handleSelect(option.value)}
-                  className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-sm text-xs font-medium text-left transition-colors cursor-pointer ${
+                  className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-sm text-xs font-semibold text-left transition-all duration-150 cursor-pointer ${
                     isSelected
-                      ? 'bg-[#F8F6FC] text-[#8E0E75] font-bold border-l-2 border-[#8E0E75]'
-                      : 'text-[#4A4A4A] hover:bg-[#F8F6FC] hover:text-[#8E0E75]'
+                      ? 'bg-[#D8CFF0]/40 text-[#8E0E75] font-extrabold border-l-3 border-[#8E0E75] shadow-xs'
+                      : 'text-[#292929] hover:bg-[#F8F6FC] hover:text-[#8E0E75] hover:pl-4'
                   }`}
                 >
                   <div className="flex items-center gap-2 truncate">
-                    {option.icon && <span className="shrink-0">{option.icon}</span>}
+                    {option.icon && <span className="shrink-0 text-[#8E0E75]">{option.icon}</span>}
                     <span className="truncate">{option.label}</span>
                   </div>
                   {isSelected && <Check className="h-4 w-4 text-[#8E0E75] shrink-0" />}

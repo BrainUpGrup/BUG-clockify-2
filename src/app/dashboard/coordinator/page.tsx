@@ -45,38 +45,47 @@ export default function CoordinatorDashboardPage() {
     }
   }, [user, authLoading, router]);
 
-  // Cargar todos los datos clasificados por empresa y empleados
+  // Cargar todos los datos clasificados por empresa y empleados en paralelo y con caché instantánea
   useEffect(() => {
     if (!user || user.role !== 'coordinator') return;
 
-    async function loadCoordinatorData() {
-      setIsLoading(true);
+    // 1. Restaurar instantáneamente de caché local para 0ms de espera
+    try {
+      const cachedComp = localStorage.getItem('bug_clockify_cache_companies');
+      const cachedProf = localStorage.getItem('bug_clockify_cache_profiles');
+      const cachedEntr = localStorage.getItem('bug_clockify_cache_entries');
+      if (cachedComp) setCompanies(JSON.parse(cachedComp));
+      if (cachedProf) setEmployees(JSON.parse(cachedProf));
+      if (cachedEntr) setAllEntries(JSON.parse(cachedEntr));
+      if (cachedComp || cachedProf) setIsLoading(false);
+    } catch (e) {
+      console.warn('Cache read notice:', e);
+    }
 
+    async function loadCoordinatorData() {
       if (isSupabaseConnected) {
         try {
           const supabase = createClient();
 
-          // 1. Cargar Empresas
-          const { data: compData } = await supabase
-            .from('companies')
-            .select('*')
-            .order('name');
+          // Ejecución ultra-rápida en PARALELO con Promise.all (sin efecto cascada)
+          const [compRes, profRes, entriesRes] = await Promise.all([
+            supabase.from('companies').select('*').order('name'),
+            supabase.from('profiles').select('*').order('full_name'),
+            supabase.from('time_entries').select('*, company:companies(*), profile:profiles(*)').order('work_date', { ascending: false }),
+          ]);
 
-          // 2. Cargar Empleados (Profiles)
-          const { data: profData } = await supabase
-            .from('profiles')
-            .select('*')
-            .order('full_name');
-
-          // 3. Cargar Registros vinculados a empresas y usuarios
-          const { data: entriesData } = await supabase
-            .from('time_entries')
-            .select('*, company:companies(*), profile:profiles(*)')
-            .order('work_date', { ascending: false });
-
-          if (compData) setCompanies(compData as Company[]);
-          if (profData) setEmployees(profData as Profile[]);
-          if (entriesData) setAllEntries(entriesData as unknown as TimeEntry[]);
+          if (compRes.data) {
+            setCompanies(compRes.data as Company[]);
+            localStorage.setItem('bug_clockify_cache_companies', JSON.stringify(compRes.data));
+          }
+          if (profRes.data) {
+            setEmployees(profRes.data as Profile[]);
+            localStorage.setItem('bug_clockify_cache_profiles', JSON.stringify(profRes.data));
+          }
+          if (entriesRes.data) {
+            setAllEntries(entriesRes.data as unknown as TimeEntry[]);
+            localStorage.setItem('bug_clockify_cache_entries', JSON.stringify(entriesRes.data));
+          }
         } catch (err) {
           console.error('Error cargando datos de Supabase, usando fallback:', err);
           setCompanies(MOCK_COMPANIES);
@@ -108,7 +117,7 @@ export default function CoordinatorDashboardPage() {
     }
 
     loadCoordinatorData();
-  }, [isSupabaseConnected]);
+  }, [user, isSupabaseConnected]);
 
   // Manejar creación rápida de empresas (soporta clientes cuota con horas y clientes puntuales)
   const handleCreateCompany = async (

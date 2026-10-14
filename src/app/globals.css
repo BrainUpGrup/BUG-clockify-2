@@ -5,6 +5,10 @@
 :root {
   --background: #FFFFFF;
   --foreground: #4A4A4A;
+  --brand-purple: #8E0E75;
+  --brand-lilac: #D8CFF0;
+  --brand-bg-lilac: #F8F6FC;
+  --brand-dark: #191654;
 }
 
 body {
@@ -12,9 +16,57 @@ body {
   background-color: var(--background);
   font-family: var(--font-montserrat), sans-serif;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* Estilo Editorial Secundario (Inspirado en el botón "QUIERO MI TARIFA PLANA" de Brain Up Grup) */
+/* Color seleccionable corporativo lila del logotipo de Brain Up Grup */
+::selection {
+  background-color: #D8CFF0;
+  color: #8E0E75;
+}
+
+::-moz-selection {
+  background-color: #D8CFF0;
+  color: #8E0E75;
+}
+
+/* Transiciones globales suaves para interactividad óptima */
+button, a, input, select, textarea {
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Focus ring corporativo lila para todos los elementos seleccionables */
+input:focus, 
+select:focus, 
+textarea:focus, 
+button:focus-visible {
+  outline: none;
+  border-color: #8E0E75 !important;
+  box-shadow: 0 0 0 3px rgba(216, 207, 240, 0.55), 0 1px 2px rgba(142, 14, 117, 0.1) !important;
+}
+
+/* Botón Primario Corporativo con elevación sutil */
+.btn-editorial-primary {
+  background-color: #8E0E75;
+  color: #FFFFFF;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: 0.125rem;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-editorial-primary:hover {
+  background-color: #700B5C;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(142, 14, 117, 0.2);
+}
+
+.btn-editorial-primary:active {
+  transform: translateY(0);
+}
+
+/* Estilo Editorial Secundario */
 .btn-editorial-secondary {
   border: 1.5px solid #8E0E75;
   background-color: #FFFFFF;
@@ -23,27 +75,43 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   border-radius: 0.125rem;
-  transition: all 0.2s ease-in-out;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .btn-editorial-secondary:hover {
-  background-color: #8E0E75;
-  color: #FFFFFF;
+  background-color: #F8F6FC;
+  border-color: #700B5C;
+  color: #700B5C;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(216, 207, 240, 0.4);
 }
 
-/* Botón Primario Corporativo */
-.btn-editorial-primary {
-  background-color: #8E0E75;
-  color: #FFFFFF;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-radius: 0.125rem;
-  transition: all 0.2s ease-in-out;
+.btn-editorial-secondary:active {
+  transform: translateY(0);
 }
 
-.btn-editorial-primary:hover {
-  background-color: #700B5C;
+/* Tarjetas interactivas con realce lila */
+.interactive-card {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.interactive-card:hover {
+  border-color: #8E0E75;
+  box-shadow: 0 4px 16px rgba(142, 14, 117, 0.06);
+}
+
+/* Píldoras y badges seleccionables en lila */
+.badge-selectable {
+  background-color: #F8F6FC;
+  border: 1px solid #D8CFF0;
+  color: #8E0E75;
+  transition: all 0.15s ease-in-out;
+}
+
+.badge-selectable:hover {
+  background-color: #D8CFF0;
+  border-color: #8E0E75;
+  color: #700B5C;
 }
 
 /* Contadores numéricos tabulares alineados */
@@ -52,7 +120,7 @@ body {
   font-feature-settings: "tnum";
 }
 
-/* Scrollbars personalizados con acento La Abuela */
+/* Scrollbars personalizados con acento lila La Abuela */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;

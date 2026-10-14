@@ -31,51 +31,62 @@ export default function EmployeeDashboardPage() {
     }
   }, [user, authLoading, router]);
 
-  // Cargar datos estrictamente aislados del usuario actual
+  // Cargar datos estrictamente aislados del usuario actual en paralelo con caché instantánea
   useEffect(() => {
-    async function fetchData() {
-      if (!user) return;
-      setIsLoading(true);
+    if (!user) return;
+    const currentUserId = user.id;
 
+    // 1. Restaurar al instante desde caché local (0ms de retraso)
+    try {
+      const cachedComp = localStorage.getItem('bug_clockify_cache_companies');
+      const cachedEntr = localStorage.getItem(`bug_clockify_cache_entries_${currentUserId}`);
+      if (cachedComp) setCompanies(JSON.parse(cachedComp));
+      if (cachedEntr) setEntries(JSON.parse(cachedEntr));
+      if (cachedComp) setIsLoading(false);
+    } catch (e) {
+      console.warn('Cache read notice:', e);
+    }
+
+    async function fetchData() {
       if (isSupabaseConnected) {
         try {
           const supabase = createClient();
 
-          // 1. Cargar Empresas activas
-          const { data: compData } = await supabase
-            .from('companies')
-            .select('*')
-            .eq('is_active', true)
-            .order('name');
+          // Ejecución en paralelo ultra-rápida (empresas y registros del usuario a la vez)
+          const [compRes, entriesRes] = await Promise.all([
+            supabase.from('companies').select('*').eq('is_active', true).order('name'),
+            supabase
+              .from('time_entries')
+              .select('*, company:companies(*), profile:profiles(*)')
+              .eq('user_id', currentUserId)
+              .order('work_date', { ascending: false })
+              .order('created_at', { ascending: false }),
+          ]);
 
-          // 2. Cargar exclusivamente las horas del usuario actual
-          const { data: entriesData } = await supabase
-            .from('time_entries')
-            .select('*, company:companies(*), profile:profiles(*)')
-            .eq('user_id', user.id)
-            .order('work_date', { ascending: false })
-            .order('created_at', { ascending: false });
-
-          if (compData) setCompanies(compData as Company[]);
-          if (entriesData) setEntries(entriesData as unknown as TimeEntry[]);
+          if (compRes.data) {
+            setCompanies(compRes.data as Company[]);
+            localStorage.setItem('bug_clockify_cache_companies', JSON.stringify(compRes.data));
+          }
+          if (entriesRes.data) {
+            setEntries(entriesRes.data as unknown as TimeEntry[]);
+            localStorage.setItem(`bug_clockify_cache_entries_${currentUserId}`, JSON.stringify(entriesRes.data));
+          }
         } catch (err) {
           console.error('Error cargando datos de Supabase:', err);
           setCompanies(MOCK_COMPANIES);
-          const userEntries = MOCK_TIME_ENTRIES.filter((e) => e.user_id === user.id);
+          const userEntries = MOCK_TIME_ENTRIES.filter((e) => e.user_id === currentUserId);
           setEntries(userEntries);
         }
       } else {
         setCompanies(MOCK_COMPANIES);
         // Filtrado estricto por user.id para proteger datos privados entre trabajadores
-        const userEntries = MOCK_TIME_ENTRIES.filter((e) => e.user_id === user.id);
+        const userEntries = MOCK_TIME_ENTRIES.filter((e) => e.user_id === currentUserId);
         setEntries(userEntries);
       }
       setIsLoading(false);
     }
 
-    if (user) {
-      fetchData();
-    }
+    fetchData();
   }, [user, isSupabaseConnected]);
 
   // Handler para agregar nuevo registro

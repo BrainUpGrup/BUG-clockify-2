@@ -78,15 +78,15 @@ export function Navbar() {
           </div>
         </Link>
 
-        {/* Navigation Links según el tipo de cuenta */}
-        <nav className="hidden md:flex items-center gap-1 bg-[#F8F6FC] p-1 rounded-sm border border-[#D8CFF0] shrink-0">
+        {/* Navigation Links según el tipo de cuenta con transiciones y resaltes lila */}
+        <nav className="hidden md:flex items-center gap-1.5 bg-[#F8F6FC] p-1 rounded-sm border border-[#D8CFF0] shrink-0">
           {isAdmin ? (
             <Link
               href="/dashboard/admin"
-              className={`whitespace-nowrap flex items-center gap-2 px-3.5 py-1.5 rounded-sm text-xs font-extrabold uppercase tracking-wider transition-all ${
+              className={`whitespace-nowrap flex items-center gap-2 px-3.5 py-1.5 rounded-sm text-xs font-extrabold uppercase tracking-wider transition-all duration-200 ${
                 isAdminActive
-                  ? 'bg-white text-[#8E0E75] shadow-xs border border-[#8E0E75]/30'
-                  : 'text-[#4A4A4A] hover:text-[#8E0E75] hover:bg-white/60'
+                  ? 'bg-white text-[#8E0E75] shadow-xs border border-[#8E0E75]/40 ring-2 ring-[#D8CFF0]/50 scale-[1.02]'
+                  : 'text-[#4A4A4A] hover:text-[#8E0E75] hover:bg-white/80'
               }`}
             >
               <ShieldCheck className="h-4 w-4 text-[#8E0E75] shrink-0" />
@@ -96,10 +96,10 @@ export function Navbar() {
             <>
               <Link
                 href="/dashboard/employee"
-                className={`whitespace-nowrap flex items-center gap-2 px-3.5 py-1.5 rounded-sm text-xs font-extrabold uppercase tracking-wider transition-all ${
+                className={`whitespace-nowrap flex items-center gap-2 px-3.5 py-1.5 rounded-sm text-xs font-extrabold uppercase tracking-wider transition-all duration-200 ${
                   isEmployeeActive
-                    ? 'bg-white text-[#8E0E75] shadow-xs border border-[#8E0E75]/30'
-                    : 'text-[#4A4A4A] hover:text-[#8E0E75] hover:bg-white/60'
+                    ? 'bg-white text-[#8E0E75] shadow-xs border border-[#8E0E75]/40 ring-2 ring-[#D8CFF0]/50 scale-[1.02]'
+                    : 'text-[#4A4A4A] hover:text-[#8E0E75] hover:bg-white/80'
                 }`}
               >
                 <Clock className="h-4 w-4 text-[#8E0E75] shrink-0" />
@@ -109,10 +109,10 @@ export function Navbar() {
               {isCoordinator && (
                 <Link
                   href="/dashboard/coordinator"
-                  className={`whitespace-nowrap flex items-center gap-2 px-3.5 py-1.5 rounded-sm text-xs font-extrabold uppercase tracking-wider transition-all ${
+                  className={`whitespace-nowrap flex items-center gap-2 px-3.5 py-1.5 rounded-sm text-xs font-extrabold uppercase tracking-wider transition-all duration-200 ${
                     isCoordinatorActive
-                      ? 'bg-white text-[#8E0E75] shadow-xs border border-[#8E0E75]/30'
-                      : 'text-[#4A4A4A] hover:text-[#8E0E75] hover:bg-white/60'
+                      ? 'bg-white text-[#8E0E75] shadow-xs border border-[#8E0E75]/40 ring-2 ring-[#D8CFF0]/50 scale-[1.02]'
+                      : 'text-[#4A4A4A] hover:text-[#8E0E75] hover:bg-white/80'
                   }`}
                 >
                   <BarChart3 className="h-4 w-4 text-[#8E0E75] shrink-0" />

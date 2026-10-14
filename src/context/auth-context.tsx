@@ -23,63 +23,77 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSupabaseConnected, setIsSupabaseConnected] = useState<boolean>(false);
 
-  // Inicializar sesión y comprobar credenciales al cargar la app
+  // Inicialización ultra-rápida (0ms de bloqueo): restaura de inmediato desde caché y valida en segundo plano
   useEffect(() => {
-    async function initAuth() {
-      setIsLoading(true);
+    let isMounted = true;
 
+    // 1. PASO INSTANTÁNEO (0ms): Si hay sesión previa guardada, carga de inmediato sin spinner
+    try {
+      const stored = localStorage.getItem('bug_clockify_current_user');
+      if (stored) {
+        const parsed = JSON.parse(stored) as Profile;
+        if (parsed && parsed.status !== 'pending') {
+          setUser(parsed);
+          setIsLoading(false); // ¡Renderizado instantáneo!
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+
+    // 2. PASO EN SEGUNDO PLANO: Sincronización asíncrona no bloqueante
+    async function syncRemoteAuth() {
       const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       const hasConfig = url && key && !url.includes('your-project') && !url.includes('tu-proyecto');
 
       if (hasConfig) {
-        setIsSupabaseConnected(true);
+        if (isMounted) setIsSupabaseConnected(true);
         try {
           const supabase = createClient();
           const { data: { session } } = await supabase.auth.getSession();
 
-          if (session?.user) {
+          if (session?.user && isMounted) {
             const { data: profile } = await supabase
               .from('profiles')
               .select('*')
               .eq('id', session.user.id)
               .single();
 
-            if (profile) {
+            if (profile && isMounted) {
               if (profile.status === 'pending') {
-                // Si el usuario está pendiente, no iniciamos sesión
                 await supabase.auth.signOut();
                 setUser(null);
+                try {
+                  localStorage.removeItem('bug_clockify_current_user');
+                } catch (e) {
+                  console.error(e);
+                }
               } else {
                 setUser(profile as Profile);
+                try {
+                  localStorage.setItem('bug_clockify_current_user', JSON.stringify(profile));
+                } catch (e) {
+                  console.error(e);
+                }
               }
             }
           }
         } catch (e) {
-          console.warn('Error verificando sesión en Supabase:', e);
+          console.warn('Sync background auth notice:', e);
         }
       }
 
-      // Si no hay sesión de Supabase, comprobar sesión local guardada
-      if (!user) {
-        try {
-          const stored = localStorage.getItem('bug_clockify_current_user');
-          if (stored) {
-            const parsed = JSON.parse(stored) as Profile;
-            // Verificar si sigue activo
-            if (parsed.status !== 'pending') {
-              setUser(parsed);
-            }
-          }
-        } catch (e) {
-          console.error(e);
-        }
+      if (isMounted) {
+        setIsLoading(false);
       }
-
-      setIsLoading(false);
     }
 
-    initAuth();
+    syncRemoteAuth();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Función de inicio de sesión con validación de estado (activo vs pendiente)
