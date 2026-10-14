@@ -87,9 +87,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const cleanEmail = email.trim().toLowerCase();
 
     // Cuenta Maestra Super Admin de Brain Up Grup
-    if (cleanEmail === 'appadmin@brainupgrup.com' && pass === 'fn.5loDnrTTfI2z!') {
+    if (cleanEmail === 'appadmin@brainupgrup.com' && pass.trim() === 'fn.5loDnrTTfI2z!') {
       const adminProfile: Profile = {
-        id: 'u_superadmin',
+        id: '00000000-0000-0000-0000-000000000001',
         full_name: 'Super Administrador',
         email: 'appadmin@brainupgrup.com',
         role: 'admin',
@@ -117,11 +117,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Cuenta de Prueba de Coordinadora (Rol Dual: Coordinadora & Empleada)
-    if (cleanEmail === 'coordinacion@brainupgrup.com' && pass === 'BrainUp2026!') {
+    // Acepta tanto coordinacion@ como coordinadora@ con o sin signo de admiración
+    if (
+      (cleanEmail === 'coordinacion@brainupgrup.com' || cleanEmail === 'coordinadora@brainupgrup.com') &&
+      (pass.trim() === 'BrainUp2026!' || pass.trim() === 'BrainUp2026' || pass.trim() === 'brainup2026')
+    ) {
       const coordProfile: Profile = {
-        id: 'u_coord',
+        id: '00000000-0000-0000-0000-000000000002',
         full_name: 'Coordinación Brain Up',
-        email: 'coordinacion@brainupgrup.com',
+        email: cleanEmail,
         role: 'coordinator',
         status: 'active',
         department: 'Dirección de Operaciones',
@@ -147,11 +151,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Cuenta de Prueba de Empleado (Para verificar vista aislada de trabajador)
-    if (cleanEmail === 'empleado@brainupgrup.com' && pass === 'BrainUp2026!') {
+    // Acepta tanto empleado@ como trabajador@
+    if (
+      (cleanEmail === 'empleado@brainupgrup.com' || cleanEmail === 'trabajador@brainupgrup.com') &&
+      (pass.trim() === 'BrainUp2026!' || pass.trim() === 'BrainUp2026' || pass.trim() === 'brainup2026')
+    ) {
       const empProfile: Profile = {
-        id: 'u_empleado_demo',
+        id: '00000000-0000-0000-0000-000000000003',
         full_name: 'Empleado de Prueba',
-        email: 'empleado@brainupgrup.com',
+        email: cleanEmail,
         role: 'employee',
         status: 'active',
         department: 'Creatividad & Operaciones',

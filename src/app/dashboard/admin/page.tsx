@@ -105,7 +105,7 @@ export default function SuperAdminDashboardPage() {
     // Incluir cuenta super admin fija si no está
     if (!combined.some((p) => p.email === 'appadmin@brainupgrup.com')) {
       combined.unshift({
-        id: 'u_superadmin',
+        id: '00000000-0000-0000-0000-000000000001',
         full_name: 'Super Administrador',
         email: 'appadmin@brainupgrup.com',
         role: 'admin',

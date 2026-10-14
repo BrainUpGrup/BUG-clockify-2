@@ -7,7 +7,7 @@ export const MOCK_COMPANIES: Company[] = [];
 
 export const MOCK_PROFILES: Profile[] = [
   {
-    id: 'u_coord',
+    id: '00000000-0000-0000-0000-000000000002',
     full_name: 'Coordinación Brain Up',
     email: 'coordinacion@brainupgrup.com',
     role: 'coordinator',
