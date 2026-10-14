@@ -214,5 +214,27 @@
     - **Row Level Security en `companies`:**
       - Solo la coordinadora puede insertar, actualizar o eliminar clientes/empresas.
 
+### [v2.3.0] - 2026-10-14 - Preparación Limpia para Producción y Supresión de Accesos Directos
+- **Solicitud del Usuario:**
+  1. Quitar el campo "Departamento o Especialidad" del formulario de registro.
+  2. Eliminar cualquier botón o enlace de acceso directo que permita entrar a la aplicación sin hacer login.
+  3. Limpiar toda la información de prueba de la app, dejándola 100% limpia y lista para producción.
+- **Decisión Técnica:**
+  - `src/app/register/page.tsx`:
+    - Eliminado el campo y estado de "Departamento o Especialidad". El registro ahora solo solicita: Nombre y Apellidos, Email y Contraseña.
+    - Eliminado el enlace inferior que conducía al panel sin login; sustituido por un enlace estricto a `/login` (*"Volver a Iniciar Sesión"*).
+    - En la pantalla de confirmación de registro enviado, el botón ahora dirige a `/login` (*"Ir a Iniciar Sesión"*).
+  - `src/app/login/page.tsx`:
+    - Eliminado por completo el panel de acceso rápido para pruebas ("Coordinador", "Trabajador", "Trabajadora", "Pendiente").
+    - Interfaz de autenticación limpia y minimalista exclusiva para producción (email y contraseña).
+  - `src/lib/mock-data.ts`:
+    - Vaciadas todas las empresas de prueba (`MOCK_COMPANIES = []`).
+    - Vaciadas todas las imputaciones y horas ficticias (`MOCK_TIME_ENTRIES = []`).
+    - Eliminados los usuarios ficticios.
+  - `schema.sql`:
+    - Eliminada la inserción de empresas semilla de prueba (`Acme`, `TechCorp`, etc.). El script SQL deja las tablas creadas y seguras con RLS, listas para recibir los clientes reales de la agencia.
+  - `src/components/coordinator/monthly-reports.tsx` y `src/components/coordinator/user-management.tsx`:
+    - Implementados estados vacíos (*empty states*) profesionales y limpios para cuando no existan empresas o registros aún.
+
 
 

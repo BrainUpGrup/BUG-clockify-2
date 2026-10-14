@@ -7,7 +7,6 @@ import {
   UserPlus, 
   Mail, 
   User, 
-  Briefcase, 
   Lock, 
   CheckCircle2, 
   ArrowLeft,
@@ -22,7 +21,6 @@ export default function RegisterEmployeePage() {
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
-  const [department, setDepartment] = useState('Marketing Digital & Creatividad');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -45,7 +43,7 @@ export default function RegisterEmployeePage() {
     setIsSubmitting(true);
 
     try {
-      const res = await signUp(fullName, email, password, department);
+      const res = await signUp(fullName, email, password);
       if (res?.error) {
         setErrorMsg(res.error);
         return;
@@ -116,10 +114,10 @@ export default function RegisterEmployeePage() {
 
             <div className="pt-2">
               <Link
-                href="/dashboard/employee"
+                href="/login"
                 className="inline-flex items-center gap-2 px-6 py-2.5 rounded-sm bg-[#8E0E75] text-white text-xs font-extrabold uppercase tracking-wider hover:bg-[#700B5C] transition-all shadow-md shadow-[#8E0E75]/25"
               >
-                <span>Ir al Panel Principal</span>
+                <span>Ir a Iniciar Sesión</span>
               </Link>
             </div>
           </div>
@@ -175,23 +173,6 @@ export default function RegisterEmployeePage() {
               </div>
             </div>
 
-            {/* Departamento / Especialidad */}
-            <div>
-              <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#292929] mb-1.5">
-                Departamento o Especialidad
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={department}
-                  onChange={(e) => setDepartment(e.target.value)}
-                  placeholder="ej. Marketing Digital, Diseño UX, Copywriting..."
-                  className="w-full px-4 py-2.5 pl-10 rounded-sm border border-[#D8CFF0] bg-white text-xs text-[#292929] placeholder:text-slate-400 focus:border-[#8E0E75] focus:ring-2 focus:ring-[#8E0E75]/15 outline-none transition-all"
-                />
-                <Briefcase className="h-4 w-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              </div>
-            </div>
-
             {/* Contraseña de acceso */}
             <div>
               <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#292929] mb-1.5">
@@ -224,11 +205,11 @@ export default function RegisterEmployeePage() {
         {/* Pie de página con enlace */}
         <div className="pt-4 border-t border-[#EAE4F5] text-center">
           <Link
-            href="/dashboard/coordinator"
+            href="/login"
             className="inline-flex items-center gap-1.5 text-xs text-[#4A4A4A] hover:text-[#8E0E75] font-semibold transition-colors"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            <span>Volver a la aplicación principal</span>
+            <span>Volver a Iniciar Sesión</span>
           </Link>
         </div>
       </div>

@@ -8,19 +8,13 @@ import {
   LogIn, 
   Mail, 
   Lock, 
-  AlertCircle, 
-  ShieldCheck, 
-  User, 
-  Clock, 
-  ArrowRight,
-  ExternalLink
+  AlertCircle
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
-import { MOCK_PROFILES } from '@/lib/mock-data';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, switchDemoUser } = useAuth();
+  const { login } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -53,39 +47,6 @@ export default function LoginPage() {
       }
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleQuickLogin = (emailTarget: string) => {
-    setEmail(emailTarget);
-    setPassword('••••••••');
-    setErrorMessage('');
-    
-    let allProfiles = [...MOCK_PROFILES];
-    try {
-      const stored = localStorage.getItem('bug_clockify_pending_users');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        allProfiles = [...allProfiles, ...parsed];
-      }
-    } catch (e) {
-      console.error(e);
-    }
-
-    const found = allProfiles.find((p) => p.email.toLowerCase() === emailTarget.toLowerCase());
-    if (found) {
-      if (found.status === 'pending') {
-        setErrorMessage(
-          'Tu cuenta está registrada pero aún está PENDIENTE de validación por la coordinadora de Brain Up Grup.'
-        );
-        return;
-      }
-      switchDemoUser(found);
-      if (found.role === 'coordinator') {
-        router.push('/dashboard/coordinator');
-      } else {
-        router.push('/dashboard/employee');
-      }
     }
   };
 
@@ -179,48 +140,6 @@ export default function LoginPage() {
           >
             Solicitar alta con enlace
           </Link>
-        </div>
-
-        {/* Selector de Acceso Rápido para Testing y Validación */}
-        <div className="pt-4 border-t border-[#EAE4F5] space-y-2">
-          <p className="text-[10px] font-extrabold uppercase tracking-wider text-[#4A4A4A] text-center">
-            Acceso Rápido de Validación:
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('alejandro.ramos@brainupgrup.com')}
-              className="px-2.5 py-1.5 rounded-sm border border-[#D8CFF0] bg-[#F8F6FC] hover:bg-white text-[10px] font-bold text-[#8E0E75] uppercase tracking-wider transition-colors text-left flex items-center gap-1.5"
-            >
-              <ShieldCheck className="h-3 w-3 shrink-0" />
-              <span className="truncate">Coordinador</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('carlos.mendoza@brainupgrup.com')}
-              className="px-2.5 py-1.5 rounded-sm border border-[#D8CFF0] bg-[#F8F6FC] hover:bg-white text-[10px] font-bold text-[#292929] uppercase tracking-wider transition-colors text-left flex items-center gap-1.5"
-            >
-              <User className="h-3 w-3 shrink-0" />
-              <span className="truncate">Trabajador</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('elena.morales@brainupgrup.com')}
-              className="px-2.5 py-1.5 rounded-sm border border-[#D8CFF0] bg-[#F8F6FC] hover:bg-white text-[10px] font-bold text-[#292929] uppercase tracking-wider transition-colors text-left flex items-center gap-1.5"
-            >
-              <User className="h-3 w-3 shrink-0" />
-              <span className="truncate">Trabajadora</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('marc.torrent@brainupgrup.com')}
-              className="px-2.5 py-1.5 rounded-sm border border-amber-300 bg-amber-50 hover:bg-amber-100 text-[10px] font-bold text-amber-800 uppercase tracking-wider transition-colors text-left flex items-center gap-1.5"
-              title="Probar usuario pendiente de aprobación"
-            >
-              <Clock className="h-3 w-3 shrink-0" />
-              <span className="truncate">Pendiente</span>
-            </button>
-          </div>
         </div>
       </div>
     </div>

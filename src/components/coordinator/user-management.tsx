@@ -266,7 +266,14 @@ export function UserManagement({
               </tr>
             </thead>
             <tbody className="divide-y divide-[#EAE4F5]">
-              {activeEmployees.map((emp) => {
+              {activeEmployees.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-8 text-center text-xs text-[#4A4A4A]">
+                    No hay empleados activos todavía. Las solicitudes aceptadas aparecerán aquí.
+                  </td>
+                </tr>
+              ) : (
+                activeEmployees.map((emp) => {
                 const empEntries = entries.filter((e) => e.user_id === emp.id);
                 const totalMinutes = empEntries.reduce((sum, e) => sum + e.duration_minutes, 0);
 
@@ -342,7 +349,7 @@ export function UserManagement({
                     )}
                   </tr>
                 );
-              })}
+              }))}
             </tbody>
           </table>
         </div>

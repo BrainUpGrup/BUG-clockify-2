@@ -205,11 +205,6 @@ create policy "time_entries_delete_policy" on public.time_entries
   );
 
 -- ==============================================================================
--- DATOS SEMILLA INICIALES (Clientes de prueba con cuotas y datos fiscales)
+-- SISTEMA LISTO PARA PRODUCCIÓN (Base de datos limpia)
+-- Las empresas y clientes se darán de alta por la coordinadora desde el panel.
 -- ==============================================================================
-insert into public.companies (id, name, client_type, monthly_hours_quota, cif, contact_name, contact_email, account_manager, is_active) values
-  ('11111111-1111-1111-1111-111111111111', 'Acme Marketing Agency', 'cuota', 15.00, 'B-65489123', 'Laura Gómez (Dir. Marketing)', 'l.gomez@acmemarketing.com', 'Alejandro Ramos', true),
-  ('22222222-2222-2222-2222-222222222222', 'TechCorp Software', 'puntual', null, 'B-87239104', 'Javier Roca (CTO)', 'j.roca@techcorp.io', 'Carlos Mendoza', true),
-  ('33333333-3333-3333-3333-333333333333', 'Global Retail SA', 'cuota', 20.00, 'A-28941092', 'Marta Beltrán (Operaciones)', 'marta.b@globalretail.es', 'Alejandro Ramos', true),
-  ('44444444-4444-4444-4444-444444444444', 'Innova Media SL', 'cuota', 8.00, 'B-98124091', 'Daniel Serrano (Fundador)', 'daniel@innovamedia.com', 'Alejandro Ramos', true)
-on conflict (id) do nothing;

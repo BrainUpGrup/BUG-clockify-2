@@ -547,7 +547,12 @@ export function MonthlyReports({
 
             {/* Listado interactivo de Clientes Cuota */}
             <div className="space-y-4">
-              {generalStats.quotasBreakdown.map((item) => {
+              {generalStats.quotasBreakdown.length === 0 ? (
+                <div className="p-8 text-center text-xs text-[#4A4A4A] bg-[#F8F6FC] rounded-sm border border-[#D8CFF0]">
+                  No hay clientes con cuota pactada registrados para este período.
+                </div>
+              ) : (
+                generalStats.quotasBreakdown.map((item) => {
                 const targetHours = item.company.monthly_hours_quota || 0;
                 const isFaltan = item.deltaMin < 0;
                 const isSobran = item.deltaMin > 0;
@@ -624,7 +629,7 @@ export function MonthlyReports({
                     </div>
                   </div>
                 );
-              })}
+              }))}
             </div>
           </div>
 
@@ -655,7 +660,14 @@ export function MonthlyReports({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#EAE4F5]">
-                  {companies.map((c) => {
+                  {companies.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-8 text-center text-xs text-[#4A4A4A]">
+                        No hay empresas registradas todavía. Puedes añadir clientes desde la pestaña &quot;Gestión de Empresas&quot;.
+                      </td>
+                    </tr>
+                  ) : (
+                    companies.map((c) => {
                     const cEntries = monthEntries.filter((e) => e.company_id === c.id);
                     const cuotaMin = cEntries
                       .filter((e) => e.compute_type === 'cuota')
@@ -729,7 +741,7 @@ export function MonthlyReports({
                         </td>
                       </tr>
                     );
-                  })}
+                  }))}
                 </tbody>
               </table>
             </div>
@@ -967,6 +979,12 @@ export function MonthlyReports({
         </div>
       )}
 
+      {statsView === 'company' && (!currentCompany || !currentCompanyStats) && (
+        <div className="w-full p-12 text-center text-xs text-[#4A4A4A] bg-white rounded-sm border border-[#D8CFF0]">
+          No hay empresas registradas para mostrar estadísticas. Puedes dar de alta una empresa desde la pestaña &quot;Gestión de Empresas&quot;.
+        </div>
+      )}
+
       {/* ========================================================================= */}
       {/* VISTA 3: ESTADÍSTICAS POR EMPLEADO                                        */}
       {/* ========================================================================= */}
@@ -1138,6 +1156,12 @@ export function MonthlyReports({
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {statsView === 'employee' && (!currentEmployee || !currentEmployeeStats) && (
+        <div className="w-full p-12 text-center text-xs text-[#4A4A4A] bg-white rounded-sm border border-[#D8CFF0]">
+          No hay empleados registrados para mostrar estadísticas. Comparte el enlace de registro desde la pestaña &quot;Gestión de Usuarios&quot;.
         </div>
       )}
     </div>
