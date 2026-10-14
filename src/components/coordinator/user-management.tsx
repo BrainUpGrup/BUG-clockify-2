@@ -35,13 +35,13 @@ export function UserManagement({
   onDeleteUser,
 }: UserManagementProps) {
   const [copied, setCopied] = useState(false);
-  const [registerUrl, setRegisterUrl] = useState('http://localhost:3000/register');
+  const [registerUrl, setRegisterUrl] = useState('http://localhost:3000/register?invite=brainup');
   const [processingId, setProcessingId] = useState<string | null>(null);
 
   // Obtener URL completa del navegador si está disponible
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setRegisterUrl(`${window.location.origin}/register`);
+      setRegisterUrl(`${window.location.origin}/register?invite=brainup`);
     }
   }, []);
 

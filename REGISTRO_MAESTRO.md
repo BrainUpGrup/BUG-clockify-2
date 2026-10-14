@@ -236,5 +236,18 @@
   - `src/components/coordinator/monthly-reports.tsx` y `src/components/coordinator/user-management.tsx`:
     - Implementados estados vacíos (*empty states*) profesionales y limpios para cuando no existan empresas o registros aún.
 
+### [v2.3.1] - 2026-10-14 - Blindaje Exclusivo por Enlace de Invitación y Retirada de Registro Público
+- **Solicitud del Usuario:**
+  1. Suprimir el enlace de registro (`¿Aún no tienes cuenta? Solicitar alta con enlace`) de la pantalla de login.
+  2. Restringir el registro para que sea obligatorio acceder mediante el enlace oficial de invitación facilitado por la coordinadora ("si quieres registrarte tienes que tener el enlace sí o sí").
+- **Decisión Técnica:**
+  - `src/app/login/page.tsx`:
+    - Eliminado el enlace público inferior a `/register`. La pantalla de login queda dedicada única y exclusivamente al inicio de sesión.
+  - `src/components/coordinator/user-management.tsx`:
+    - El enlace oficial copiable por la coordinadora incluye el parámetro de invitación autorizada (`/register?invite=brainup`).
+  - `src/app/register/page.tsx`:
+    - Incorporada validación de token de invitación mediante `useSearchParams`. Si se intenta entrar directamente a `/register` sin el enlace emitido por la coordinadora, el sistema bloquea el formulario mostrando una pantalla informativa de acceso restringido (*"INVITACIÓN REQUERIDA"*) y un botón para volver a `/login`.
+
+
 
 

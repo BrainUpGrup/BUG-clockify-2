@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
   LogIn, 
@@ -130,17 +129,6 @@ export default function LoginPage() {
             <span>{isSubmitting ? 'Iniciando Sesión...' : 'Entrar a mi Cuenta'}</span>
           </button>
         </form>
-
-        {/* Enlace de Registro si es un nuevo empleado */}
-        <div className="pt-2 text-center text-xs text-[#4A4A4A]">
-          ¿Aún no tienes cuenta?{' '}
-          <Link
-            href="/register"
-            className="font-extrabold text-[#8E0E75] hover:text-[#700B5C] uppercase tracking-wider"
-          >
-            Solicitar alta con enlace
-          </Link>
-        </div>
       </div>
     </div>
   );
