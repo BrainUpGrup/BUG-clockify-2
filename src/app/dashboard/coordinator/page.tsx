@@ -291,8 +291,8 @@ export default function CoordinatorDashboardPage() {
     <div className="min-h-screen flex flex-col bg-[#FFFFFF]">
       <Navbar />
 
-      {/* Contenedor Líquido a Pantalla Completa sin barras laterales fijas */}
-      <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      {/* Contenedor Líquido a Pantalla Completa con Animación de Entrada */}
+      <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-6 space-y-6 page-transition">
         {/* Cabecera del Panel Líquida con Identidad Brain Up */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-[#EAE4F5]">
           <div>
@@ -305,15 +305,15 @@ export default function CoordinatorDashboardPage() {
             </p>
           </div>
 
-          {/* Navegación por Pestañas con Estilo Brain Up */}
-          <div className="flex flex-wrap items-center rounded-sm bg-[#F8F6FC] p-1 border border-[#D8CFF0] text-xs font-bold shrink-0 gap-1">
+          {/* Navegación por Pestañas con Estilo Lila Abuela */}
+          <div className="flex flex-wrap items-center rounded-sm bg-[#F8F6FC] p-1 border border-[#D8CFF0] text-xs font-bold shrink-0 gap-1 shadow-2xs">
             <button
               type="button"
               onClick={() => setActiveTab('reports')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-sm uppercase tracking-wider text-xs transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-sm uppercase tracking-wider text-xs transition-all duration-200 cursor-pointer ${
                 activeTab === 'reports'
-                  ? 'bg-white text-[#8E0E75] font-extrabold shadow-xs border border-[#8E0E75]/30'
-                  : 'text-[#4A4A4A] hover:text-[#8E0E75]'
+                  ? 'bg-[#8E0E75] text-white font-extrabold shadow-sm scale-[1.02]'
+                  : 'text-[#4A4A4A] hover:text-[#8E0E75] hover:bg-white'
               }`}
             >
               <BarChart3 className="h-4 w-4" />
@@ -322,10 +322,10 @@ export default function CoordinatorDashboardPage() {
             <button
               type="button"
               onClick={() => setActiveTab('companies')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-sm uppercase tracking-wider text-xs transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-sm uppercase tracking-wider text-xs transition-all duration-200 cursor-pointer ${
                 activeTab === 'companies'
-                  ? 'bg-white text-[#8E0E75] font-extrabold shadow-xs border border-[#8E0E75]/30'
-                  : 'text-[#4A4A4A] hover:text-[#8E0E75]'
+                  ? 'bg-[#8E0E75] text-white font-extrabold shadow-sm scale-[1.02]'
+                  : 'text-[#4A4A4A] hover:text-[#8E0E75] hover:bg-white'
               }`}
             >
               <Building2 className="h-4 w-4" />
@@ -334,10 +334,10 @@ export default function CoordinatorDashboardPage() {
             <button
               type="button"
               onClick={() => setActiveTab('users')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-sm uppercase tracking-wider text-xs transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-sm uppercase tracking-wider text-xs transition-all duration-200 cursor-pointer ${
                 activeTab === 'users'
-                  ? 'bg-white text-[#8E0E75] font-extrabold shadow-xs border border-[#8E0E75]/30'
-                  : 'text-[#4A4A4A] hover:text-[#8E0E75]'
+                  ? 'bg-[#8E0E75] text-white font-extrabold shadow-sm scale-[1.02]'
+                  : 'text-[#4A4A4A] hover:text-[#8E0E75] hover:bg-white'
               }`}
             >
               <Users className="h-4 w-4" />
@@ -346,34 +346,36 @@ export default function CoordinatorDashboardPage() {
           </div>
         </div>
 
-        {/* Contenido según la pestaña activa */}
-        {isLoading ? (
-          <div className="w-full p-12 text-center text-sm text-[#4A4A4A] bg-white rounded-sm border border-[#D8CFF0]">
-            Cargando datos del panel de coordinador...
-          </div>
-        ) : activeTab === 'reports' ? (
-          <MonthlyReports
-            entries={allEntries}
-            companies={companies}
-            employees={employees}
-          />
-        ) : activeTab === 'companies' ? (
-          <CompanyCrud
-            companies={companies}
-            entries={allEntries}
-            onCreateCompany={handleCreateCompany}
-            onToggleCompanyStatus={handleToggleCompanyStatus}
-            onDeleteCompany={handleDeleteCompany}
-          />
-        ) : (
-          <UserManagement
-            employees={employees}
-            entries={allEntries}
-            onApproveUser={handleApproveUser}
-            onRejectUser={handleRejectUser}
-            onDeleteUser={handleDeleteUser}
-          />
-        )}
+        {/* Contenido según la pestaña activa con transición animada suave */}
+        <div key={activeTab} className="tab-transition">
+          {isLoading ? (
+            <div className="w-full p-12 text-center text-sm text-[#4A4A4A] bg-white rounded-sm border border-[#D8CFF0]">
+              Cargando datos del panel de coordinador...
+            </div>
+          ) : activeTab === 'reports' ? (
+            <MonthlyReports
+              entries={allEntries}
+              companies={companies}
+              employees={employees}
+            />
+          ) : activeTab === 'companies' ? (
+            <CompanyCrud
+              companies={companies}
+              entries={allEntries}
+              onCreateCompany={handleCreateCompany}
+              onToggleCompanyStatus={handleToggleCompanyStatus}
+              onDeleteCompany={handleDeleteCompany}
+            />
+          ) : (
+            <UserManagement
+              employees={employees}
+              entries={allEntries}
+              onApproveUser={handleApproveUser}
+              onRejectUser={handleRejectUser}
+              onDeleteUser={handleDeleteUser}
+            />
+          )}
+        </div>
       </main>
     </div>
   );

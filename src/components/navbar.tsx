@@ -78,44 +78,44 @@ export function Navbar() {
           </div>
         </Link>
 
-        {/* Navigation Links según el tipo de cuenta con transiciones y resaltes lila */}
+        {/* Navigation Links según el tipo de cuenta con transiciones y resaltes lila abuela */}
         <nav className="hidden md:flex items-center gap-1.5 bg-[#F8F6FC] p-1 rounded-sm border border-[#D8CFF0] shrink-0">
           {isAdmin ? (
             <Link
               href="/dashboard/admin"
-              className={`whitespace-nowrap flex items-center gap-2 px-3.5 py-1.5 rounded-sm text-xs font-extrabold uppercase tracking-wider transition-all duration-200 ${
+              className={`whitespace-nowrap flex items-center gap-2 px-3.5 py-1.5 rounded-sm text-xs uppercase tracking-wider transition-all duration-200 ${
                 isAdminActive
-                  ? 'bg-white text-[#8E0E75] shadow-xs border border-[#8E0E75]/40 ring-2 ring-[#D8CFF0]/50 scale-[1.02]'
-                  : 'text-[#4A4A4A] hover:text-[#8E0E75] hover:bg-white/80'
+                  ? 'bg-[#8E0E75] text-white font-extrabold shadow-sm scale-[1.02]'
+                  : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75] hover:bg-white/80'
               }`}
             >
-              <ShieldCheck className="h-4 w-4 text-[#8E0E75] shrink-0" />
+              <ShieldCheck className={`h-4 w-4 shrink-0 ${isAdminActive ? 'text-white' : 'text-[#8E0E75]'}`} />
               <span>Panel Super Admin</span>
             </Link>
           ) : (
             <>
               <Link
                 href="/dashboard/employee"
-                className={`whitespace-nowrap flex items-center gap-2 px-3.5 py-1.5 rounded-sm text-xs font-extrabold uppercase tracking-wider transition-all duration-200 ${
+                className={`whitespace-nowrap flex items-center gap-2 px-3.5 py-1.5 rounded-sm text-xs uppercase tracking-wider transition-all duration-200 ${
                   isEmployeeActive
-                    ? 'bg-white text-[#8E0E75] shadow-xs border border-[#8E0E75]/40 ring-2 ring-[#D8CFF0]/50 scale-[1.02]'
-                    : 'text-[#4A4A4A] hover:text-[#8E0E75] hover:bg-white/80'
+                    ? 'bg-[#8E0E75] text-white font-extrabold shadow-sm scale-[1.02]'
+                    : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75] hover:bg-white/80'
                 }`}
               >
-                <Clock className="h-4 w-4 text-[#8E0E75] shrink-0" />
+                <Clock className={`h-4 w-4 shrink-0 ${isEmployeeActive ? 'text-white' : 'text-[#8E0E75]'}`} />
                 <span>Mi Registro Horario</span>
               </Link>
 
               {isCoordinator && (
                 <Link
                   href="/dashboard/coordinator"
-                  className={`whitespace-nowrap flex items-center gap-2 px-3.5 py-1.5 rounded-sm text-xs font-extrabold uppercase tracking-wider transition-all duration-200 ${
+                  className={`whitespace-nowrap flex items-center gap-2 px-3.5 py-1.5 rounded-sm text-xs uppercase tracking-wider transition-all duration-200 ${
                     isCoordinatorActive
-                      ? 'bg-white text-[#8E0E75] shadow-xs border border-[#8E0E75]/40 ring-2 ring-[#D8CFF0]/50 scale-[1.02]'
-                      : 'text-[#4A4A4A] hover:text-[#8E0E75] hover:bg-white/80'
+                      ? 'bg-[#8E0E75] text-white font-extrabold shadow-sm scale-[1.02]'
+                      : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75] hover:bg-white/80'
                   }`}
                 >
-                  <BarChart3 className="h-4 w-4 text-[#8E0E75] shrink-0" />
+                  <BarChart3 className={`h-4 w-4 shrink-0 ${isCoordinatorActive ? 'text-white' : 'text-[#8E0E75]'}`} />
                   <span>Panel Coordinador</span>
                 </Link>
               )}
@@ -142,7 +142,7 @@ export function Navbar() {
             <button
               type="button"
               onClick={handleLogoutClick}
-              className="ml-2 p-2 rounded-sm border border-[#D8CFF0] bg-[#F8F6FC] text-[#4A4A4A] hover:bg-white hover:text-rose-600 hover:border-rose-300 transition-all cursor-pointer"
+              className="ml-2 p-2 rounded-sm border border-[#D8CFF0] bg-[#F8F6FC] text-[#4A4A4A] hover:bg-white hover:text-red-600 hover:border-red-300 transition-all cursor-pointer"
               title="Cerrar sesión"
             >
               <LogOut className="h-4 w-4" />
@@ -157,33 +157,33 @@ export function Navbar() {
         {isAdmin ? (
           <Link
             href="/dashboard/admin"
-            className={`whitespace-nowrap flex items-center gap-1.5 px-3 py-1 rounded-sm text-xs font-extrabold uppercase tracking-wider ${
-              isAdminActive ? 'bg-white text-[#8E0E75] shadow-xs border border-[#8E0E75]/30' : 'text-[#4A4A4A]'
+            className={`whitespace-nowrap flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs uppercase tracking-wider transition-all ${
+              isAdminActive ? 'bg-[#8E0E75] text-white font-extrabold shadow-sm' : 'text-[#4A4A4A] font-bold'
             }`}
           >
-            <ShieldCheck className="h-3.5 w-3.5 text-[#8E0E75]" />
+            <ShieldCheck className={`h-3.5 w-3.5 ${isAdminActive ? 'text-white' : 'text-[#8E0E75]'}`} />
             <span>Super Admin</span>
           </Link>
         ) : (
           <>
             <Link
               href="/dashboard/employee"
-              className={`whitespace-nowrap flex items-center gap-1.5 px-3 py-1 rounded-sm text-xs font-extrabold uppercase tracking-wider ${
-                isEmployeeActive ? 'bg-white text-[#8E0E75] shadow-xs border border-[#8E0E75]/30' : 'text-[#4A4A4A]'
+              className={`whitespace-nowrap flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs uppercase tracking-wider transition-all ${
+                isEmployeeActive ? 'bg-[#8E0E75] text-white font-extrabold shadow-sm' : 'text-[#4A4A4A] font-bold'
               }`}
             >
-              <Clock className="h-3.5 w-3.5 text-[#8E0E75]" />
+              <Clock className={`h-3.5 w-3.5 ${isEmployeeActive ? 'text-white' : 'text-[#8E0E75]'}`} />
               <span>Mi Registro</span>
             </Link>
 
             {isCoordinator && (
               <Link
                 href="/dashboard/coordinator"
-                className={`whitespace-nowrap flex items-center gap-1.5 px-3 py-1 rounded-sm text-xs font-extrabold uppercase tracking-wider ${
-                  isCoordinatorActive ? 'bg-white text-[#8E0E75] shadow-xs border border-[#8E0E75]/30' : 'text-[#4A4A4A]'
+                className={`whitespace-nowrap flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs uppercase tracking-wider transition-all ${
+                  isCoordinatorActive ? 'bg-[#8E0E75] text-white font-extrabold shadow-sm' : 'text-[#4A4A4A] font-bold'
                 }`}
               >
-                <BarChart3 className="h-3.5 w-3.5 text-[#8E0E75]" />
+                <BarChart3 className={`h-3.5 w-3.5 ${isCoordinatorActive ? 'text-white' : 'text-[#8E0E75]'}`} />
                 <span>Panel Coordinador</span>
               </Link>
             )}

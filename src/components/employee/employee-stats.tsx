@@ -66,12 +66,18 @@ export function EmployeeStats({ entries }: EmployeeStatsProps) {
         <div className="mt-3">
           <div className="flex justify-between text-[11px] font-bold text-[#4A4A4A] mb-1 tabular-nums">
             <span className="uppercase tracking-wider">Jornada</span>
-            <span>{dailyProgressPercent}%</span>
+            <span className={dailyProgressPercent >= 100 ? 'text-emerald-600 font-extrabold' : dailyProgressPercent >= 40 ? 'text-amber-600 font-bold' : 'text-red-600 font-bold'}>
+              {dailyProgressPercent}%
+            </span>
           </div>
           <div className="h-1.5 w-full bg-[#F8F6FC] rounded-sm overflow-hidden border border-[#D8CFF0]">
             <div
-              className={`h-full transition-all duration-500 ${
-                dailyProgressPercent >= 100 ? 'bg-[#3BB54A]' : 'bg-[#8E0E75]'
+              className={`h-full transition-all duration-700 ease-out ${
+                dailyProgressPercent >= 100
+                  ? 'bg-emerald-500 shadow-xs'
+                  : dailyProgressPercent >= 40
+                  ? 'bg-amber-400'
+                  : 'bg-red-500'
               }`}
               style={{ width: `${dailyProgressPercent}%` }}
             />

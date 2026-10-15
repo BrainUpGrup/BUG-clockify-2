@@ -217,26 +217,26 @@ export function TimeTrackerBar({ companies, onAddEntry }: TimeTrackerBarProps) {
             type="button"
             onClick={() => !isTimerRunning && setMode('timer')}
             disabled={isTimerRunning}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm transition-all uppercase tracking-wider font-bold text-[11px] ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm transition-all uppercase tracking-wider text-[11px] ${
               mode === 'timer'
-                ? 'bg-white text-[#8E0E75] shadow-xs border border-[#8E0E75]/30'
-                : 'text-[#4A4A4A] hover:text-[#8E0E75]'
+                ? 'bg-[#8E0E75] text-white font-extrabold shadow-sm scale-[1.02]'
+                : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75]'
             }`}
           >
-            <TimerIcon className="h-3.5 w-3.5 text-[#8E0E75]" />
+            <TimerIcon className={`h-3.5 w-3.5 ${mode === 'timer' ? 'text-white' : 'text-[#8E0E75]'}`} />
             <span>Temporizador</span>
           </button>
           <button
             type="button"
             onClick={() => !isTimerRunning && setMode('manual')}
             disabled={isTimerRunning}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm transition-all uppercase tracking-wider font-bold text-[11px] ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm transition-all uppercase tracking-wider text-[11px] ${
               mode === 'manual'
-                ? 'bg-white text-[#8E0E75] shadow-xs border border-[#8E0E75]/30'
-                : 'text-[#4A4A4A] hover:text-[#8E0E75]'
+                ? 'bg-[#8E0E75] text-white font-extrabold shadow-sm scale-[1.02]'
+                : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75]'
             }`}
           >
-            <Clock className="h-3.5 w-3.5 text-[#8E0E75]" />
+            <Clock className={`h-3.5 w-3.5 ${mode === 'manual' ? 'text-white' : 'text-[#8E0E75]'}`} />
             <span>Entrada Manual</span>
           </button>
         </div>

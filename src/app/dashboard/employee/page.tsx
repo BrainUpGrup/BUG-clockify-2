@@ -184,8 +184,8 @@ export default function EmployeeDashboardPage() {
     <div className="min-h-screen bg-[#FFFFFF] flex flex-col w-full">
       <Navbar />
 
-      {/* Contenedor Líquido a pantalla completa */}
-      <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      {/* Contenedor Líquido a pantalla completa con animación de entrada suave */}
+      <main className="page-transition flex-1 w-full px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         {/* Cabecera Limpia y Perfectamente Alineada */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#EAE4F5] gap-3">
           <div>

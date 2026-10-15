@@ -214,7 +214,7 @@ export function UserManagement({
                           type="button"
                           disabled={processingId === cand.id}
                           onClick={() => handleApprove(cand.id)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-[#3BB54A] text-white text-xs font-extrabold uppercase tracking-wider hover:bg-[#32993E] active:scale-95 disabled:opacity-50 transition-all shadow-xs cursor-pointer"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-[#10B981] text-white text-xs font-extrabold uppercase tracking-wider hover:bg-[#059669] active:scale-95 disabled:opacity-50 transition-all shadow-xs cursor-pointer"
                           title="Aceptar y activar cuenta de empleado"
                         >
                           <UserCheck className="h-3.5 w-3.5" />
@@ -224,7 +224,7 @@ export function UserManagement({
                           type="button"
                           disabled={processingId === cand.id}
                           onClick={() => handleReject(cand.id)}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-sm border border-rose-200 bg-white text-rose-600 hover:bg-rose-50 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-sm border border-red-300 bg-red-50 text-red-700 hover:bg-red-100 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
                           title="Rechazar solicitud"
                         >
                           <UserX className="h-3.5 w-3.5" />

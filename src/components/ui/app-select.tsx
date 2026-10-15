@@ -110,15 +110,15 @@ export function AppSelect({
                   onClick={() => handleSelect(option.value)}
                   className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-sm text-xs font-semibold text-left transition-all duration-150 cursor-pointer ${
                     isSelected
-                      ? 'bg-[#D8CFF0]/40 text-[#8E0E75] font-extrabold border-l-3 border-[#8E0E75] shadow-xs'
+                      ? 'bg-[#8E0E75] text-white font-extrabold shadow-xs'
                       : 'text-[#292929] hover:bg-[#F8F6FC] hover:text-[#8E0E75] hover:pl-4'
                   }`}
                 >
                   <div className="flex items-center gap-2 truncate">
-                    {option.icon && <span className="shrink-0 text-[#8E0E75]">{option.icon}</span>}
+                    {option.icon && <span className={`shrink-0 ${isSelected ? 'text-white' : 'text-[#8E0E75]'}`}>{option.icon}</span>}
                     <span className="truncate">{option.label}</span>
                   </div>
-                  {isSelected && <Check className="h-4 w-4 text-[#8E0E75] shrink-0" />}
+                  {isSelected && <Check className="h-4 w-4 text-white shrink-0" />}
                 </button>
               );
             })

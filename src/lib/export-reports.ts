@@ -17,8 +17,10 @@ const BRAND_DARK_INDIGO = [25, 22, 84] as const; // #191654 (Azul índigo profun
 const BRAND_LILAC_BG = [248, 246, 252] as const; // #F8F6FC (Lila casi blanco)
 const BRAND_LILAC_BORDER = [216, 207, 240] as const; // #D8CFF0 (Lila pastel acento)
 const BRAND_LILAC_LIGHT = [238, 234, 245] as const; // #EEEAF5
-const COLOR_SUCCESS = [16, 185, 129] as const; // #10B981 (Verde éxito / exacta)
-const COLOR_WARNING = [217, 119, 6] as const; // #D97706 (Ámbar horas faltantes)
+const COLOR_SUCCESS = [16, 185, 129] as const; // #10B981 (Verde éxito / exacta / bien hecho)
+const COLOR_DANGER = [220, 38, 38] as const; // #DC2626 (Rojo horas faltantes / déficit / menor)
+const COLOR_PROCESS = [245, 158, 11] as const; // #F59E0B (Amarillo / en proceso)
+const COLOR_WARNING = [220, 38, 38] as const; // #DC2626 (Rojo alerta déficit)
 const COLOR_DARK = [35, 35, 35] as const; // #232323 (Gris carbón)
 const COLOR_MUTED = [105, 105, 105] as const; // #696969
 
@@ -335,21 +337,21 @@ export async function exportGeneralReportToPDF(params: {
   doc.text('Cuota Consumida', 20, currentY + 2.2);
 
   // 2. Horas faltantes
-  doc.setFillColor(254, 243, 199);
-  doc.setDrawColor(245, 158, 11);
+  doc.setFillColor(254, 226, 226);
+  doc.setDrawColor(220, 38, 38);
   doc.rect(56, currentY, 4, 2.5, 'FD');
-  doc.text('Horas Faltantes', 62, currentY + 2.2);
+  doc.text('Horas Faltantes (Déficit)', 62, currentY + 2.2);
 
   // 3. Horas sobrantes
   doc.setFillColor(...BRAND_DARK_INDIGO);
-  doc.rect(98, currentY, 4, 2.5, 'F');
-  doc.text('Horas Sobrantes (Exceso)', 104, currentY + 2.2);
+  doc.rect(106, currentY, 4, 2.5, 'F');
+  doc.text('Horas Sobrantes (Exceso)', 112, currentY + 2.2);
 
   // 4. Marca Meta 100%
   doc.setDrawColor(40, 40, 40);
   doc.setLineWidth(0.6);
-  doc.line(152, currentY, 152, currentY + 2.5);
-  doc.text('Meta Pactada (100%)', 155, currentY + 2.2);
+  doc.line(160, currentY, 160, currentY + 2.5);
+  doc.text('Meta Pactada (100%)', 163, currentY + 2.2);
 
   currentY += 5.5;
 
@@ -388,7 +390,7 @@ export async function exportGeneralReportToPDF(params: {
 
     // Franja lateral según estado
     if (delta < 0) {
-      doc.setFillColor(245, 158, 11);
+      doc.setFillColor(220, 38, 38); // Rojo para déficit / menor
     } else if (delta > 0) {
       doc.setFillColor(...BRAND_PURPLE);
     } else {
@@ -409,10 +411,10 @@ export async function exportGeneralReportToPDF(params: {
     const badgeY = currentY + 2;
 
     if (delta < 0) {
-      doc.setFillColor(254, 243, 199);
-      doc.setDrawColor(245, 158, 11);
+      doc.setFillColor(254, 226, 226);
+      doc.setDrawColor(220, 38, 38);
       doc.roundedRect(badgeX, badgeY, badgeW, badgeH, 1, 1, 'FD');
-      doc.setTextColor(180, 83, 9);
+      doc.setTextColor(220, 38, 38);
       doc.setFontSize(6.5);
       doc.setFont('helvetica', 'bold');
       doc.text(`Faltan: ${formatMinutes(Math.abs(delta))}`, badgeX + badgeW / 2, badgeY + 3.6, { align: 'center' });
@@ -461,9 +463,9 @@ export async function exportGeneralReportToPDF(params: {
         doc.setFillColor(...BRAND_PURPLE);
         doc.roundedRect(barX, barY, Math.max(cuotaPx, 1), barHeight, 1, 1, 'F');
       }
-      // Faltante en amarillo suave
+      // Faltante en rojo suave
       if (targetPx > cuotaPx) {
-        doc.setFillColor(254, 243, 199);
+        doc.setFillColor(254, 226, 226);
         doc.roundedRect(barX + cuotaPx, barY, targetPx - cuotaPx, barHeight, 0.5, 0.5, 'F');
       }
     } else {
@@ -564,11 +566,11 @@ export async function exportGeneralReportToPDF(params: {
       if (data.section === 'body' && data.column.index === 5) {
         const val = String(data.cell.raw);
         if (val.startsWith('Faltan')) {
-          data.cell.styles.textColor = [180, 83, 9];
+          data.cell.styles.textColor = [220, 38, 38]; // Rojo (menor o malo)
         } else if (val.startsWith('Sobran')) {
           data.cell.styles.textColor = [...BRAND_PURPLE];
         } else if (val.includes('milímetro')) {
-          data.cell.styles.textColor = [6, 95, 70];
+          data.cell.styles.textColor = [16, 185, 129]; // Verde (bien hecho)
         }
       }
     },
@@ -703,14 +705,14 @@ export async function exportCompanyReportToPDF(
     const bannerH = 14;
 
     if (delta < 0) {
-      doc.setFillColor(254, 243, 199);
-      doc.setDrawColor(245, 158, 11);
+      doc.setFillColor(254, 226, 226);
+      doc.setDrawColor(220, 38, 38);
       doc.setLineWidth(0.35);
       doc.roundedRect(14, nextSectionY, contentWidth, bannerH, 1.5, 1.5, 'FD');
-      doc.setFillColor(245, 158, 11);
+      doc.setFillColor(220, 38, 38);
       doc.roundedRect(14, nextSectionY, 3, bannerH, 1, 1, 'F');
 
-      doc.setTextColor(180, 83, 9);
+      doc.setTextColor(220, 38, 38);
       doc.setFontSize(8.5);
       doc.setFont('helvetica', 'bold');
       doc.text(`DICTAMEN: HORAS FALTANTES PARA COMPLETAR CUOTA (${formatMinutes(Math.abs(delta))})`, 20, nextSectionY + 5.5);
@@ -788,7 +790,7 @@ export async function exportCompanyReportToPDF(
         doc.roundedRect(barX, barY, Math.max(cuotaPx, 1), 4, 1, 1, 'F');
       }
       if (targetPx > cuotaPx) {
-        doc.setFillColor(254, 243, 199);
+        doc.setFillColor(254, 226, 226);
         doc.roundedRect(barX + cuotaPx, barY, targetPx - cuotaPx, 4, 0.5, 0.5, 'F');
       }
     } else {

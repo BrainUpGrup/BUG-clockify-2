@@ -324,8 +324,8 @@ export function CompanyCrud({
                         <span
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-sm text-[10px] font-extrabold uppercase tracking-wider border ${
                             company.is_active
-                              ? 'bg-[#3BB54A]/10 text-[#3BB54A] border-[#3BB54A]/30'
-                              : 'bg-slate-100 text-slate-500 border-slate-200'
+                              ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                              : 'bg-red-50 text-red-700 border-red-300'
                           }`}
                         >
                           {company.is_active ? 'Activa' : 'Archivada'}

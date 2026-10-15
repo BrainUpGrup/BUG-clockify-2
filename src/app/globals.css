@@ -6,9 +6,23 @@
   --background: #FFFFFF;
   --foreground: #4A4A4A;
   --brand-purple: #8E0E75;
+  --brand-purple-hover: #700B5C;
   --brand-lilac: #D8CFF0;
   --brand-bg-lilac: #F8F6FC;
   --brand-dark: #191654;
+
+  /* Sistema de Color Semántico Institucional */
+  --status-bad-red: #DC2626;
+  --status-bad-bg: #FEF2F2;
+  --status-bad-border: #FCA5A5;
+
+  --status-process-yellow: #F59E0B;
+  --status-process-bg: #FFFBEB;
+  --status-process-border: #FCD34D;
+
+  --status-good-green: #10B981;
+  --status-good-bg: #ECFDF5;
+  --status-good-border: #A7F3D0;
 }
 
 body {
@@ -17,32 +31,136 @@ body {
   font-family: var(--font-montserrat), sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  overflow-x: hidden;
 }
 
-/* Color seleccionable corporativo lila del logotipo de Brain Up Grup */
+/* ========================================================================= */
+/* SELECCIÓN CORPORATIVA LILA DE LA ABUELA                                    */
+/* ========================================================================= */
 ::selection {
-  background-color: #D8CFF0;
-  color: #8E0E75;
+  background-color: #8E0E75 !important;
+  color: #FFFFFF !important;
 }
 
 ::-moz-selection {
-  background-color: #D8CFF0;
-  color: #8E0E75;
+  background-color: #8E0E75 !important;
+  color: #FFFFFF !important;
 }
 
-/* Transiciones globales suaves para interactividad óptima */
-button, a, input, select, textarea {
-  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+/* Accent color para checkboxes, radios y sliders nativos */
+input[type="checkbox"], 
+input[type="radio"], 
+input[type="range"] {
+  accent-color: #8E0E75 !important;
 }
 
-/* Focus ring corporativo lila para todos los elementos seleccionables */
+/* ========================================================================= */
+/* ANIMACIONES Y TRANSICIONES ENTRE PÁGINAS Y VISTAS                         */
+/* ========================================================================= */
+@keyframes pageEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes tabFadeScale {
+  0% {
+    opacity: 0;
+    transform: translateY(4px) scale(0.995);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes pulseLive {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.82;
+    transform: scale(1.03);
+  }
+}
+
+@keyframes badgePop {
+  0% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.page-transition {
+  animation: pageEnter 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.tab-transition {
+  animation: tabFadeScale 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-pulse-live {
+  animation: pulseLive 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.badge-pop {
+  animation: badgePop 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Transiciones interactivas optimizadas para todos los controles */
+button, a, input, select, textarea, [role="button"], .transition-interactive {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+button:active:not(:disabled), a:active:not(:disabled) {
+  transform: scale(0.985);
+}
+
+/* Focus ring corporativo lila de La Abuela */
 input:focus, 
 select:focus, 
 textarea:focus, 
 button:focus-visible {
   outline: none;
   border-color: #8E0E75 !important;
-  box-shadow: 0 0 0 3px rgba(216, 207, 240, 0.55), 0 1px 2px rgba(142, 14, 117, 0.1) !important;
+  box-shadow: 0 0 0 3px rgba(142, 14, 117, 0.22), 0 1px 3px rgba(142, 14, 117, 0.1) !important;
+}
+
+/* ========================================================================= */
+/* CLASES SEMÁNTICAS: ROJO (MENOR/MALO), AMARILLO (PROCESO), VERDE (BIEN)    */
+/* ========================================================================= */
+.status-badge-bad {
+  background-color: #FEF2F2 !important;
+  border-color: #FCA5A5 !important;
+  color: #DC2626 !important;
+}
+
+.status-badge-process {
+  background-color: #FFFBEB !important;
+  border-color: #FCD34D !important;
+  color: #B45309 !important;
+}
+
+.status-badge-good {
+  background-color: #ECFDF5 !important;
+  border-color: #A7F3D0 !important;
+  color: #065F46 !important;
+}
+
+.status-badge-selected {
+  background-color: #8E0E75 !important;
+  border-color: #8E0E75 !important;
+  color: #FFFFFF !important;
 }
 
 /* Botón Primario Corporativo con elevación sutil */
@@ -59,11 +177,11 @@ button:focus-visible {
 .btn-editorial-primary:hover {
   background-color: #700B5C;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(142, 14, 117, 0.2);
+  box-shadow: 0 4px 14px rgba(142, 14, 117, 0.25);
 }
 
 .btn-editorial-primary:active {
-  transform: translateY(0);
+  transform: translateY(0) scale(0.985);
 }
 
 /* Estilo Editorial Secundario */
@@ -87,17 +205,18 @@ button:focus-visible {
 }
 
 .btn-editorial-secondary:active {
-  transform: translateY(0);
+  transform: translateY(0) scale(0.985);
 }
 
 /* Tarjetas interactivas con realce lila */
 .interactive-card {
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .interactive-card:hover {
   border-color: #8E0E75;
-  box-shadow: 0 4px 16px rgba(142, 14, 117, 0.06);
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 18px rgba(142, 14, 117, 0.08);
 }
 
 /* Píldoras y badges seleccionables en lila */
@@ -133,8 +252,10 @@ button:focus-visible {
 ::-webkit-scrollbar-thumb {
   background: #D8CFF0;
   border-radius: 3px;
+  transition: background 0.2s;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: #8E0E75;
 }
+

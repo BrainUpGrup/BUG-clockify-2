@@ -469,7 +469,7 @@ export default function SuperAdminDashboardPage() {
     <div className="min-h-screen bg-[#F8F6FC] flex flex-col font-sans">
       <Navbar />
 
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <main className="page-transition flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         
         {/* Cabecera Principal del Super Admin */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-[#D8CFF0] p-6 rounded-sm shadow-xs">
@@ -562,50 +562,52 @@ export default function SuperAdminDashboardPage() {
           </div>
         </div>
 
-        {/* Barra de Pestañas Principales */}
-        <div className="flex border-b border-[#D8CFF0] gap-2">
+        {/* Barra de Pestañas Principales con resalte Lila Abuela y transiciones suaves */}
+        <div className="flex border-b border-[#D8CFF0] gap-2 flex-wrap">
           <button
             type="button"
             onClick={() => setActiveTab('users')}
-            className={`flex items-center gap-2 px-5 py-3 text-xs font-extrabold uppercase tracking-wider border-b-2 transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-5 py-3 text-xs uppercase tracking-wider rounded-t-sm transition-all cursor-pointer ${
               activeTab === 'users'
-                ? 'border-[#8E0E75] text-[#8E0E75] bg-white shadow-xs'
-                : 'border-transparent text-[#4A4A4A] hover:text-[#8E0E75] hover:bg-white/50'
+                ? 'bg-[#8E0E75] text-white font-extrabold shadow-sm scale-[1.02]'
+                : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75] hover:bg-[#F8F6FC]'
             }`}
           >
-            <Users className="h-4 w-4" />
+            <Users className={`h-4 w-4 ${activeTab === 'users' ? 'text-white' : 'text-[#8E0E75]'}`} />
             <span>Gestión y Corrección de Cuentas ({filteredProfiles.length})</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('create_coordinator')}
-            className={`flex items-center gap-2 px-5 py-3 text-xs font-extrabold uppercase tracking-wider border-b-2 transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-5 py-3 text-xs uppercase tracking-wider rounded-t-sm transition-all cursor-pointer ${
               activeTab === 'create_coordinator'
-                ? 'border-[#8E0E75] text-[#8E0E75] bg-white shadow-xs'
-                : 'border-transparent text-[#4A4A4A] hover:text-[#8E0E75] hover:bg-white/50'
+                ? 'bg-[#8E0E75] text-white font-extrabold shadow-sm scale-[1.02]'
+                : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75] hover:bg-[#F8F6FC]'
             }`}
           >
-            <UserPlus className="h-4 w-4" />
+            <UserPlus className={`h-4 w-4 ${activeTab === 'create_coordinator' ? 'text-white' : 'text-[#8E0E75]'}`} />
             <span>Alta Directa de Coordinadora</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('health')}
-            className={`flex items-center gap-2 px-5 py-3 text-xs font-extrabold uppercase tracking-wider border-b-2 transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-5 py-3 text-xs uppercase tracking-wider rounded-t-sm transition-all cursor-pointer ${
               activeTab === 'health'
-                ? 'border-[#8E0E75] text-[#8E0E75] bg-white shadow-xs'
-                : 'border-transparent text-[#4A4A4A] hover:text-[#8E0E75] hover:bg-white/50'
+                ? 'bg-[#8E0E75] text-white font-extrabold shadow-sm scale-[1.02]'
+                : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75] hover:bg-[#F8F6FC]'
             }`}
           >
-            <Server className="h-4 w-4" />
+            <Server className={`h-4 w-4 ${activeTab === 'health' ? 'text-white' : 'text-[#8E0E75]'}`} />
             <span>Diagnóstico del Sistema</span>
           </button>
         </div>
 
-        {/* PESTAÑA 1: GESTIÓN Y CORRECCIÓN DE CUENTAS */}
-        {activeTab === 'users' && (
+        {/* Contenido de pestaña con animación de transición suave */}
+        <div key={activeTab} className="tab-transition">
+          {/* PESTAÑA 1: GESTIÓN Y CORRECCIÓN DE CUENTAS */}
+          {activeTab === 'users' && (
           <div className="space-y-4">
             {/* Filtros y Buscador */}
             <div className="bg-white border border-[#D8CFF0] p-4 rounded-sm shadow-xs flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
@@ -762,7 +764,7 @@ export default function SuperAdminDashboardPage() {
                                       ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
                                       : p.status === 'pending'
                                       ? 'bg-amber-50 text-amber-800 border-amber-300'
-                                      : 'bg-rose-50 text-rose-800 border-rose-300'
+                                      : 'bg-red-50 text-red-800 border-red-300'
                                   }`}
                                 >
                                   {(p.status || 'active') === 'active' ? (
@@ -777,7 +779,7 @@ export default function SuperAdminDashboardPage() {
                                     </>
                                   ) : (
                                     <>
-                                      <XCircle className="h-3 w-3 text-rose-600" />
+                                      <XCircle className="h-3 w-3 text-red-600" />
                                       Rechazado
                                     </>
                                   )}
@@ -1087,6 +1089,7 @@ export default function SuperAdminDashboardPage() {
             </div>
           </div>
         )}
+        </div>
 
       </main>
 
