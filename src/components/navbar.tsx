@@ -9,7 +9,9 @@ import {
   BarChart3, 
   ShieldCheck, 
   User, 
-  LogOut 
+  LogOut,
+  LayoutGrid,
+  CheckSquare
 } from 'lucide-react';
 
 export function Navbar() {
@@ -17,8 +19,11 @@ export function Navbar() {
   const router = useRouter();
   const { user, logout } = useAuth();
 
+  const isHubActive = pathname === '/hub';
   const isEmployeeActive = pathname.includes('/employee');
   const isCoordinatorActive = pathname.includes('/coordinator');
+  const isClockifyActive = isEmployeeActive || isCoordinatorActive;
+  const isTaskFlowActive = pathname.includes('/taskflow');
   const isAdminActive = pathname.includes('/admin');
   const isAdmin = user?.role === 'admin';
   const isCoordinator = user?.role === 'coordinator';
@@ -39,21 +44,27 @@ export function Navbar() {
         .toUpperCase()
     : 'BU';
 
-  // Destino del logo según el rol
-  const logoHref = isAdmin
-    ? '/dashboard/admin'
-    : isCoordinator
-    ? '/dashboard/coordinator'
-    : '/dashboard/employee';
+  // Destino del logo: siempre al HUB Central
+  const logoHref = '/hub';
+
+  // Badge de la cabecera
+  const appBadge = isHubActive 
+    ? 'HUB' 
+    : isTaskFlowActive 
+    ? 'TASKFLOW' 
+    : isAdminActive 
+    ? 'ADMIN' 
+    : 'CLOCKIFY';
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-[#EAE4F5] bg-white/95 backdrop-blur shadow-xs">
+    <header className="sticky top-0 z-50 w-full border-b border-[#EAE4F5] bg-[var(--hub-header,#FFFFFF)]/95 backdrop-blur shadow-xs transition-colors duration-200">
       <div className="w-full flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8 gap-4">
         
         {/* Logo Corporativo de Brain Up Grup ("La Abuela") */}
         <Link
           href={logoHref}
           className="flex items-center gap-3 shrink-0 group"
+          title="Ir al HUB de Aplicaciones"
         >
           <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full ring-2 ring-[#8E0E75]/30 group-hover:ring-[#8E0E75] transition-all bg-[#F8F6FC]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -69,58 +80,75 @@ export function Navbar() {
                 BRAIN <span className="text-[#8E0E75]">UP</span>
               </span>
               <span className="rounded-sm bg-[#F8F6FC] px-1.5 py-0.5 text-[10px] font-extrabold text-[#8E0E75] uppercase tracking-wider border border-[#D8CFF0]">
-                {isAdmin ? 'ADMIN' : 'CLOCKIFY'}
+                {appBadge}
               </span>
             </div>
             <p className="text-[10px] text-[#4A4A4A] font-light leading-none mt-1">
-              {isAdmin ? 'Administración Global del Sistema' : 'Control Horario por Empresa'}
+              {isHubActive ? 'Suite de Herramientas Interconectadas' : 'Ecosistema de Aplicaciones Brain Up'}
             </p>
           </div>
         </Link>
 
-        {/* Navigation Links según el tipo de cuenta con transiciones y resaltes lila abuela */}
+        {/* Navigation Links con Acceso Rápido al HUB y a las Aplicaciones */}
         <nav className="hidden md:flex items-center gap-1.5 bg-[#F8F6FC] p-1 rounded-sm border border-[#D8CFF0] shrink-0">
-          {isAdmin ? (
+          
+          {/* Botón Principal al HUB */}
+          <Link
+            href="/hub"
+            className={`whitespace-nowrap flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs uppercase tracking-wider transition-all duration-200 ${
+              isHubActive
+                ? 'bg-[#8E0E75] text-white font-extrabold shadow-sm scale-[1.02]'
+                : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75] hover:bg-white/80'
+            }`}
+            title="Panel central de selección de aplicaciones"
+          >
+            <LayoutGrid className={`h-3.5 w-3.5 shrink-0 ${isHubActive ? 'text-white' : 'text-[#8E0E75]'}`} />
+            <span>HUB Apps</span>
+          </Link>
+
+          {/* Clockify */}
+          <Link
+            href={isCoordinator ? '/dashboard/coordinator' : '/dashboard/employee'}
+            className={`whitespace-nowrap flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs uppercase tracking-wider transition-all duration-200 ${
+              isClockifyActive
+                ? 'bg-[#8E0E75] text-white font-extrabold shadow-sm scale-[1.02]'
+                : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75] hover:bg-white/80'
+            }`}
+            title="Control Horario y Cuotas de Clientes"
+          >
+            <Clock className={`h-3.5 w-3.5 shrink-0 ${isClockifyActive ? 'text-white' : 'text-[#8E0E75]'}`} />
+            <span>Clockify</span>
+          </Link>
+
+          {/* TaskFlow (App de prueba del Hub) */}
+          <Link
+            href="/apps/taskflow"
+            className={`whitespace-nowrap flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs uppercase tracking-wider transition-all duration-200 ${
+              isTaskFlowActive
+                ? 'bg-[#8E0E75] text-white font-extrabold shadow-sm scale-[1.02]'
+                : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75] hover:bg-white/80'
+            }`}
+            title="Gestión de Proyectos & Tareas"
+          >
+            <CheckSquare className={`h-3.5 w-3.5 shrink-0 ${isTaskFlowActive ? 'text-white' : 'text-[#8E0E75]'}`} />
+            <span>TaskFlow</span>
+          </Link>
+
+          {/* Acceso para Administrador */}
+          {isAdmin && (
             <Link
               href="/dashboard/admin"
-              className={`whitespace-nowrap flex items-center gap-2 px-3.5 py-1.5 rounded-sm text-xs uppercase tracking-wider transition-all duration-200 ${
+              className={`whitespace-nowrap flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs uppercase tracking-wider transition-all duration-200 ${
                 isAdminActive
                   ? 'bg-[#8E0E75] text-white font-extrabold shadow-sm scale-[1.02]'
                   : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75] hover:bg-white/80'
               }`}
             >
-              <ShieldCheck className={`h-4 w-4 shrink-0 ${isAdminActive ? 'text-white' : 'text-[#8E0E75]'}`} />
-              <span>Panel Super Admin</span>
+              <ShieldCheck className={`h-3.5 w-3.5 shrink-0 ${isAdminActive ? 'text-white' : 'text-[#8E0E75]'}`} />
+              <span>Admin</span>
             </Link>
-          ) : (
-            <>
-              <Link
-                href="/dashboard/employee"
-                className={`whitespace-nowrap flex items-center gap-2 px-3.5 py-1.5 rounded-sm text-xs uppercase tracking-wider transition-all duration-200 ${
-                  isEmployeeActive
-                    ? 'bg-[#8E0E75] text-white font-extrabold shadow-sm scale-[1.02]'
-                    : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75] hover:bg-white/80'
-                }`}
-              >
-                <Clock className={`h-4 w-4 shrink-0 ${isEmployeeActive ? 'text-white' : 'text-[#8E0E75]'}`} />
-                <span>Mi Registro Horario</span>
-              </Link>
-
-              {isCoordinator && (
-                <Link
-                  href="/dashboard/coordinator"
-                  className={`whitespace-nowrap flex items-center gap-2 px-3.5 py-1.5 rounded-sm text-xs uppercase tracking-wider transition-all duration-200 ${
-                    isCoordinatorActive
-                      ? 'bg-[#8E0E75] text-white font-extrabold shadow-sm scale-[1.02]'
-                      : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75] hover:bg-white/80'
-                  }`}
-                >
-                  <BarChart3 className={`h-4 w-4 shrink-0 ${isCoordinatorActive ? 'text-white' : 'text-[#8E0E75]'}`} />
-                  <span>Panel Coordinador</span>
-                </Link>
-              )}
-            </>
           )}
+
         </nav>
 
         {/* Perfil del Usuario y Botón de Salir */}
@@ -154,40 +182,46 @@ export function Navbar() {
 
       {/* Navegación móvil para pantallas estrechas */}
       <div className="flex md:hidden items-center justify-around bg-[#F8F6FC] border-t border-[#D8CFF0] p-1.5">
-        {isAdmin ? (
+        <Link
+          href="/hub"
+          className={`whitespace-nowrap flex items-center gap-1 px-2.5 py-1 rounded-sm text-xs uppercase tracking-wider transition-all ${
+            isHubActive ? 'bg-[#8E0E75] text-white font-extrabold shadow-sm' : 'text-[#4A4A4A] font-bold'
+          }`}
+        >
+          <LayoutGrid className={`h-3.5 w-3.5 ${isHubActive ? 'text-white' : 'text-[#8E0E75]'}`} />
+          <span>HUB</span>
+        </Link>
+
+        <Link
+          href={isCoordinator ? '/dashboard/coordinator' : '/dashboard/employee'}
+          className={`whitespace-nowrap flex items-center gap-1 px-2.5 py-1 rounded-sm text-xs uppercase tracking-wider transition-all ${
+            isClockifyActive ? 'bg-[#8E0E75] text-white font-extrabold shadow-sm' : 'text-[#4A4A4A] font-bold'
+          }`}
+        >
+          <Clock className={`h-3.5 w-3.5 ${isClockifyActive ? 'text-white' : 'text-[#8E0E75]'}`} />
+          <span>Clockify</span>
+        </Link>
+
+        <Link
+          href="/apps/taskflow"
+          className={`whitespace-nowrap flex items-center gap-1 px-2.5 py-1 rounded-sm text-xs uppercase tracking-wider transition-all ${
+            isTaskFlowActive ? 'bg-[#8E0E75] text-white font-extrabold shadow-sm' : 'text-[#4A4A4A] font-bold'
+          }`}
+        >
+          <CheckSquare className={`h-3.5 w-3.5 ${isTaskFlowActive ? 'text-white' : 'text-[#8E0E75]'}`} />
+          <span>TaskFlow</span>
+        </Link>
+
+        {isAdmin && (
           <Link
             href="/dashboard/admin"
-            className={`whitespace-nowrap flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs uppercase tracking-wider transition-all ${
+            className={`whitespace-nowrap flex items-center gap-1 px-2.5 py-1 rounded-sm text-xs uppercase tracking-wider transition-all ${
               isAdminActive ? 'bg-[#8E0E75] text-white font-extrabold shadow-sm' : 'text-[#4A4A4A] font-bold'
             }`}
           >
             <ShieldCheck className={`h-3.5 w-3.5 ${isAdminActive ? 'text-white' : 'text-[#8E0E75]'}`} />
-            <span>Super Admin</span>
+            <span>Admin</span>
           </Link>
-        ) : (
-          <>
-            <Link
-              href="/dashboard/employee"
-              className={`whitespace-nowrap flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs uppercase tracking-wider transition-all ${
-                isEmployeeActive ? 'bg-[#8E0E75] text-white font-extrabold shadow-sm' : 'text-[#4A4A4A] font-bold'
-              }`}
-            >
-              <Clock className={`h-3.5 w-3.5 ${isEmployeeActive ? 'text-white' : 'text-[#8E0E75]'}`} />
-              <span>Mi Registro</span>
-            </Link>
-
-            {isCoordinator && (
-              <Link
-                href="/dashboard/coordinator"
-                className={`whitespace-nowrap flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs uppercase tracking-wider transition-all ${
-                  isCoordinatorActive ? 'bg-[#8E0E75] text-white font-extrabold shadow-sm' : 'text-[#4A4A4A] font-bold'
-                }`}
-              >
-                <BarChart3 className={`h-3.5 w-3.5 ${isCoordinatorActive ? 'text-white' : 'text-[#8E0E75]'}`} />
-                <span>Panel Coordinador</span>
-              </Link>
-            )}
-          </>
         )}
       </div>
     </header>

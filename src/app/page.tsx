@@ -13,12 +13,8 @@ export default function HomePage() {
 
     if (!user) {
       router.replace('/login');
-    } else if (user.role === 'admin') {
-      router.replace('/dashboard/admin');
-    } else if (user.role === 'coordinator') {
-      router.replace('/dashboard/coordinator');
     } else {
-      router.replace('/dashboard/employee');
+      router.replace('/hub');
     }
   }, [user, isLoading, router]);
 

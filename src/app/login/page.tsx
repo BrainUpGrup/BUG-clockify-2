@@ -38,13 +38,7 @@ export default function LoginPage() {
       }
 
       if (result.user) {
-        if (result.user.role === 'admin') {
-          router.push('/dashboard/admin');
-        } else if (result.user.role === 'coordinator') {
-          router.push('/dashboard/coordinator');
-        } else {
-          router.push('/dashboard/employee');
-        }
+        router.push('/hub');
       }
     } finally {
       setIsSubmitting(false);

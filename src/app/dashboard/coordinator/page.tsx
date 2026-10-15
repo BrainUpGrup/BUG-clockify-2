@@ -18,14 +18,18 @@ import {
   BarChart3, 
   Building2, 
   Users, 
-  ShieldCheck
+  ShieldCheck,
+  Palette,
+  Sliders
 } from 'lucide-react';
+import { HubPermissionsMatrix } from '@/components/coordinator/hub-permissions-matrix';
+import { LayerColorCustomizer } from '@/components/coordinator/layer-color-customizer';
 
 export default function CoordinatorDashboardPage() {
   const router = useRouter();
   const { user, isLoading: authLoading, isSupabaseConnected } = useAuth();
   
-  const [activeTab, setActiveTab] = useState<'reports' | 'companies' | 'users'>('reports');
+  const [activeTab, setActiveTab] = useState<'reports' | 'companies' | 'users' | 'permissions' | 'customizer'>('reports');
 
   const [companies, setCompanies] = useState<Company[]>([]);
   const [employees, setEmployees] = useState<Profile[]>([]);
@@ -343,6 +347,30 @@ export default function CoordinatorDashboardPage() {
               <Users className="h-4 w-4" />
               <span>Gestión de Usuarios</span>
             </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('permissions')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-sm uppercase tracking-wider text-xs transition-all duration-200 cursor-pointer ${
+                activeTab === 'permissions'
+                  ? 'bg-[#8E0E75] text-white font-extrabold shadow-sm scale-[1.02]'
+                  : 'text-[#4A4A4A] hover:text-[#8E0E75] hover:bg-white'
+              }`}
+            >
+              <ShieldCheck className="h-4 w-4" />
+              <span>Permisos del HUB</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('customizer')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-sm uppercase tracking-wider text-xs transition-all duration-200 cursor-pointer ${
+                activeTab === 'customizer'
+                  ? 'bg-[#8E0E75] text-white font-extrabold shadow-sm scale-[1.02]'
+                  : 'text-[#4A4A4A] hover:text-[#8E0E75] hover:bg-white'
+              }`}
+            >
+              <Palette className="h-4 w-4" />
+              <span>Colores RGB</span>
+            </button>
           </div>
         </div>
 
@@ -366,7 +394,7 @@ export default function CoordinatorDashboardPage() {
               onToggleCompanyStatus={handleToggleCompanyStatus}
               onDeleteCompany={handleDeleteCompany}
             />
-          ) : (
+          ) : activeTab === 'users' ? (
             <UserManagement
               employees={employees}
               entries={allEntries}
@@ -374,6 +402,10 @@ export default function CoordinatorDashboardPage() {
               onRejectUser={handleRejectUser}
               onDeleteUser={handleDeleteUser}
             />
+          ) : activeTab === 'permissions' ? (
+            <HubPermissionsMatrix employees={employees} />
+          ) : (
+            <LayerColorCustomizer />
           )}
         </div>
       </main>
