@@ -22,6 +22,7 @@ export const metadata: Metadata = {
 
 import { NotificationProvider } from '@/context/notifications-context';
 import { FloatingTimerCompanion } from '@/components/timer/floating-timer-companion';
+import { AppShell } from '@/components/layout/app-shell';
 
 export default function RootLayout({
   children,
@@ -30,12 +31,18 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" className={montserrat.variable}>
-      <body className={`${montserrat.className} min-h-screen bg-[var(--hub-bg,#F8F6FC)] text-[#4A4A4A] antialiased selection:bg-[#8E0E75] selection:text-white`}>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      </head>
+      <body className="font-sans min-h-screen bg-[var(--hub-bg,#F8F6FC)] text-[#4A4A4A] antialiased selection:bg-[#8E0E75] selection:text-white">
         <AuthProvider>
           <ThemeLayersProvider>
             <TimerProvider>
               <NotificationProvider>
-                {children}
+                <AppShell>
+                  {children}
+                </AppShell>
                 <FloatingTimerCompanion />
               </NotificationProvider>
             </TimerProvider>

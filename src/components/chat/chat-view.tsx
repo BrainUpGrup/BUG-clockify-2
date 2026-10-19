@@ -118,21 +118,21 @@ export function ChatView({
         </div>
 
         {/* Botones de Cabecera: Tareas y Fijados */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2.5 shrink-0">
           <button
             type="button"
             onClick={() => {
               setShowTasksDrawer(!showTasksDrawer);
               setShowPinnedDrawer(false);
             }}
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-xs font-bold transition-all cursor-pointer border ${
+            className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-black uppercase tracking-wider transition-all cursor-pointer border-2 shadow-2xs hover:scale-105 active:scale-95 ${
               showTasksDrawer
                 ? 'bg-[#8E0E75] text-white border-[#8E0E75] shadow-xs'
                 : 'bg-[#F8F6FC] text-[#292929] border-[#D8CFF0] hover:bg-white hover:border-[#8E0E75]'
             }`}
             title="Ver tareas de este cliente/canal"
           >
-            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
             <span>Tareas ({channelTasks.filter(t => !t.is_completed).length})</span>
           </button>
 
@@ -142,14 +142,14 @@ export function ChatView({
               setShowPinnedDrawer(!showPinnedDrawer);
               setShowTasksDrawer(false);
             }}
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-xs font-bold transition-all cursor-pointer border ${
+            className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-black uppercase tracking-wider transition-all cursor-pointer border-2 shadow-2xs hover:scale-105 active:scale-95 ${
               showPinnedDrawer
                 ? 'bg-[#8E0E75] text-white border-[#8E0E75] shadow-xs'
                 : 'bg-[#F8F6FC] text-[#292929] border-[#D8CFF0] hover:bg-white hover:border-[#8E0E75]'
             }`}
             title="Ver información fijada importante"
           >
-            <Pin className="h-3.5 w-3.5 text-amber-600" />
+            <Pin className="h-4 w-4 text-amber-600" />
             <span>Fijados ({channelPinned.length})</span>
           </button>
         </div>
@@ -521,21 +521,21 @@ export function ChatView({
           />
 
           {/* Barra de Herramientas Inferior */}
-          <div className="px-3 py-1.5 bg-[#F8F6FC] border-t border-slate-100 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1.5 text-slate-500">
+          <div className="px-3.5 py-2 bg-[#F8F6FC] border-t border-[#D8CFF0] flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-slate-500">
               
               {/* Toggle de Tarea Accionable */}
               <button
                 type="button"
                 onClick={() => setIsActionItem(!isActionItem)}
-                className={`inline-flex items-center gap-1 px-2 py-1 rounded-sm text-xs font-bold transition-all cursor-pointer border ${
+                className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md text-xs font-black transition-all cursor-pointer border-2 ${
                   isActionItem
-                    ? 'bg-[#8E0E75] text-white border-[#8E0E75] shadow-2xs'
-                    : 'bg-white text-[#4A4A4A] border-[#D8CFF0] hover:text-[#8E0E75]'
+                    ? 'bg-[#8E0E75] text-white border-[#8E0E75] shadow-xs'
+                    : 'bg-white text-[#4A4A4A] border-[#D8CFF0] hover:text-[#8E0E75] hover:border-[#8E0E75]'
                 }`}
                 title="Convertir este mensaje en una tarea / revisión obligatoria"
               >
-                <CheckCircle2 className="h-3.5 w-3.5" />
+                <CheckCircle2 className="h-4 w-4" />
                 <span>Marcar como Tarea</span>
               </button>
 
@@ -543,21 +543,21 @@ export function ChatView({
               <button
                 type="button"
                 onClick={() => setInputText((prev) => prev + ' @')}
-                className="p-1 rounded-sm hover:bg-white text-slate-500 hover:text-[#8E0E75] transition-colors cursor-pointer"
+                className="p-2 rounded-md hover:bg-white text-slate-500 hover:text-[#8E0E75] border border-transparent hover:border-[#D8CFF0] transition-colors cursor-pointer"
                 title="Mencionar a un compañero"
               >
-                <AtSign className="h-3.5 w-3.5" />
+                <AtSign className="h-4 w-4" />
               </button>
             </div>
 
-            {/* Botón de Envío */}
+            {/* Botón de Envío Grande y Visual */}
             <button
               type="submit"
               disabled={!inputText.trim()}
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-sm bg-[#8E0E75] hover:bg-[#700B5C] disabled:opacity-40 text-white text-xs font-extrabold uppercase tracking-wider transition-all cursor-pointer shadow-xs"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-[#8E0E75] hover:bg-[#700B5C] disabled:opacity-40 text-white text-xs sm:text-sm font-black uppercase tracking-wider transition-all cursor-pointer shadow-md shadow-[#8E0E75]/25 hover:shadow-lg hover:shadow-[#8E0E75]/35 hover:scale-105 active:scale-95"
             >
               <span>Enviar</span>
-              <Send className="h-3 w-3" />
+              <Send className="h-4 w-4" />
             </button>
           </div>
 

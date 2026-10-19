@@ -30,31 +30,31 @@ export function CompanyHeroBanner({
   }));
 
   return (
-    <div className="w-full relative rounded-2xl border-2 border-[#8E0E75] bg-gradient-to-r from-[#F5EDF6] via-[#EFE2F0] to-[#F5EDF6] p-3.5 sm:p-4 shadow-sm transition-all">
+    <div className="w-full relative rounded-3xl border-3 border-[#8E0E75] bg-gradient-to-r from-[#F5EDF6] via-[#EFE2F0] to-[#F5EDF6] p-6 sm:p-8 lg:p-10 shadow-md transition-all">
       {/* Badge flotante superior de cliente fijado */}
-      <div className="absolute -top-2.5 left-5 flex items-center gap-1 bg-[#8E0E75] text-white text-[9.5px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full shadow-xs">
-        <Sparkles className="h-2.5 w-2.5" />
+      <div className="absolute -top-3.5 left-8 flex items-center gap-1.5 bg-[#8E0E75] text-white text-xs sm:text-sm font-black uppercase tracking-tight px-4 py-1 rounded-full shadow-md">
+        <Sparkles className="h-3.5 w-3.5" />
         <span>Cliente Activo (Fijado)</span>
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1 sm:pt-0">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pt-2 sm:pt-0">
         
         {/* Lado izquierdo: Hueco para Logo + Nombre Gigante + Cuota */}
-        <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+        <div className="flex items-center gap-5 sm:gap-6 flex-1 min-w-0">
           
           {/* HUECO PARA EL LOGO (Listo para logo real o icono representativo) */}
-          <div className="relative h-12 w-12 sm:h-14 sm:w-14 shrink-0 rounded-xl border-2 border-dashed border-[#8E0E75]/40 bg-white flex flex-col items-center justify-center p-1 shadow-xs transition-all group hover:border-[#8E0E75]">
+          <div className="relative h-20 w-20 sm:h-24 sm:w-24 shrink-0 rounded-2xl border-2 border-dashed border-[#8E0E75]/40 bg-white flex flex-col items-center justify-center p-2 shadow-xs transition-all group hover:border-[#8E0E75]">
             {selectedCompany?.logo_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={selectedCompany.logo_url}
                 alt={selectedCompany.name}
-                className="h-full w-full object-contain rounded-lg"
+                className="h-full w-full object-contain rounded-xl"
               />
             ) : (
               <div className="flex flex-col items-center justify-center text-center">
-                <Building2 className="h-5 w-5 text-[#8E0E75]/70" />
-                <span className="text-[7.5px] font-black uppercase tracking-wider text-[#8E0E75] leading-none mt-0.5">
+                <Building2 className="h-8 w-8 text-[#8E0E75]/70" />
+                <span className="text-[9px] font-black uppercase tracking-tight text-[#8E0E75] leading-none mt-1">
                   LOGO
                 </span>
               </div>
@@ -63,19 +63,19 @@ export function CompanyHeroBanner({
 
           {/* Nombre de la Empresa y tipo de cuota (SIN CIF NI RESPONSABLE PARA EMPLEADOS) */}
           <div className="min-w-0 flex-1">
-            <h2 className="text-lg sm:text-xl font-black uppercase tracking-tight text-[#191654] truncate leading-tight">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black uppercase tracking-tight text-[#191654] truncate leading-tight">
               {selectedCompany?.name || 'Selecciona una Empresa'}
             </h2>
 
-            <div className="flex items-center gap-2 mt-1">
+            <div className="flex items-center gap-3 mt-2">
               {selectedCompany?.client_type === 'cuota' ? (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-white/95 border border-emerald-300 text-emerald-800 text-[10px] font-extrabold uppercase tracking-wider shadow-2xs">
-                  <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-xl bg-white border-2 border-emerald-300 text-emerald-800 text-xs sm:text-sm font-extrabold uppercase tracking-tight shadow-2xs">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                   Cuota Mensual: {selectedCompany.monthly_hours_quota}h Pactadas
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-white/95 border border-slate-300 text-[#4A4A4A] text-[10px] font-extrabold uppercase tracking-wider shadow-2xs">
-                  <Shield className="h-3 w-3 text-[#4A4A4A]" />
+                <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-xl bg-white border-2 border-slate-300 text-[#4A4A4A] text-xs sm:text-sm font-extrabold uppercase tracking-tight shadow-2xs">
+                  <Shield className="h-4 w-4 text-[#4A4A4A]" />
                   Cliente Puntual
                 </span>
               )}
@@ -84,18 +84,19 @@ export function CompanyHeroBanner({
         </div>
 
         {/* Lado derecho: Selector compacto para cambiar de cliente */}
-        <div className="sm:w-72 shrink-0 border-t sm:border-t-0 sm:border-l border-[#8E0E75]/25 pt-2 sm:pt-0 sm:pl-4">
-          <label className="block text-[9.5px] font-extrabold uppercase tracking-wider text-[#8E0E75] mb-1">
-            Cambiar Cliente:
+        <div className="sm:w-80 lg:w-96 shrink-0 border-t sm:border-t-0 sm:border-l-2 border-[#8E0E75]/25 pt-4 sm:pt-0 sm:pl-6">
+          <label className="block text-xs sm:text-sm font-extrabold uppercase tracking-tight text-[#8E0E75] mb-2 flex items-center gap-1.5">
+            <Building2 className="h-4 w-4 text-[#8E0E75]" />
+            <span>Cambiar Cliente:</span>
           </label>
           <AppSelect
             value={selectedCompanyId}
             onChange={onSelectCompany}
             disabled={disabled}
             placeholder="Selecciona cliente..."
-            icon={<Building2 className="h-3.5 w-3.5 text-[#8E0E75]" />}
+            icon={<Building2 className="h-4 w-4 text-[#8E0E75]" />}
             options={selectOptions}
-            className="w-full text-xs font-bold bg-white"
+            className="w-full text-sm sm:text-base font-bold bg-white"
           />
         </div>
 

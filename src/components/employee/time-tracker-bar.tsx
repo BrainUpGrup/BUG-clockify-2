@@ -50,6 +50,12 @@ export function TimeTrackerBar({
   const [showCompanyStatsPop, setShowCompanyStatsPop] = useState(false);
   const generalPopRef = useRef<HTMLDivElement>(null);
   const companyPopRef = useRef<HTMLDivElement>(null);
+
+  // Pastillas moradas deslizantes para modo y tipo de cómputo
+  const modeSwitcherRef = useRef<HTMLDivElement>(null);
+  const computeSwitcherRef = useRef<HTMLDivElement>(null);
+  const [modePill, setModePill] = useState<{ left: number; width: number; opacity: number }>({ left: 0, width: 0, opacity: 0 });
+  const [computePill, setComputePill] = useState<{ left: number; width: number; opacity: number }>({ left: 0, width: 0, opacity: 0 });
   
   // Usar el temporizador centralizado
   const { 
@@ -104,6 +110,42 @@ export function TimeTrackerBar({
       setComputeType('cuota');
     }
   }, [selectedCompany]);
+
+  // Actualizar posición de la pastilla morada en el selector de modo (Temporizador / Manual)
+  useEffect(() => {
+    const updateModePill = () => {
+      if (!modeSwitcherRef.current) return;
+      const targetEl = modeSwitcherRef.current.querySelector(`[data-mode-tab="${mode}"]`) as HTMLElement;
+      if (targetEl) {
+        setModePill({
+          left: targetEl.offsetLeft,
+          width: targetEl.offsetWidth,
+          opacity: 1,
+        });
+      }
+    };
+    updateModePill();
+    window.addEventListener('resize', updateModePill);
+    return () => window.removeEventListener('resize', updateModePill);
+  }, [mode]);
+
+  // Actualizar posición de la pastilla morada en el selector de cuota (Cuota / Puntual)
+  useEffect(() => {
+    const updateComputePill = () => {
+      if (!computeSwitcherRef.current) return;
+      const targetEl = computeSwitcherRef.current.querySelector(`[data-compute-tab="${computeType}"]`) as HTMLElement;
+      if (targetEl) {
+        setComputePill({
+          left: targetEl.offsetLeft,
+          width: targetEl.offsetWidth,
+          opacity: 1,
+        });
+      }
+    };
+    updateComputePill();
+    window.addEventListener('resize', updateComputePill);
+    return () => window.removeEventListener('resize', updateComputePill);
+  }, [computeType, selectedCompany]);
 
   // ========================================================
   // CÁLCULOS EN VIVO PARA LOS POPOVERS Y EL DESGLOSE DE HORAS
@@ -257,24 +299,40 @@ export function TimeTrackerBar({
   const parsedManualMinutes = parseDurationToMinutes(manualDurationInput);
 
   return (
-    <div className="w-full rounded-sm border border-[#D8CFF0] bg-white p-3 sm:p-4 shadow-sm transition-all hover:shadow-md">
+    <div className="w-full rounded-3xl border-2 border-[#D8CFF0] bg-white p-5 sm:p-7 shadow-sm transition-all hover:shadow-md">
       
       {/* Cabecera del control de horas: Modos, tipo de cuota y BOTONES POP-UPS DE HORAS */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-2.5 mb-3 border-b border-[#EAE4F5] gap-2.5">
-        <div className="flex items-center gap-2 flex-wrap relative">
-          <span className="text-xs font-black uppercase tracking-tight text-[#292929]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-4 border-b-2 border-[#EAE4F5] gap-3">
+        <div className="flex items-center gap-3.5 flex-wrap relative">
+          <span className="text-base sm:text-lg lg:text-xl font-black uppercase tracking-tight text-[#292929]">
             CONTROL <span className="text-[#8E0E75]">DE HORAS</span>
           </span>
 
-          {/* Selector de Tipo de Horas para Clientes Cuota */}
+          {/* Selector de Tipo de Horas para Clientes Cuota con Pastilla Morada Deslizante */}
           {selectedCompany?.client_type === 'cuota' && (
-            <div className="flex items-center rounded-sm bg-[#F8F6FC] p-0.5 border border-[#D8CFF0] text-[10px] font-extrabold uppercase tracking-wider">
+            <div 
+              ref={computeSwitcherRef}
+              className="relative flex items-center rounded-xl bg-[#F8F6FC] p-1.5 border-2 border-[#D8CFF0] text-xs sm:text-sm font-black uppercase tracking-tight shadow-2xs select-none"
+            >
+              <div
+                className={`absolute rounded-lg shadow-sm pointer-events-none transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] ${
+                  computeType === 'cuota' ? 'bg-[#8E0E75]' : 'bg-[#191654]'
+                }`}
+                style={{
+                  left: `${computePill.left}px`,
+                  width: `${computePill.width}px`,
+                  top: '5px',
+                  bottom: '5px',
+                  opacity: computePill.opacity,
+                }}
+              />
               <button
                 type="button"
+                data-compute-tab="cuota"
                 onClick={() => setComputeType('cuota')}
-                className={`px-2 py-0.5 rounded-sm transition-all ${
+                className={`relative z-10 px-4 py-2 rounded-lg transition-colors duration-200 cursor-pointer ${
                   computeType === 'cuota'
-                    ? 'bg-[#8E0E75] text-white shadow-xs'
+                    ? 'text-white font-black'
                     : 'text-[#4A4A4A] hover:text-[#8E0E75]'
                 }`}
                 title={`Computa a la cuota mensual pactada de ${selectedCompany.monthly_hours_quota}h`}
@@ -283,10 +341,11 @@ export function TimeTrackerBar({
               </button>
               <button
                 type="button"
+                data-compute-tab="puntual"
                 onClick={() => setComputeType('puntual')}
-                className={`px-2 py-0.5 rounded-sm transition-all ${
+                className={`relative z-10 px-4 py-2 rounded-lg transition-colors duration-200 cursor-pointer ${
                   computeType === 'puntual'
-                    ? 'bg-[#191654] text-white shadow-xs'
+                    ? 'text-white font-black'
                     : 'text-[#4A4A4A] hover:text-[#191654]'
                 }`}
                 title="Horas fuera de cuota"
@@ -297,8 +356,8 @@ export function TimeTrackerBar({
           )}
 
           {selectedCompany?.client_type === 'puntual' && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[10px] font-extrabold uppercase tracking-wider bg-slate-100 text-[#4A4A4A] border border-slate-200">
-              <Tag className="h-3 w-3 text-[#4A4A4A]" />
+            <span className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-black uppercase tracking-tight bg-slate-100 text-[#4A4A4A] border-2 border-slate-300 shadow-2xs">
+              <Tag className="h-4 w-4 text-[#4A4A4A]" />
               Cliente Puntual
             </span>
           )}
@@ -313,26 +372,26 @@ export function TimeTrackerBar({
                 setShowGeneralStatsPop(!showGeneralStatsPop);
                 setShowCompanyStatsPop(false);
               }}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-sm text-[10px] font-extrabold uppercase tracking-wider transition-all border cursor-pointer ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold uppercase tracking-tight transition-all border-2 cursor-pointer shadow-2xs ${
                 showGeneralStatsPop 
-                  ? 'bg-[#191654] text-white border-[#191654] shadow-xs' 
-                  : 'bg-[#F8F6FC] hover:bg-white text-[#191654] border-[#D8CFF0]'
+                  ? 'bg-[#191654] text-white border-[#191654] shadow-sm' 
+                  : 'bg-[#F8F6FC] hover:bg-white text-[#191654] border-[#D8CFF0] hover:border-[#191654]'
               }`}
               title="Haz clic para ver el resumen de horas generales de trabajo"
             >
-              <BarChart3 className={`h-3 w-3 ${showGeneralStatsPop ? 'text-white' : 'text-[#8E0E75]'}`} />
+              <BarChart3 className={`h-4 w-4 ${showGeneralStatsPop ? 'text-white' : 'text-[#8E0E75]'}`} />
               <span>Jornada: <strong>{formatMinutes(todayGeneralMinutes)}</strong></span>
-              <ChevronDown className={`h-3 w-3 transition-transform ${showGeneralStatsPop ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`h-4 w-4 transition-transform ${showGeneralStatsPop ? 'rotate-180' : ''}`} />
             </button>
 
             {/* Pop-up flotante de horas generales */}
             {showGeneralStatsPop && (
               <div 
                 ref={generalPopRef} 
-                className="absolute left-0 sm:left-auto top-full mt-2 w-[300px] sm:w-[360px] bg-white rounded-sm border-2 border-[#191654] shadow-2xl p-4 z-50 animate-in fade-in zoom-in-95 duration-150"
+                className="absolute left-0 sm:left-auto top-full mt-2 w-[320px] sm:w-[380px] bg-white rounded-xl border-2 border-[#191654] shadow-2xl p-5 z-50 animate-in fade-in zoom-in-95 duration-150"
               >
-                <div className="flex items-center justify-between pb-2 mb-3 border-b border-[#EAE4F5]">
-                  <div className="flex items-center gap-1.5 text-xs font-black uppercase text-[#191654]">
+                <div className="flex items-center justify-between pb-3 mb-3 border-b border-[#EAE4F5]">
+                  <div className="flex items-center gap-2 text-sm font-black uppercase text-[#191654]">
                     <BarChart3 className="h-4 w-4 text-[#8E0E75]" />
                     <span>Horas Generales de Trabajo</span>
                   </div>
@@ -341,18 +400,18 @@ export function TimeTrackerBar({
                     onClick={() => setShowGeneralStatsPop(false)}
                     className="p-1 text-slate-400 hover:text-slate-700"
                   >
-                    <X className="h-3.5 w-3.5" />
+                    <X className="h-4 w-4" />
                   </button>
                 </div>
 
                 <div className="space-y-3">
                   {/* Hoy */}
-                  <div className="bg-[#FAF8FD] p-2.5 rounded-sm border border-[#D8CFF0]">
-                    <div className="flex justify-between text-[11px] font-bold text-[#4A4A4A]">
-                      <span className="flex items-center gap-1"><SunMedium className="h-3.5 w-3.5 text-amber-500" /> Horas Hoy</span>
-                      <strong className="text-sm font-black text-[#292929] font-mono tabular-nums">{formatMinutes(todayGeneralMinutes)} / 8h</strong>
+                  <div className="bg-[#FAF8FD] p-3 rounded-lg border border-[#D8CFF0]">
+                    <div className="flex justify-between text-xs font-bold text-[#4A4A4A]">
+                      <span className="flex items-center gap-1.5"><SunMedium className="h-4 w-4 text-amber-500" /> Horas Hoy</span>
+                      <strong className="text-base font-black text-[#292929] font-mono tabular-nums">{formatMinutes(todayGeneralMinutes)} / 8h</strong>
                     </div>
-                    <div className="h-1.5 w-full bg-slate-200 rounded-sm overflow-hidden mt-1.5">
+                    <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden mt-2">
                       <div 
                         className={`h-full ${dailyProgressPercent >= 100 ? 'bg-emerald-500' : dailyProgressPercent >= 40 ? 'bg-amber-400' : 'bg-red-500'}`} 
                         style={{ width: `${dailyProgressPercent}%` }} 
@@ -361,19 +420,19 @@ export function TimeTrackerBar({
                   </div>
 
                   {/* Semana */}
-                  <div className="bg-[#FAF8FD] p-2.5 rounded-sm border border-[#D8CFF0] flex justify-between items-center">
-                    <span className="text-[11px] font-bold text-[#4A4A4A] flex items-center gap-1">
-                      <TrendingUp className="h-3.5 w-3.5 text-[#191654]" /> Semana en curso
+                  <div className="bg-[#FAF8FD] p-3 rounded-lg border border-[#D8CFF0] flex justify-between items-center">
+                    <span className="text-xs font-bold text-[#4A4A4A] flex items-center gap-1.5">
+                      <TrendingUp className="h-4 w-4 text-[#191654]" /> Semana en curso
                     </span>
-                    <strong className="text-sm font-black text-[#191654] font-mono tabular-nums">{formatMinutes(weekGeneralMinutes)}</strong>
+                    <strong className="text-base font-black text-[#191654] font-mono tabular-nums">{formatMinutes(weekGeneralMinutes)}</strong>
                   </div>
 
                   {/* Mes */}
-                  <div className="bg-[#FAF8FD] p-2.5 rounded-sm border border-[#D8CFF0] flex justify-between items-center">
-                    <span className="text-[11px] font-bold text-[#4A4A4A] flex items-center gap-1">
-                      <CalendarCheck className="h-3.5 w-3.5 text-[#8E0E75]" /> Mes activo
+                  <div className="bg-[#FAF8FD] p-3 rounded-lg border border-[#D8CFF0] flex justify-between items-center">
+                    <span className="text-xs font-bold text-[#4A4A4A] flex items-center gap-1.5">
+                      <CalendarCheck className="h-4 w-4 text-[#8E0E75]" /> Mes activo
                     </span>
-                    <strong className="text-sm font-black text-[#8E0E75] font-mono tabular-nums">{formatMinutes(monthGeneralMinutes)}</strong>
+                    <strong className="text-base font-black text-[#8E0E75] font-mono tabular-nums">{formatMinutes(monthGeneralMinutes)}</strong>
                   </div>
                 </div>
               </div>
@@ -390,19 +449,19 @@ export function TimeTrackerBar({
                 setShowCompanyStatsPop(!showCompanyStatsPop);
                 setShowGeneralStatsPop(false);
               }}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-sm text-[10px] font-extrabold uppercase tracking-wider transition-all border cursor-pointer ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold uppercase tracking-tight transition-all border-2 cursor-pointer shadow-2xs ${
                 showCompanyStatsPop 
-                  ? 'bg-[#8E0E75] text-white border-[#8E0E75] shadow-xs' 
-                  : 'bg-[#F8F6FC] hover:bg-white text-[#8E0E75] border-[#D8CFF0]'
+                  ? 'bg-[#8E0E75] text-white border-[#8E0E75] shadow-sm' 
+                  : 'bg-[#F8F6FC] hover:bg-white text-[#8E0E75] border-[#D8CFF0] hover:border-[#8E0E75]'
               }`}
               title="Haz clic para ver las horas dedicadas a este cliente"
             >
-              <Building2 className={`h-3 w-3 ${showCompanyStatsPop ? 'text-white' : 'text-[#8E0E75]'}`} />
+              <Building2 className={`h-4 w-4 ${showCompanyStatsPop ? 'text-white' : 'text-[#8E0E75]'}`} />
               <span>
-                {selectedCompany?.name ? `${selectedCompany.name.slice(0, 12)}...` : 'Cliente'}: 
+                {selectedCompany?.name ? `${selectedCompany.name.slice(0, 14)}...` : 'Cliente'}: 
                 <strong> {formatMinutes(monthCompanyMinutes)}</strong>
               </span>
-              <ChevronDown className={`h-3 w-3 transition-transform ${showCompanyStatsPop ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`h-4 w-4 transition-transform ${showCompanyStatsPop ? 'rotate-180' : ''}`} />
             </button>
 
             {/* Pop-up flotante de horas de empresa */}
@@ -477,56 +536,73 @@ export function TimeTrackerBar({
           </div>
         </div>
 
-        {/* Modos temporizador vs manual */}
-        <div className="flex items-center rounded-sm bg-[#F8F6FC] p-0.5 border border-[#D8CFF0] text-xs font-medium self-start sm:self-auto shrink-0">
+        {/* Modos temporizador vs manual con pastilla morada deslizante */}
+        <div 
+          ref={modeSwitcherRef}
+          className="relative flex items-center rounded-xl bg-[#F8F6FC] p-1.5 border-2 border-[#D8CFF0] text-xs sm:text-sm font-black self-start sm:self-auto shrink-0 shadow-2xs select-none"
+        >
+          {/* Pastilla morada deslizante */}
+          <div
+            className="absolute rounded-lg bg-[#8E0E75] shadow-sm pointer-events-none transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)]"
+            style={{
+              left: `${modePill.left}px`,
+              width: `${modePill.width}px`,
+              top: '5px',
+              bottom: '5px',
+              opacity: modePill.opacity,
+            }}
+          />
+
           <button
             type="button"
+            data-mode-tab="timer"
             onClick={() => !isTimerRunning && setMode('timer')}
             disabled={isTimerRunning}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-sm transition-all uppercase tracking-wider text-[10px] ${
+            className={`relative z-10 flex items-center gap-2 px-4 py-2 rounded-lg transition-colors duration-200 uppercase tracking-tight text-xs sm:text-sm cursor-pointer ${
               mode === 'timer'
-                ? 'bg-[#8E0E75] text-white font-extrabold shadow-sm'
+                ? 'text-white font-extrabold'
                 : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75]'
             }`}
           >
-            <TimerIcon className={`h-3 w-3 ${mode === 'timer' ? 'text-white' : 'text-[#8E0E75]'}`} />
+            <TimerIcon className={`h-4 w-4 shrink-0 transition-transform ${mode === 'timer' ? 'scale-110 text-white' : 'text-[#8E0E75]'}`} />
             <span>Temporizador</span>
           </button>
           <button
             type="button"
+            data-mode-tab="manual"
             onClick={() => !isTimerRunning && setMode('manual')}
             disabled={isTimerRunning}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-sm transition-all uppercase tracking-wider text-[10px] ${
+            className={`relative z-10 flex items-center gap-2 px-4 py-2 rounded-lg transition-colors duration-200 uppercase tracking-tight text-xs sm:text-sm cursor-pointer ${
               mode === 'manual'
-                ? 'bg-[#8E0E75] text-white font-extrabold shadow-sm'
+                ? 'text-white font-extrabold'
                 : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75]'
             }`}
           >
-            <Clock className={`h-3 w-3 ${mode === 'manual' ? 'text-white' : 'text-[#8E0E75]'}`} />
+            <Clock className={`h-4 w-4 shrink-0 transition-transform ${mode === 'manual' ? 'scale-110 text-white' : 'text-[#8E0E75]'}`} />
             <span>Entrada Manual</span>
           </button>
         </div>
       </div>
 
-      {/* Barra de entrada sin scroll: Input ancho + Reloj + Botón Verde/Rojo */}
+      {/* Barra de entrada sin scroll: Input ancho + Reloj + Botón Verde/Rojo Grande y Visual */}
       <form onSubmit={mode === 'manual' ? handleManualSubmit : (e) => e.preventDefault()}>
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5 items-center">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5 items-center">
           
           {/* Input de descripción amplio */}
-          <div className="md:col-span-8 lg:col-span-9">
+          <div className="md:col-span-6 lg:col-span-7 xl:col-span-8">
             <input
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder={`¿En qué estás trabajando para ${selectedCompany?.name || 'este cliente'}?`}
-              className="w-full px-3.5 py-2 rounded-sm border border-[#D8CFF0] bg-white text-sm text-[#292929] placeholder:text-slate-400 focus:border-[#8E0E75] focus:ring-2 focus:ring-[#8E0E75]/15 outline-none transition-all font-medium"
+              className="w-full px-5 py-3.5 sm:py-4 rounded-xl border-2 border-[#D8CFF0] bg-white text-base sm:text-lg text-[#292929] placeholder:text-slate-400 focus:border-[#8E0E75] focus:ring-2 focus:ring-[#8E0E75]/15 outline-none transition-all font-semibold shadow-xs"
             />
           </div>
 
           {/* Zona de Duración / Reloj */}
-          <div className="md:col-span-2 lg:col-span-2">
+          <div className="md:col-span-3 lg:col-span-3 xl:col-span-2">
             {mode === 'timer' ? (
-              <div className="flex items-center justify-center font-mono tabular-nums font-extrabold text-xl text-[#292929] bg-[#F8F6FC] px-2.5 py-1.5 rounded-sm border border-[#D8CFF0]">
+              <div className="flex items-center justify-center font-mono tabular-nums font-black text-2xl sm:text-3xl text-[#191654] bg-[#F8F6FC] px-4 py-3 sm:py-3.5 rounded-xl border-2 border-[#D8CFF0] shadow-inner">
                 {formatSecondsToTimer(timerSeconds)}
               </div>
             ) : (
@@ -541,23 +617,23 @@ export function TimeTrackerBar({
                     }
                   }}
                   placeholder="ej. 330 o 3 o 2.5"
-                  className="w-full px-2.5 py-1.5 rounded-sm border border-[#D8CFF0] bg-white text-sm font-bold text-[#292929] tabular-nums text-center focus:border-[#8E0E75] focus:ring-2 focus:ring-[#8E0E75]/15 outline-none transition-all"
+                  className="w-full px-4 py-3 sm:py-3.5 rounded-xl border-2 border-[#D8CFF0] bg-white text-xl sm:text-2xl font-black text-[#292929] tabular-nums text-center focus:border-[#8E0E75] focus:ring-2 focus:ring-[#8E0E75]/15 outline-none transition-all shadow-inner"
                   title="Escribe '330' para 3h 30m, '3' para 3 horas, o '2.5'"
                 />
               </div>
             )}
           </div>
 
-          {/* Botón de Acción Principal (Verde para INICIAR / Rojo para PARAR) */}
-          <div className="md:col-span-2 lg:col-span-1 flex items-center">
+          {/* Botón de Acción Principal Hero (Verde para INICIAR / Rojo para PARAR) */}
+          <div className="md:col-span-3 lg:col-span-2 xl:col-span-2 flex items-center">
             {mode === 'timer' ? (
               !isTimerRunning ? (
                 <button
                   type="button"
                   onClick={handleStartTimer}
-                  className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-sm bg-[#10B981] hover:bg-[#059669] text-white font-extrabold text-xs uppercase tracking-wider active:scale-[0.98] shadow-md shadow-emerald-500/20 transition-all cursor-pointer"
+                  className="w-full h-13 sm:h-15 flex items-center justify-center gap-2.5 px-6 py-3 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-black text-base sm:text-lg uppercase tracking-tight active:scale-[0.98] shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/40 hover:scale-[1.02] transition-all cursor-pointer"
                 >
-                  <Play className="h-4 w-4 fill-current" />
+                  <Play className="h-5 w-5 sm:h-6 sm:w-6 fill-current" />
                   <span>INICIAR</span>
                 </button>
               ) : (
@@ -565,9 +641,9 @@ export function TimeTrackerBar({
                   type="button"
                   onClick={handleStopTimer}
                   disabled={isSubmitting}
-                  className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-sm bg-[#DC2626] hover:bg-[#B91C1C] text-white font-extrabold text-xs uppercase tracking-wider active:scale-[0.98] shadow-md shadow-red-500/25 transition-all cursor-pointer animate-pulse"
+                  className="w-full h-13 sm:h-15 flex items-center justify-center gap-2.5 px-6 py-3 rounded-xl bg-[#DC2626] hover:bg-[#B91C1C] text-white font-black text-base sm:text-lg uppercase tracking-tight active:scale-[0.98] shadow-lg shadow-red-500/30 hover:shadow-xl hover:shadow-red-500/40 hover:scale-[1.02] transition-all cursor-pointer animate-pulse"
                 >
-                  <Square className="h-4 w-4 fill-current" />
+                  <Square className="h-5 w-5 sm:h-6 sm:w-6 fill-current" />
                   <span>{isSubmitting ? '...' : 'PARAR'}</span>
                 </button>
               )
@@ -575,9 +651,9 @@ export function TimeTrackerBar({
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full flex items-center justify-center gap-1 px-3 py-2 rounded-sm bg-[#10B981] hover:bg-[#059669] text-white font-extrabold text-xs uppercase tracking-wider active:scale-[0.98] shadow-md shadow-emerald-500/20 transition-all disabled:opacity-50 cursor-pointer"
+                className="w-full h-13 sm:h-15 flex items-center justify-center gap-2.5 px-6 py-3 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-black text-base sm:text-lg uppercase tracking-tight active:scale-[0.98] shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/40 hover:scale-[1.02] transition-all disabled:opacity-50 cursor-pointer"
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="h-5 w-5 sm:h-6 sm:w-6" />
                 <span>{isSubmitting ? '...' : 'AÑADIR'}</span>
               </button>
             )}
@@ -585,19 +661,19 @@ export function TimeTrackerBar({
 
         </div>
 
-        {/* Fila compacta de Horas Trabajadas Hoy por Empresa (Visibles en una sola pantalla) */}
-        <div className="mt-2.5 pt-2 border-t border-dashed border-[#EAE4F5] flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-[#4A4A4A]">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span>
+        {/* Fila Ampliada de Horas Trabajadas Hoy por Empresa */}
+        <div className="mt-4 pt-3.5 border-t-2 border-dashed border-[#EAE4F5] flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-2.5 text-xs sm:text-sm lg:text-base font-extrabold uppercase tracking-tight text-[#4A4A4A]">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#10B981]"></span>
             <span>Horas de hoy por empresa:</span>
           </div>
           
-          <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="flex items-center gap-2.5 flex-wrap">
             {todayCompanyBreakdown.length > 0 ? (
               todayCompanyBreakdown.map((item) => (
                 <span
                   key={item.company.id}
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[10px] font-bold border ${
+                  className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold border-2 shadow-2xs ${
                     item.company.id === selectedCompanyId
                       ? 'bg-[#8E0E75] text-white border-[#8E0E75]'
                       : 'bg-[#F8F6FC] text-[#292929] border-[#D8CFF0]'
@@ -608,27 +684,27 @@ export function TimeTrackerBar({
                 </span>
               ))
             ) : (
-              <span className="text-[10px] text-slate-400 font-medium">Sin tiempo registrado hoy aún</span>
+              <span className="text-xs sm:text-sm text-slate-400 font-medium">Sin tiempo registrado hoy aún</span>
             )}
 
-            <span className="text-[10px] text-[#4A4A4A] font-bold ml-1 pl-2 border-l border-slate-200">
-              Total hoy: <strong className="text-[#8E0E75] font-mono tabular-nums">{formatMinutes(todayGeneralMinutes)}</strong>
+            <span className="text-xs sm:text-sm lg:text-base text-[#4A4A4A] font-bold ml-2 pl-3 border-l-2 border-slate-300">
+              Total hoy: <strong className="text-[#8E0E75] font-mono tabular-nums text-base sm:text-lg">{formatMinutes(todayGeneralMinutes)}</strong>
             </span>
           </div>
         </div>
 
         {/* Opciones extras para modo manual */}
         {mode === 'manual' && (
-          <div className="mt-2.5 pt-2 border-t border-dashed border-[#D8CFF0] flex flex-wrap items-center gap-3 text-xs text-[#4A4A4A]">
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-[#292929] uppercase tracking-wider text-[10px]">Fecha:</span>
+          <div className="mt-3 pt-2.5 border-t-2 border-dashed border-[#D8CFF0] flex flex-wrap items-center gap-4 text-sm text-[#4A4A4A]">
+            <div className="flex items-center gap-2.5">
+              <span className="font-black text-[#292929] uppercase tracking-tight text-xs sm:text-sm">Fecha:</span>
               <AppCalendar
                 value={manualDate}
                 onChange={(val) => setManualDate(val)}
               />
             </div>
-            <span className="text-[#4A4A4A] text-[10px]">
-              Tip: Escribe <strong className="text-[#8E0E75]">3</strong> para 3h, o <strong className="text-[#8E0E75]">330</strong> para 3h 30m.
+            <span className="text-[#4A4A4A] text-xs sm:text-sm">
+              Tip: Escribe <strong className="text-[#8E0E75] font-bold">3</strong> para 3h, o <strong className="text-[#8E0E75] font-bold">330</strong> para 3h 30m.
             </span>
           </div>
         )}

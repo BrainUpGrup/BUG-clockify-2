@@ -16,14 +16,16 @@ import {
   BookOpen, 
   Share2, 
   Filter,
-  CheckCircle2
+  CheckCircle2,
+  MessageSquare
 } from 'lucide-react';
 import { Profile } from '@/types/database';
 import { 
   BRAIN_UP_HUB_APPS, 
   HubApp, 
   getStoredPermissionsMap, 
-  saveUserAppPermissions 
+  saveUserAppPermissions,
+  DEFAULT_EMPLOYEE_APPS
 } from '@/lib/hub-apps';
 
 interface HubPermissionsMatrixProps {
@@ -48,6 +50,8 @@ export function HubPermissionsMatrix({ employees }: HubPermissionsMatrixProps) {
         return <Clock className={className} />;
       case 'CheckSquare':
         return <CheckSquare className={className} />;
+      case 'MessageSquare':
+        return <MessageSquare className={className} />;
       case 'Image':
         return <Image className={className} />;
       case 'Users':
@@ -63,11 +67,11 @@ export function HubPermissionsMatrix({ employees }: HubPermissionsMatrixProps) {
     }
   };
 
-  // Obtener permisos efectivos para un usuario (por defecto: clockify + taskflow si no tiene configuración)
+  // Obtener permisos efectivos para un usuario (por defecto: DEFAULT_EMPLOYEE_APPS si no tiene configuración)
   const getUserAllowedApps = (userId: string): string[] => {
     const list = permissionsMap[userId];
     if (list && Array.isArray(list)) return list;
-    return ['clockify', 'taskflow'];
+    return DEFAULT_EMPLOYEE_APPS;
   };
 
   // Alternar permiso de una app para un usuario
@@ -102,9 +106,9 @@ export function HubPermissionsMatrix({ employees }: HubPermissionsMatrixProps) {
     setTimeout(() => setSavedUserId(null), 1500);
   };
 
-  // Asignar solo básicas (Clockify + TaskFlow)
+  // Asignar solo básicas por defecto (Clockify + TaskFlow)
   const handleSelectBasicOnly = (userId: string) => {
-    const basicIds = ['clockify', 'taskflow'];
+    const basicIds = [...DEFAULT_EMPLOYEE_APPS];
     const newMap = { ...permissionsMap, [userId]: basicIds };
     setPermissionsMap(newMap);
     saveUserAppPermissions(userId, basicIds);
@@ -143,7 +147,7 @@ export function HubPermissionsMatrix({ employees }: HubPermissionsMatrixProps) {
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-[#F8F6FC] border border-[#D8CFF0] text-[11px] font-extrabold uppercase tracking-wider text-[#8E0E75]">
               <Sparkles className="h-3.5 w-3.5 text-[#8E0E75]" />
-              7 Herramientas Integradas
+              {BRAIN_UP_HUB_APPS.length} Herramientas Integradas
             </span>
           </div>
         </div>
@@ -306,17 +310,17 @@ export function HubPermissionsMatrix({ employees }: HubPermissionsMatrixProps) {
                             type="button"
                             onClick={() => handleSelectAll(emp.id)}
                             className="px-2 py-1 rounded-sm border border-[#D8CFF0] bg-[#F8F6FC] hover:bg-white text-[10px] font-bold text-[#8E0E75] uppercase tracking-wider transition-colors cursor-pointer"
-                            title="Dar acceso a las 7 herramientas"
+                            title={`Dar acceso a las ${BRAIN_UP_HUB_APPS.length} herramientas`}
                           >
-                            Todas (7)
+                            Todas ({BRAIN_UP_HUB_APPS.length})
                           </button>
                           <button
                             type="button"
                             onClick={() => handleSelectBasicOnly(emp.id)}
                             className="px-2 py-1 rounded-sm border border-[#D8CFF0] bg-white hover:bg-[#F8F6FC] text-[10px] font-bold text-[#4A4A4A] uppercase tracking-wider transition-colors cursor-pointer"
-                            title="Asignar solo Clockify y TaskFlow"
+                            title={`Asignar solo las básicas (${DEFAULT_EMPLOYEE_APPS.join(', ')})`}
                           >
-                            Básicas
+                            Básicas ({DEFAULT_EMPLOYEE_APPS.length})
                           </button>
                         </div>
                       </td>

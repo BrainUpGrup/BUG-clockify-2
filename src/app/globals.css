@@ -2,6 +2,83 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
+
+/* ========================================================================= */
+/* TIPOGRAFÍA GOOGLE SANS ESTÁTICA Y PROPORCIONADA (CERO DISTORSIÓN HORIZONTAL) */
+/* ========================================================================= */
+@font-face {
+  font-family: 'Google Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Google Sans Regular'), local('GoogleSans-Regular'), url('https://fonts.cdnfonts.com/s/84295/GoogleSansTextRegular.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Google Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: local('Google Sans Medium'), local('GoogleSans-Medium'), url('https://fonts.cdnfonts.com/s/84295/GoogleSansTextMedium.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Google Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Google Sans Medium'), local('GoogleSans-Medium'), url('https://fonts.cdnfonts.com/s/84295/GoogleSansTextMedium.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Google Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Google Sans Bold'), local('GoogleSans-Bold'), url('https://fonts.cdnfonts.com/s/84295/GoogleSansTextBold.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Google Sans';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: local('Google Sans Bold'), local('GoogleSans-Bold'), url('https://fonts.cdnfonts.com/s/84295/GoogleSansTextBold.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Google Sans';
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: local('Google Sans Bold'), local('GoogleSans-Bold'), url('https://fonts.cdnfonts.com/s/84295/GoogleSansTextBold.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Google Sans Text';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('https://fonts.cdnfonts.com/s/84295/GoogleSansTextRegular.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Google Sans Text';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('https://fonts.cdnfonts.com/s/84295/GoogleSansTextMedium.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Google Sans Text';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('https://fonts.cdnfonts.com/s/84295/GoogleSansTextBold.woff') format('woff');
+}
+
 :root {
   --background: #FFFFFF;
   --foreground: #4A4A4A;
@@ -28,10 +105,18 @@
 body {
   color: var(--foreground);
   background-color: var(--background);
-  font-family: var(--font-montserrat), sans-serif;
+  font-family: 'Google Sans', 'Google Sans Text', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-optical-sizing: none;
+  font-stretch: 100%;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  letter-spacing: -0.01em;
   overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  letter-spacing: -0.02em;
 }
 
 /* ========================================================================= */
@@ -117,13 +202,18 @@ input[type="range"] {
   animation: badgePop 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Transiciones interactivas optimizadas para todos los controles */
+/* Transiciones interactivas ultra-fluidas para todos los controles y botones */
 button, a, input, select, textarea, [role="button"], .transition-interactive {
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.24s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
-button:active:not(:disabled), a:active:not(:disabled) {
-  transform: scale(0.985);
+button:hover:not(:disabled), [role="button"]:hover:not(:disabled) {
+  transition: all 0.24s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+button:active:not(:disabled), a:active:not(:disabled), [role="button"]:active:not(:disabled) {
+  transform: scale(0.975) translateY(1px);
+  transition: transform 0.08s ease;
 }
 
 /* Focus ring corporativo lila de La Abuela */
@@ -258,4 +348,138 @@ button:focus-visible {
 ::-webkit-scrollbar-thumb:hover {
   background: #8E0E75;
 }
+
+/* ========================================================================= */
+/* BOTONES VISUALES DE ALTO IMPACTO (GOOGLE SANS & BRAIN UP IDENTITY)       */
+/* ========================================================================= */
+.btn-visual-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  font-family: 'Google Sans', 'Product Sans', sans-serif;
+  font-weight: 800;
+  font-size: 0.9375rem;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.625rem;
+  background-color: #8E0E75;
+  color: #FFFFFF;
+  border: 2px solid transparent;
+  box-shadow: 0 4px 14px rgba(142, 14, 117, 0.28);
+  transition: all 0.28s cubic-bezier(0.25, 1, 0.5, 1);
+  cursor: pointer;
+}
+
+.btn-visual-primary:hover {
+  background-color: #700B5C;
+  transform: translateY(-2px) scale(1.025);
+  box-shadow: 0 8px 24px rgba(142, 14, 117, 0.42);
+}
+
+.btn-visual-primary:active {
+  transform: translateY(1px) scale(0.975);
+  box-shadow: 0 2px 8px rgba(142, 14, 117, 0.25);
+}
+
+.btn-visual-success {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  font-family: 'Google Sans', 'Product Sans', sans-serif;
+  font-weight: 800;
+  font-size: 0.9375rem;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.625rem;
+  background-color: #10B981;
+  color: #FFFFFF;
+  border: 2px solid transparent;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.28);
+  transition: all 0.28s cubic-bezier(0.25, 1, 0.5, 1);
+  cursor: pointer;
+}
+
+.btn-visual-success:hover {
+  background-color: #059669;
+  transform: translateY(-2px) scale(1.025);
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.42);
+}
+
+.btn-visual-success:active {
+  transform: translateY(1px) scale(0.975);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+}
+
+.btn-visual-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  font-family: 'Google Sans', 'Product Sans', sans-serif;
+  font-weight: 800;
+  font-size: 0.9375rem;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.625rem;
+  background-color: #DC2626;
+  color: #FFFFFF;
+  border: 2px solid transparent;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.28);
+  transition: all 0.28s cubic-bezier(0.25, 1, 0.5, 1);
+  cursor: pointer;
+}
+
+.btn-visual-danger:hover {
+  background-color: #B91C1C;
+  transform: translateY(-2px) scale(1.025);
+  box-shadow: 0 8px 24px rgba(220, 38, 38, 0.42);
+}
+
+.btn-visual-danger:active {
+  transform: translateY(1px) scale(0.975);
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.25);
+}
+
+/* ========================================================================= */
+/* UTILIDADES DE LA PASTILLA MORADA DESLIZANTE FLUÍDA                         */
+/* ========================================================================= */
+.sliding-pill-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  background-color: #F8F6FC;
+  border: 2px solid #D8CFF0;
+  padding: 4px;
+  border-radius: 0.5rem;
+  isolation: isolate;
+  user-select: none;
+}
+
+.sliding-pill-indicator {
+  position: absolute;
+  border-radius: 0.375rem;
+  background-color: #8E0E75;
+  box-shadow: 0 4px 14px rgba(142, 14, 117, 0.32);
+  pointer-events: none;
+  transition: left 0.3s cubic-bezier(0.25, 1, 0.5, 1), 
+              width 0.3s cubic-bezier(0.25, 1, 0.5, 1), 
+              top 0.3s cubic-bezier(0.25, 1, 0.5, 1), 
+              height 0.3s cubic-bezier(0.25, 1, 0.5, 1), 
+              opacity 0.2s ease;
+  z-index: 1;
+}
+
+.sliding-pill-tab {
+  position: relative;
+  z-index: 2;
+  transition: color 0.22s cubic-bezier(0.25, 1, 0.5, 1),
+              transform 0.22s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+
 

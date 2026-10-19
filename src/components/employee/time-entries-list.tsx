@@ -126,22 +126,22 @@ export function TimeEntriesList({
 
   if (entries.length === 0) {
     return (
-      <div className="w-full rounded-sm border border-dashed border-[#D8CFF0] bg-white p-8 text-center">
-        <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-sm bg-[#F8F6FC] text-[#8E0E75] mb-2 border border-[#D8CFF0]">
-          <FileQuestion className="h-5 w-5" />
+      <div className="w-full rounded-2xl border-2 border-dashed border-[#D8CFF0] bg-white p-12 text-center shadow-xs">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F8F6FC] text-[#8E0E75] mb-3 border-2 border-[#D8CFF0]">
+          <FileQuestion className="h-7 w-7" />
         </div>
-        <h3 className="text-sm font-extrabold text-[#292929] uppercase tracking-tight">
+        <h3 className="text-base sm:text-lg font-black text-[#292929] uppercase tracking-tight">
           No hay registros de tiempo todavía
         </h3>
-        <p className="mt-1 text-xs text-[#4A4A4A] max-w-md mx-auto">
-          Utiliza la barra superior para iniciar el cronómetro o añadir tus horas trabajadas.
+        <p className="mt-1.5 text-xs sm:text-sm text-[#4A4A4A] max-w-lg mx-auto">
+          Utiliza la barra superior para iniciar el cronómetro o añadir tus horas trabajadas para este cliente.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="w-full space-y-3">
+    <div className="w-full space-y-4 sm:space-y-5">
       {sortedDates.map((dateStr) => {
         const dayEntries = groupedEntries[dateStr];
         const dayTotalMinutes = dayEntries.reduce((sum, e) => sum + e.duration_minutes, 0);
@@ -150,41 +150,41 @@ export function TimeEntriesList({
         const isCollapsed = collapsedDays[dateStr] ?? !isToday;
 
         return (
-          <div key={dateStr} className="w-full rounded-sm border border-[#D8CFF0] bg-white overflow-hidden shadow-2xs transition-all">
+          <div key={dateStr} className="w-full rounded-2xl border-2 border-[#D8CFF0] bg-white overflow-hidden shadow-sm transition-all hover:border-[#8E0E75]/50">
             
             {/* Cabecera del día DESPLEGABLE / CLICABLE */}
             <div 
               onClick={() => toggleDayCollapse(dateStr)}
-              className="flex items-center justify-between px-4 py-2.5 bg-[#F8F6FC] border-b border-[#EAE4F5] cursor-pointer hover:bg-[#F3EEF9] select-none transition-colors"
+              className="flex items-center justify-between px-5 sm:px-7 py-3.5 sm:py-4.5 bg-[#F8F6FC] border-b-2 border-[#EAE4F5] cursor-pointer hover:bg-[#F1EAF8] select-none transition-colors"
               title={isCollapsed ? 'Haz clic para desplegar este día' : 'Haz clic para plegar este día'}
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
                 <button 
                   type="button" 
-                  className="p-0.5 text-[#8E0E75] hover:bg-white rounded-xs"
+                  className="p-1 text-[#8E0E75] hover:bg-white rounded-lg transition-transform"
                 >
-                  {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  {isCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
                 </button>
-                <Calendar className="h-4 w-4 text-[#8E0E75]" />
-                <span className="font-extrabold text-xs sm:text-sm text-[#292929] uppercase tracking-wide">
+                <Calendar className="h-5 w-5 text-[#8E0E75]" />
+                <span className="font-black text-sm sm:text-base lg:text-lg text-[#292929] uppercase tracking-tight">
                   {formatDateSpanish(dateStr)}
                 </span>
-                <span className="text-[11px] text-[#4A4A4A] font-mono tabular-nums">
+                <span className="text-xs sm:text-sm text-[#4A4A4A] font-mono tabular-nums font-bold">
                   ({dayEntries.length} {dayEntries.length === 1 ? 'tarea' : 'tareas'})
                 </span>
                 {isToday && (
-                  <span className="bg-[#8E0E75] text-white text-[9px] font-black uppercase px-1.5 py-0.2 rounded-2xs">
+                  <span className="bg-[#8E0E75] text-white text-xs font-black uppercase px-2.5 py-0.5 rounded-lg shadow-2xs">
                     Hoy
                   </span>
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-sm bg-white border border-[#8E0E75] text-xs font-black text-[#8E0E75] uppercase tracking-wider tabular-nums shadow-2xs">
-                  <Clock className="h-3 w-3" />
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5 px-3.5 sm:px-4 py-1.5 rounded-xl bg-white border-2 border-[#8E0E75] text-xs sm:text-sm font-black text-[#8E0E75] uppercase tracking-tight tabular-nums shadow-xs">
+                  <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   <span>Total: {formatMinutes(dayTotalMinutes)}</span>
                 </div>
-                <span className="text-[10px] text-slate-400 font-bold uppercase">
+                <span className="text-xs sm:text-sm text-slate-500 font-extrabold uppercase tracking-tight hidden sm:inline">
                   {isCollapsed ? 'Desplegar ▼' : 'Plegar ▲'}
                 </span>
               </div>
@@ -192,7 +192,7 @@ export function TimeEntriesList({
 
             {/* Listado de tareas (solo visible si NO está plegado) */}
             {!isCollapsed && (
-              <div className="divide-y divide-[#EAE4F5]">
+              <div className="divide-y-2 divide-[#EAE4F5]">
                 {dayEntries.map((entry) => {
                   const companyName = entry.company?.name || 'Cliente';
                   const isEditingTime = editingDurationId === entry.id;
@@ -202,13 +202,13 @@ export function TimeEntriesList({
                   return (
                     <div
                       key={entry.id}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:px-4 sm:py-2.5 hover:bg-[#F8F6FC]/60 transition-colors gap-2.5 group"
+                      className="flex flex-col lg:flex-row lg:items-center justify-between p-4 sm:px-7 sm:py-4 hover:bg-[#F8F6FC]/70 transition-colors gap-3 sm:gap-4 group"
                     >
                       {/* Detalles principales con edición rápida de descripción y empresa */}
                       <div className="flex-1 min-w-0 pr-2">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-2">
                           {isEditingDesc ? (
-                            <div className="flex items-center gap-2 w-full max-w-xl">
+                            <div className="flex items-center gap-2 w-full max-w-2xl">
                               <input
                                 ref={descInputRef}
                                 type="text"
@@ -219,15 +219,15 @@ export function TimeEntriesList({
                                   if (e.key === 'Enter') handleSaveDescription(entry.id, entry.description);
                                   if (e.key === 'Escape') setEditingDescId(null);
                                 }}
-                                className="w-full px-2.5 py-1 rounded-sm border-2 border-[#8E0E75] bg-white text-xs sm:text-sm font-semibold text-[#292929] outline-none shadow-sm"
+                                className="w-full px-4 py-2 rounded-xl border-2 border-[#8E0E75] bg-white text-sm sm:text-base font-bold text-[#292929] outline-none shadow-md"
                               />
                               <button
                                 type="button"
                                 onClick={() => handleSaveDescription(entry.id, entry.description)}
-                                className="p-1 rounded-sm bg-[#8E0E75] text-white hover:bg-[#700B5C]"
+                                className="p-2 rounded-xl bg-[#8E0E75] text-white hover:bg-[#700B5C] shadow-xs cursor-pointer"
                                 title="Guardar"
                               >
-                                <Check className="h-3.5 w-3.5" />
+                                <Check className="h-4 w-4" />
                               </button>
                             </div>
                           ) : (
@@ -236,19 +236,19 @@ export function TimeEntriesList({
                                 setEditingDescId(entry.id);
                                 setDescInputValue(entry.description || '');
                               }}
-                              className="cursor-pointer group/desc flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#292929] truncate hover:text-[#8E0E75] transition-colors"
+                              className="cursor-pointer group/desc flex items-center gap-2 text-sm sm:text-base lg:text-lg font-bold text-[#292929] truncate hover:text-[#8E0E75] transition-colors"
                               title="Haz clic para editar la descripción"
                             >
                               <span>{entry.description || 'Sin descripción'}</span>
-                              <Edit2 className="h-3 w-3 text-slate-300 opacity-0 group-hover/desc:opacity-100 transition-opacity" />
+                              <Edit2 className="h-4 w-4 text-slate-300 opacity-0 group-hover/desc:opacity-100 transition-opacity" />
                             </div>
                           )}
                         </div>
 
                         {/* Etiqueta de Empresa / Cliente (SIN CIF NI RESPONSABLE) */}
-                        <div className="flex flex-wrap items-center gap-2 text-xs">
+                        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 text-xs sm:text-sm">
                           {isEditingComp ? (
-                            <div className="w-48">
+                            <div className="w-64">
                               <AppSelect
                                 value={entry.company_id}
                                 onChange={(val) => {
@@ -259,17 +259,17 @@ export function TimeEntriesList({
                                   value: c.id,
                                   label: c.name,
                                 }))}
-                                icon={<Building2 className="h-3 w-3 text-[#8E0E75]" />}
+                                icon={<Building2 className="h-4 w-4 text-[#8E0E75]" />}
                               />
                             </div>
                           ) : (
                             <button
                               type="button"
                               onClick={() => setEditingCompanyId(entry.id)}
-                              className="inline-flex items-center gap-1 font-bold text-[#8E0E75] bg-[#F8F6FC] hover:bg-[#D8CFF0]/40 px-2 py-0.5 rounded-sm border border-[#D8CFF0] uppercase tracking-wider text-[10px] transition-colors cursor-pointer"
+                              className="inline-flex items-center gap-1.5 font-bold text-[#8E0E75] bg-[#F8F6FC] hover:bg-[#D8CFF0]/40 px-3.5 py-1.5 rounded-xl border-2 border-[#D8CFF0] uppercase tracking-tight text-xs sm:text-sm transition-colors cursor-pointer shadow-2xs"
                               title="Haz clic para cambiar el cliente"
                             >
-                              <Building2 className="h-3 w-3 text-[#8E0E75]" />
+                              <Building2 className="h-4 w-4 text-[#8E0E75]" />
                               <span>{companyName}</span>
                             </button>
                           )}
@@ -281,7 +281,7 @@ export function TimeEntriesList({
                                 const nextType = entry.compute_type === 'cuota' ? 'puntual' : 'cuota';
                                 onUpdateEntry(entry.id, { compute_type: nextType });
                               }}
-                              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[9px] font-extrabold uppercase tracking-wider border cursor-pointer transition-all ${
+                              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-tight border-2 cursor-pointer shadow-2xs transition-all ${
                                 entry.compute_type === 'cuota'
                                   ? 'bg-[#8E0E75]/10 text-[#8E0E75] border-[#8E0E75]/30 hover:bg-[#8E0E75]/20'
                                   : 'bg-[#191654]/10 text-[#191654] border-[#191654]/30 hover:bg-[#191654]/20'
@@ -293,7 +293,7 @@ export function TimeEntriesList({
                           )}
 
                           {entry.start_time && entry.end_time && (
-                            <span className="text-[#4A4A4A] text-[10px] font-mono tabular-nums">
+                            <span className="text-[#4A4A4A] text-xs sm:text-sm font-mono tabular-nums font-semibold bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">
                               {new Date(entry.start_time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
                               {' - '}
                               {new Date(entry.end_time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
@@ -303,22 +303,22 @@ export function TimeEntriesList({
                       </div>
 
                       {/* ZONA DERECHA: BOTÓN REPETIR + EDICIÓN DIRECTA DEL TIEMPO */}
-                      <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
+                      <div className="flex items-center justify-between lg:justify-end gap-3 shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-[#EAE4F5]">
                         
-                        {/* BOTÓN REPETIR TAREA (SOLICITADO: inicia temporizador nuevo de inmediato) */}
+                        {/* BOTÓN REPETIR TAREA (inicia temporizador nuevo de inmediato) */}
                         <button
                           type="button"
                           onClick={() => handleRepeatClick(entry)}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-sm bg-emerald-50 hover:bg-emerald-600 text-emerald-800 hover:text-white border border-emerald-300 hover:border-emerald-600 font-extrabold text-[11px] uppercase tracking-wider transition-all shadow-2xs cursor-pointer group/rep"
+                          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-600 text-emerald-800 hover:text-white border-2 border-emerald-300 hover:border-emerald-600 font-black text-xs sm:text-sm uppercase tracking-tight transition-all shadow-xs hover:shadow-md hover:scale-105 active:scale-95 cursor-pointer group/rep"
                           title={`Repetir: Iniciar temporizador en ${companyName} para "${entry.description || 'esta tarea'}"`}
                         >
-                          <Play className="h-3 w-3 fill-current text-emerald-600 group-hover/rep:text-white" />
+                          <Play className="h-3.5 w-3.5 fill-current text-emerald-600 group-hover/rep:text-white" />
                           <span>Repetir</span>
                         </button>
 
                         {/* Tiempo de la tarea editable inline */}
                         {isEditingTime ? (
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1.5">
                             <div className="relative">
                               <input
                                 ref={durationInputRef}
@@ -331,16 +331,16 @@ export function TimeEntriesList({
                                   if (e.key === 'Escape') setEditingDurationId(null);
                                 }}
                                 placeholder="ej. 330 o 3"
-                                className="w-24 px-2 py-1 text-center font-mono tabular-nums text-xs font-extrabold text-[#8E0E75] bg-white border-2 border-[#8E0E75] rounded-sm shadow-md outline-none"
+                                className="w-28 px-3 py-2 text-center font-mono tabular-nums text-sm sm:text-base font-black text-[#8E0E75] bg-white border-2 border-[#8E0E75] rounded-xl shadow-md outline-none"
                               />
                             </div>
                             <button
                               type="button"
                               onClick={() => handleSaveDuration(entry.id, entry.duration_minutes)}
-                              className="p-1 rounded-sm bg-[#8E0E75] text-white hover:bg-[#700B5C]"
+                              className="p-2 rounded-xl bg-[#8E0E75] text-white hover:bg-[#700B5C] shadow-xs cursor-pointer"
                               title="Confirmar"
                             >
-                              <Check className="h-3 w-3" />
+                              <Check className="h-4 w-4" />
                             </button>
                           </div>
                         ) : (
@@ -350,10 +350,10 @@ export function TimeEntriesList({
                               setEditingDurationId(entry.id);
                               setDurationInputValue(formatMinutes(entry.duration_minutes));
                             }}
-                            className="flex items-center gap-1 px-3 py-1.5 rounded-sm bg-[#F8F6FC] hover:bg-white text-[#8E0E75] border border-[#D8CFF0] hover:border-[#8E0E75] font-extrabold font-mono tabular-nums text-xs transition-all shadow-2xs cursor-pointer"
+                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#F8F6FC] hover:bg-white text-[#8E0E75] border-2 border-[#D8CFF0] hover:border-[#8E0E75] font-black font-mono tabular-nums text-sm sm:text-base transition-all shadow-xs cursor-pointer"
                             title="Haz clic encima para editar el tiempo"
                           >
-                            <Clock className="h-3 w-3 text-[#8E0E75]" />
+                            <Clock className="h-4 w-4 text-[#8E0E75]" />
                             <span>{formatMinutes(entry.duration_minutes)}</span>
                           </button>
                         )}
@@ -367,10 +367,10 @@ export function TimeEntriesList({
                                 onDeleteEntry(entry.id);
                               }
                             }}
-                            className="p-1.5 rounded-sm text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                            className="p-2.5 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                             title="Eliminar este registro horario"
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <Trash2 className="h-5 w-5" />
                           </button>
                         )}
                       </div>

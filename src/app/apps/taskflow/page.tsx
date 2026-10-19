@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, Suspense, useMemo } from 'react';
+import React, { useState, useEffect, Suspense, useMemo, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Navbar } from '@/components/navbar';
 import { useAuth } from '@/context/auth-context';
 import { useTimer } from '@/context/timer-context';
 import { createClient } from '@/lib/supabase/client';
@@ -800,6 +799,30 @@ function TaskFlowContent() {
   // Modos de visualización: Calendario L-V, Mural de Post-its y Lista
   const [viewMode, setViewMode] = useState<'calendar' | 'postits' | 'list'>('calendar');
 
+  // Pastilla morada deslizante para el conmutador de vistas
+  const viewSwitcherRef = useRef<HTMLDivElement>(null);
+  const [viewPill, setViewPill] = useState<{ left: number; width: number; opacity: number }>({ left: 0, width: 0, opacity: 0 });
+  const [hoveredView, setHoveredView] = useState<string | null>(null);
+
+  const targetView = hoveredView || viewMode;
+
+  useEffect(() => {
+    const updateViewPill = () => {
+      if (!viewSwitcherRef.current) return;
+      const targetEl = viewSwitcherRef.current.querySelector(`[data-view-tab="${targetView}"]`) as HTMLElement;
+      if (targetEl) {
+        setViewPill({
+          left: targetEl.offsetLeft,
+          width: targetEl.offsetWidth,
+          opacity: 1,
+        });
+      }
+    };
+    updateViewPill();
+    window.addEventListener('resize', updateViewPill);
+    return () => window.removeEventListener('resize', updateViewPill);
+  }, [targetView, viewMode]);
+
   // Estado de Post-its / Recordatorios
   const [postIts, setPostIts] = useState<PostItItem[]>([]);
 
@@ -834,10 +857,14 @@ function TaskFlowContent() {
     }, 4500);
   };
 
-  // Redirigir a login si no hay sesión
+  // Redirigir a login si no hay sesión, o al hub si el usuario no tiene permisos para TaskFlow
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.replace('/login');
+    if (!authLoading) {
+      if (!user) {
+        router.replace('/login');
+      } else if (user.role === 'employee' && !canUserAccessHubApp(user, 'taskflow')) {
+        router.replace('/hub');
+      }
     }
   }, [user, authLoading, router]);
 
@@ -1185,8 +1212,7 @@ function TaskFlowContent() {
   // Pantalla de Acceso Denegado si el coordinador restringió esta app
   if (!hasAccess) {
     return (
-      <div className="min-h-screen bg-[#F8F6FC] flex flex-col font-sans">
-        <Navbar />
+      <div className="flex-1 flex flex-col font-sans w-full">
         <main className="flex-1 max-w-2xl mx-auto px-4 py-16 text-center space-y-6">
           <div className="p-4 rounded-full bg-amber-50 text-amber-700 border border-amber-300 w-16 h-16 mx-auto flex items-center justify-center">
             <AlertCircle className="h-8 w-8" />
@@ -1244,9 +1270,7 @@ function TaskFlowContent() {
   });
 
   return (
-    <div className="min-h-screen bg-[var(--hub-bg,#F8F6FC)] flex flex-col font-sans">
-      <Navbar />
-
+    <div className="flex-1 flex flex-col font-sans w-full">
       {/* Notificación Toast Flotante */}
       {toastMessage && (
         <div className="fixed bottom-5 right-5 z-50 max-w-md bg-white border border-[#8E0E75] p-3.5 rounded-sm shadow-xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-3 duration-300">
@@ -1264,35 +1288,55 @@ function TaskFlowContent() {
         {/* Barra de Herramientas Compacta: Conmutador de Vistas + Filtros de Ámbito y Prioridad (Sin duplicaciones) */}
         <div className="bg-white border border-[#D8CFF0] px-3 py-1.5 rounded-sm shadow-2xs flex flex-wrap items-center justify-between gap-2 shrink-0">
           
-          {/* Conmutador de Vistas: Calendario (L-V), Mural de Post-its y Lista */}
-          <div className="flex items-center rounded-sm bg-[#F8F6FC] p-0.5 border border-[#D8CFF0] text-[11px] font-extrabold uppercase tracking-wider">
+          {/* Conmutador de Vistas con Pastilla Morada Deslizante Fluida */}
+          <div 
+            ref={viewSwitcherRef}
+            onMouseLeave={() => setHoveredView(null)}
+            className="relative flex items-center rounded-sm bg-[#F8F6FC] p-1 border-2 border-[#D8CFF0] text-[11px] font-extrabold uppercase tracking-wider select-none shadow-2xs"
+          >
+            {/* Pastilla morada deslizante */}
+            <div
+              className="absolute rounded-sm bg-[#8E0E75] shadow-sm pointer-events-none transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)]"
+              style={{
+                left: `${viewPill.left}px`,
+                width: `${viewPill.width}px`,
+                top: '4px',
+                bottom: '4px',
+                opacity: viewPill.opacity,
+              }}
+            />
+
             <button
               type="button"
+              data-view-tab="calendar"
               onClick={() => setViewMode('calendar')}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-sm transition-all cursor-pointer ${
-                viewMode === 'calendar'
-                  ? 'bg-[#8E0E75] text-white shadow-xs'
-                  : 'text-[#4A4A4A] hover:text-[#292929]'
+              onMouseEnter={() => setHoveredView('calendar')}
+              className={`relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-sm transition-colors duration-200 cursor-pointer ${
+                targetView === 'calendar'
+                  ? 'text-white font-black'
+                  : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75]'
               }`}
             >
-              <CalendarIcon className="h-3.5 w-3.5" />
+              <CalendarIcon className={`h-3.5 w-3.5 shrink-0 transition-transform ${targetView === 'calendar' ? 'scale-110 text-white' : 'text-[#8E0E75]'}`} />
               <span>Calendario (L-V)</span>
             </button>
 
             <button
               type="button"
+              data-view-tab="postits"
               onClick={() => setViewMode('postits')}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-sm transition-all cursor-pointer ${
-                viewMode === 'postits'
-                  ? 'bg-[#8E0E75] text-white shadow-xs'
-                  : 'text-[#4A4A4A] hover:text-[#292929]'
+              onMouseEnter={() => setHoveredView('postits')}
+              className={`relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-sm transition-colors duration-200 cursor-pointer ${
+                targetView === 'postits'
+                  ? 'text-white font-black'
+                  : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75]'
               }`}
             >
-              <StickyNote className="h-3.5 w-3.5" />
+              <StickyNote className={`h-3.5 w-3.5 shrink-0 transition-transform ${targetView === 'postits' ? 'scale-110 text-white' : 'text-[#8E0E75]'}`} />
               <span>Mural de Post-its</span>
               {postIts.length > 0 && (
                 <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-bold ${
-                  viewMode === 'postits' ? 'bg-white/25 text-white' : 'bg-[#D8CFF0] text-[#8E0E75]'
+                  targetView === 'postits' ? 'bg-white/25 text-white' : 'bg-[#D8CFF0] text-[#8E0E75]'
                 }`}>
                   {postIts.length}
                 </span>
@@ -1301,14 +1345,16 @@ function TaskFlowContent() {
 
             <button
               type="button"
+              data-view-tab="list"
               onClick={() => setViewMode('list')}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-sm transition-all cursor-pointer ${
-                viewMode === 'list'
-                  ? 'bg-[#8E0E75] text-white shadow-xs'
-                  : 'text-[#4A4A4A] hover:text-[#292929]'
+              onMouseEnter={() => setHoveredView('list')}
+              className={`relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-sm transition-colors duration-200 cursor-pointer ${
+                targetView === 'list'
+                  ? 'text-white font-black'
+                  : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75]'
               }`}
             >
-              <List className="h-3.5 w-3.5" />
+              <List className={`h-3.5 w-3.5 shrink-0 transition-transform ${targetView === 'list' ? 'scale-110 text-white' : 'text-[#8E0E75]'}`} />
               <span>Lista</span>
             </button>
           </div>

@@ -280,13 +280,13 @@ export function MonthlyReports({
       <div className="w-full rounded-sm border border-[#D8CFF0] bg-white p-5 shadow-sm">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between pb-4 mb-4 border-b border-[#EAE4F5] gap-4">
           {/* Pestañas de las 3 Perspectivas de Estadísticas */}
-          <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-sm bg-[#F8F6FC] border border-[#D8CFF0]">
+          <div className="flex flex-wrap items-center gap-2 p-1.5 rounded-lg bg-[#F8F6FC] border-2 border-[#D8CFF0] shadow-2xs">
             <button
               type="button"
               onClick={() => setStatsView('general')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-sm text-xs uppercase tracking-wider font-extrabold transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-md text-xs sm:text-sm uppercase tracking-tight font-extrabold transition-all cursor-pointer ${
                 statsView === 'general'
-                  ? 'bg-[#8E0E75] text-white shadow-xs'
+                  ? 'bg-[#8E0E75] text-white shadow-sm'
                   : 'text-[#4A4A4A] hover:text-[#8E0E75]'
               }`}
             >
@@ -296,9 +296,9 @@ export function MonthlyReports({
             <button
               type="button"
               onClick={() => setStatsView('company')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-sm text-xs uppercase tracking-wider font-extrabold transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-md text-xs sm:text-sm uppercase tracking-tight font-extrabold transition-all cursor-pointer ${
                 statsView === 'company'
-                  ? 'bg-[#8E0E75] text-white shadow-xs'
+                  ? 'bg-[#8E0E75] text-white shadow-sm'
                   : 'text-[#4A4A4A] hover:text-[#8E0E75]'
               }`}
             >
@@ -308,9 +308,9 @@ export function MonthlyReports({
             <button
               type="button"
               onClick={() => setStatsView('employee')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-sm text-xs uppercase tracking-wider font-extrabold transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-md text-xs sm:text-sm uppercase tracking-tight font-extrabold transition-all cursor-pointer ${
                 statsView === 'employee'
-                  ? 'bg-[#8E0E75] text-white shadow-xs'
+                  ? 'bg-[#8E0E75] text-white shadow-sm'
                   : 'text-[#4A4A4A] hover:text-[#8E0E75]'
               }`}
             >
@@ -319,12 +319,12 @@ export function MonthlyReports({
             </button>
           </div>
 
-          {/* Botones de Exportación Personalizados por Vista */}
-          <div className="flex items-center gap-2.5">
+          {/* Botones de Exportación Personalizados por Vista (Grandes y Visuales) */}
+          <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={handleExportPDF}
-              className="flex items-center gap-2 px-4 py-2 rounded-sm border-[1.5px] border-[#8E0E75] bg-white text-[#8E0E75] text-xs font-extrabold uppercase tracking-wider hover:bg-[#8E0E75] hover:text-white active:scale-95 shadow-xs transition-all cursor-pointer"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-md border-2 border-[#8E0E75] bg-white text-[#8E0E75] text-xs sm:text-sm font-extrabold uppercase tracking-tight hover:bg-[#8E0E75] hover:text-white active:scale-95 shadow-sm hover:shadow-md hover:scale-105 transition-all cursor-pointer"
               title="Descargar informe en plantilla PDF nativa con gráficos"
             >
               <FileText className="h-4 w-4" />
@@ -335,7 +335,7 @@ export function MonthlyReports({
             <button
               type="button"
               onClick={handleExportExcel}
-              className="flex items-center gap-2 px-4 py-2 rounded-sm bg-[#3BB54A] text-white text-xs font-extrabold uppercase tracking-wider hover:bg-[#32993E] active:scale-95 shadow-md shadow-[#3BB54A]/25 transition-all cursor-pointer"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-md bg-[#3BB54A] text-white text-xs sm:text-sm font-extrabold uppercase tracking-tight hover:bg-[#32993E] active:scale-95 shadow-md shadow-[#3BB54A]/30 hover:shadow-lg hover:scale-105 transition-all cursor-pointer"
               title="Descargar plantilla Excel estructurada con sentido humano"
             >
               <FileSpreadsheet className="h-4 w-4" />
@@ -350,7 +350,7 @@ export function MonthlyReports({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Selector de Mes */}
           <div>
-            <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#292929] mb-1.5">
+            <label className="block text-[11px] font-bold uppercase tracking-tight text-[#292929] mb-1.5">
               Mes
             </label>
             <AppSelect
@@ -366,7 +366,7 @@ export function MonthlyReports({
 
           {/* Selector de Año */}
           <div>
-            <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#292929] mb-1.5">
+            <label className="block text-[11px] font-bold uppercase tracking-tight text-[#292929] mb-1.5">
               Año
             </label>
             <AppSelect
@@ -383,7 +383,7 @@ export function MonthlyReports({
           {/* Selector condicional: Empresa si estamos en 'company', o Empleado si estamos en 'employee' */}
           {statsView === 'company' && (
             <div className="sm:col-span-2">
-              <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#292929] mb-1.5">
+              <label className="block text-[11px] font-bold uppercase tracking-tight text-[#292929] mb-1.5">
                 Seleccionar Empresa / Cliente
               </label>
               <AppSelect
@@ -400,7 +400,7 @@ export function MonthlyReports({
 
           {statsView === 'employee' && (
             <div className="sm:col-span-2">
-              <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#292929] mb-1.5">
+              <label className="block text-[11px] font-bold uppercase tracking-tight text-[#292929] mb-1.5">
                 Seleccionar Empleado
               </label>
               <AppSelect
@@ -417,7 +417,7 @@ export function MonthlyReports({
 
           {statsView === 'general' && (
             <div className="sm:col-span-2">
-              <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#292929] mb-1.5">
+              <label className="block text-[11px] font-bold uppercase tracking-tight text-[#292929] mb-1.5">
                 Búsqueda Rápida en Tareas
               </label>
               <div className="relative">
@@ -445,7 +445,7 @@ export function MonthlyReports({
             {/* KPI 1: Horas Totales */}
             <div className="rounded-sm border border-[#D8CFF0] bg-white p-4 shadow-sm">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#4A4A4A]">
+                <span className="text-[11px] font-bold uppercase tracking-tight text-[#4A4A4A]">
                   Horas Totales Agencia
                 </span>
                 <Clock className="h-4 w-4 text-[#8E0E75]" />
@@ -461,7 +461,7 @@ export function MonthlyReports({
             {/* KPI 2: Horas en Cuotas */}
             <div className="rounded-sm border border-[#D8CFF0] bg-white p-4 shadow-sm">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#4A4A4A]">
+                <span className="text-[11px] font-bold uppercase tracking-tight text-[#4A4A4A]">
                   Horas en Cuotas
                 </span>
                 <Briefcase className="h-4 w-4 text-[#191654]" />
@@ -479,7 +479,7 @@ export function MonthlyReports({
             {/* KPI 3: Horas Puntuales */}
             <div className="rounded-sm border border-[#D8CFF0] bg-white p-4 shadow-sm">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#4A4A4A]">
+                <span className="text-[11px] font-bold uppercase tracking-tight text-[#4A4A4A]">
                   Horas Puntuales / Extras
                 </span>
                 <TrendingUp className="h-4 w-4 text-[#8E0E75]" />
@@ -497,7 +497,7 @@ export function MonthlyReports({
             {/* KPI 4: Salud de Cuotas */}
             <div className="rounded-sm border border-[#D8CFF0] bg-white p-4 shadow-sm">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#4A4A4A]">
+                <span className="text-[11px] font-bold uppercase tracking-tight text-[#4A4A4A]">
                   Salud de Cuotas
                 </span>
                 <CheckCircle2 className="h-4 w-4 text-[#10B981]" />
@@ -589,19 +589,19 @@ export function MonthlyReports({
                       {/* Badge Destacado: Rojo para faltantes, Verde para exacto, Lila para sobrantes */}
                       <div className="shrink-0">
                         {isFaltan && (
-                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-sm bg-red-50 border border-red-300 text-red-700 text-xs font-extrabold uppercase tracking-wider badge-pop">
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-sm bg-red-50 border border-red-300 text-red-700 text-xs font-bold uppercase tracking-tight badge-pop">
                             <AlertTriangle className="h-3.5 w-3.5 text-red-600" />
                             <span>Horas faltantes: {formatMinutes(Math.abs(item.deltaMin))}</span>
                           </div>
                         )}
                         {isSobran && (
-                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-sm bg-[#8E0E75]/10 border border-[#8E0E75]/40 text-[#8E0E75] text-xs font-extrabold uppercase tracking-wider badge-pop">
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-sm bg-[#8E0E75]/10 border border-[#8E0E75]/40 text-[#8E0E75] text-xs font-bold uppercase tracking-tight badge-pop">
                             <TrendingUp className="h-3.5 w-3.5 text-[#8E0E75]" />
                             <span>Horas sobrantes: {formatMinutes(item.deltaMin)}</span>
                           </div>
                         )}
                         {isExacto && (
-                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-sm bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-extrabold uppercase tracking-wider badge-pop">
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-sm bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold uppercase tracking-tight badge-pop">
                             <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
                             <span>Cuota cumplida al milímetro</span>
                           </div>
@@ -669,7 +669,7 @@ export function MonthlyReports({
 
             <div className="w-full overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-[#F8F6FC] text-[#292929] font-extrabold uppercase tracking-wider border-b border-[#D8CFF0]">
+                <thead className="bg-[#F8F6FC] text-[#292929] font-extrabold uppercase tracking-tight border-b border-[#D8CFF0]">
                   <tr>
                     <th className="px-6 py-3.5">Empresa / Cliente</th>
                     <th className="px-6 py-3.5 text-center">Tipo</th>
@@ -708,7 +708,7 @@ export function MonthlyReports({
                         </td>
                         <td className="px-6 py-3.5 text-center">
                           <span
-                            className={`px-2 py-0.5 rounded-sm text-[10px] font-extrabold uppercase tracking-wider border ${
+                            className={`px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-tight border ${
                               c.client_type === 'cuota'
                                 ? 'bg-[#8E0E75]/10 text-[#8E0E75] border-[#8E0E75]/30'
                                 : 'bg-[#191654]/10 text-[#191654] border-[#191654]/30'

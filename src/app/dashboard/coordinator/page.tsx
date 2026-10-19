@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Navbar } from '@/components/navbar';
 import { MonthlyReports } from '@/components/coordinator/monthly-reports';
 import { CompanyCrud } from '@/components/coordinator/company-crud';
 import { UserManagement } from '@/components/coordinator/user-management';
@@ -30,6 +29,28 @@ export default function CoordinatorDashboardPage() {
   const { user, isLoading: authLoading, isSupabaseConnected } = useAuth();
   
   const [activeTab, setActiveTab] = useState<'reports' | 'companies' | 'users' | 'permissions' | 'customizer'>('reports');
+  const tabsContainerRef = useRef<HTMLDivElement>(null);
+  const [pillStyle, setPillStyle] = useState<{ left: number; width: number; opacity: number }>({ left: 0, width: 0, opacity: 0 });
+  const [hoveredTab, setHoveredTab] = useState<string | null>(null);
+
+  const targetTab = hoveredTab || activeTab;
+
+  useEffect(() => {
+    const updatePill = () => {
+      if (!tabsContainerRef.current) return;
+      const targetEl = tabsContainerRef.current.querySelector(`[data-tab-id="${targetTab}"]`) as HTMLElement;
+      if (targetEl) {
+        setPillStyle({
+          left: targetEl.offsetLeft,
+          width: targetEl.offsetWidth,
+          opacity: 1,
+        });
+      }
+    };
+    updatePill();
+    window.addEventListener('resize', updatePill);
+    return () => window.removeEventListener('resize', updatePill);
+  }, [targetTab, activeTab]);
 
   const [companies, setCompanies] = useState<Company[]>([]);
   const [employees, setEmployees] = useState<Profile[]>([]);
@@ -83,8 +104,13 @@ export default function CoordinatorDashboardPage() {
             localStorage.setItem('bug_clockify_cache_companies', JSON.stringify(compRes.data));
           }
           if (profRes.data) {
-            setEmployees(profRes.data as Profile[]);
-            localStorage.setItem('bug_clockify_cache_profiles', JSON.stringify(profRes.data));
+            const existingIds = new Set(profRes.data.map((p: any) => p.id));
+            const merged = [...profRes.data];
+            MOCK_PROFILES.forEach((mockP) => {
+              if (!existingIds.has(mockP.id)) merged.push(mockP);
+            });
+            setEmployees(merged as Profile[]);
+            localStorage.setItem('bug_clockify_cache_profiles', JSON.stringify(merged));
           }
           if (entriesRes.data) {
             setAllEntries(entriesRes.data as unknown as TimeEntry[]);
@@ -292,9 +318,7 @@ export default function CoordinatorDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FFFFFF]">
-      <Navbar />
-
+    <div className="flex-1 flex flex-col bg-[#FFFFFF] w-full">
       {/* Contenedor Líquido a Pantalla Completa con Animación de Entrada */}
       <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-6 space-y-6 page-transition">
         {/* Cabecera del Panel Líquida con Identidad Brain Up */}
@@ -309,66 +333,96 @@ export default function CoordinatorDashboardPage() {
             </p>
           </div>
 
-          {/* Navegación por Pestañas con Estilo Lila Abuela */}
-          <div className="flex flex-wrap items-center rounded-sm bg-[#F8F6FC] p-1 border border-[#D8CFF0] text-xs font-bold shrink-0 gap-1 shadow-2xs">
+          {/* Navegación por Pestañas con Pastilla Morada Deslizante Fluida */}
+          <div 
+            ref={tabsContainerRef}
+            onMouseLeave={() => setHoveredTab(null)}
+            className="relative flex flex-wrap items-center rounded-lg bg-[#F8F6FC] p-1.5 border-2 border-[#D8CFF0] text-xs font-bold shrink-0 gap-1.5 shadow-2xs select-none"
+          >
+            {/* Pastilla morada que se desliza con física fluida */}
+            <div
+              className="absolute rounded-md bg-[#8E0E75] shadow-md shadow-[#8E0E75]/35 pointer-events-none transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)]"
+              style={{
+                left: `${pillStyle.left}px`,
+                width: `${pillStyle.width}px`,
+                top: '6px',
+                bottom: '6px',
+                opacity: pillStyle.opacity,
+              }}
+            />
+
             <button
               type="button"
+              data-tab-id="reports"
               onClick={() => setActiveTab('reports')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-sm uppercase tracking-wider text-xs transition-all duration-200 cursor-pointer ${
-                activeTab === 'reports'
-                  ? 'bg-[#8E0E75] text-white font-extrabold shadow-sm scale-[1.02]'
-                  : 'text-[#4A4A4A] hover:text-[#8E0E75] hover:bg-white'
+              onMouseEnter={() => setHoveredTab('reports')}
+              className={`relative z-10 flex items-center gap-2 px-4 py-2 rounded-md uppercase tracking-tight text-xs sm:text-sm transition-colors duration-200 cursor-pointer ${
+                targetTab === 'reports'
+                  ? 'text-white font-extrabold'
+                  : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75]'
               }`}
             >
-              <BarChart3 className="h-4 w-4" />
+              <BarChart3 className={`h-4 w-4 shrink-0 transition-transform ${targetTab === 'reports' ? 'scale-110 text-white' : 'text-[#8E0E75]'}`} />
               <span>Estadísticas e Informes</span>
             </button>
+
             <button
               type="button"
+              data-tab-id="companies"
               onClick={() => setActiveTab('companies')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-sm uppercase tracking-wider text-xs transition-all duration-200 cursor-pointer ${
-                activeTab === 'companies'
-                  ? 'bg-[#8E0E75] text-white font-extrabold shadow-sm scale-[1.02]'
-                  : 'text-[#4A4A4A] hover:text-[#8E0E75] hover:bg-white'
+              onMouseEnter={() => setHoveredTab('companies')}
+              className={`relative z-10 flex items-center gap-2 px-4 py-2 rounded-md uppercase tracking-tight text-xs sm:text-sm transition-colors duration-200 cursor-pointer ${
+                targetTab === 'companies'
+                  ? 'text-white font-extrabold'
+                  : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75]'
               }`}
             >
-              <Building2 className="h-4 w-4" />
+              <Building2 className={`h-4 w-4 shrink-0 transition-transform ${targetTab === 'companies' ? 'scale-110 text-white' : 'text-[#8E0E75]'}`} />
               <span>Gestión de Empresas</span>
             </button>
+
             <button
               type="button"
+              data-tab-id="users"
               onClick={() => setActiveTab('users')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-sm uppercase tracking-wider text-xs transition-all duration-200 cursor-pointer ${
-                activeTab === 'users'
-                  ? 'bg-[#8E0E75] text-white font-extrabold shadow-sm scale-[1.02]'
-                  : 'text-[#4A4A4A] hover:text-[#8E0E75] hover:bg-white'
+              onMouseEnter={() => setHoveredTab('users')}
+              className={`relative z-10 flex items-center gap-2 px-4 py-2 rounded-md uppercase tracking-tight text-xs sm:text-sm transition-colors duration-200 cursor-pointer ${
+                targetTab === 'users'
+                  ? 'text-white font-extrabold'
+                  : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75]'
               }`}
             >
-              <Users className="h-4 w-4" />
+              <Users className={`h-4 w-4 shrink-0 transition-transform ${targetTab === 'users' ? 'scale-110 text-white' : 'text-[#8E0E75]'}`} />
               <span>Gestión de Usuarios</span>
             </button>
+
             <button
               type="button"
+              data-tab-id="permissions"
               onClick={() => setActiveTab('permissions')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-sm uppercase tracking-wider text-xs transition-all duration-200 cursor-pointer ${
-                activeTab === 'permissions'
-                  ? 'bg-[#8E0E75] text-white font-extrabold shadow-sm scale-[1.02]'
-                  : 'text-[#4A4A4A] hover:text-[#8E0E75] hover:bg-white'
+              onMouseEnter={() => setHoveredTab('permissions')}
+              className={`relative z-10 flex items-center gap-2 px-4 py-2 rounded-md uppercase tracking-tight text-xs sm:text-sm transition-colors duration-200 cursor-pointer ${
+                targetTab === 'permissions'
+                  ? 'text-white font-extrabold'
+                  : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75]'
               }`}
             >
-              <ShieldCheck className="h-4 w-4" />
+              <ShieldCheck className={`h-4 w-4 shrink-0 transition-transform ${targetTab === 'permissions' ? 'scale-110 text-white' : 'text-[#8E0E75]'}`} />
               <span>Permisos del HUB</span>
             </button>
+
             <button
               type="button"
+              data-tab-id="customizer"
               onClick={() => setActiveTab('customizer')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-sm uppercase tracking-wider text-xs transition-all duration-200 cursor-pointer ${
-                activeTab === 'customizer'
-                  ? 'bg-[#8E0E75] text-white font-extrabold shadow-sm scale-[1.02]'
-                  : 'text-[#4A4A4A] hover:text-[#8E0E75] hover:bg-white'
+              onMouseEnter={() => setHoveredTab('customizer')}
+              className={`relative z-10 flex items-center gap-2 px-4 py-2 rounded-md uppercase tracking-tight text-xs sm:text-sm transition-colors duration-200 cursor-pointer ${
+                targetTab === 'customizer'
+                  ? 'text-white font-extrabold'
+                  : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75]'
               }`}
             >
-              <Palette className="h-4 w-4" />
+              <Palette className={`h-4 w-4 shrink-0 transition-transform ${targetTab === 'customizer' ? 'scale-110 text-white' : 'text-[#8E0E75]'}`} />
               <span>Colores RGB</span>
             </button>
           </div>

@@ -43,11 +43,11 @@ export const BRAIN_UP_HUB_APPS: HubApp[] = [
   },
   {
     id: 'chat',
-    name: 'Brain Up Comms & Clientes',
+    name: 'Brain Up Chat',
     tagline: 'Comunicación por Clientes & Tareas Anti-Ruido',
     description: 'Plataforma de comunicación interna estilo Slack con canales por cliente, grupos internos y panel de resumen con tareas pendientes de revisar.',
     category: 'operaciones',
-    badge: 'Nuevo Módulo Slack',
+    badge: 'Módulo Slack',
     iconName: 'MessageSquare',
     route: '/apps/chat',
     isReady: true,
@@ -118,6 +118,12 @@ export const BRAIN_UP_HUB_APPS: HubApp[] = [
 const STORAGE_KEY_PERMISSIONS = 'bug_hub_user_permissions';
 
 /**
+ * Aplicaciones básicas por defecto para trabajadores que aún no tienen permisos personalizados configurados
+ * Por defecto: Clockify + TaskFlow (2 herramientas)
+ */
+export const DEFAULT_EMPLOYEE_APPS: string[] = ['clockify', 'taskflow'];
+
+/**
  * Obtiene el mapa de permisos guardado en localStorage
  */
 export function getStoredPermissionsMap(): Record<string, string[]> {
@@ -133,7 +139,7 @@ export function getStoredPermissionsMap(): Record<string, string[]> {
 }
 
 /**
- * Guarda los permisos de aplicaciones para un usuario específico
+ * Guarda los permisos de aplicaciones para un usuario específico y notifica a la app
  */
 export function saveUserAppPermissions(userId: string, appIds: string[]): void {
   if (typeof window === 'undefined') return;
@@ -141,6 +147,13 @@ export function saveUserAppPermissions(userId: string, appIds: string[]): void {
     const current = getStoredPermissionsMap();
     current[userId] = appIds;
     localStorage.setItem(STORAGE_KEY_PERMISSIONS, JSON.stringify(current));
+    
+    // Despachar evento para sincronización en tiempo real sin recargar página
+    window.dispatchEvent(
+      new CustomEvent('bug_permissions_updated', {
+        detail: { userId, appIds },
+      })
+    );
   } catch (e) {
     console.error('Error saving permissions to localStorage:', e);
   }
@@ -148,8 +161,8 @@ export function saveUserAppPermissions(userId: string, appIds: string[]): void {
 
 /**
  * Obtiene las aplicaciones permitidas para un usuario determinado
- * - Admin y Coordinador tienen acceso a todas las 7 herramientas por defecto.
- * - Trabajadores/Empleados tienen por defecto Clockify + TaskFlow a menos que el coordinador lo personalice.
+ * - Admin y Coordinador tienen acceso total por gobernanza técnica.
+ * - Empleados ven exactamente las herramientas asignadas en la matriz por la coordinadora (por defecto 2: Clockify + TaskFlow).
  */
 export function getAuthorizedAppsForUser(user: Profile | null): HubApp[] {
   if (!user) return [];
@@ -161,12 +174,9 @@ export function getAuthorizedAppsForUser(user: Profile | null): HubApp[] {
 
   // Empleados: Comprobar la matriz de permisos configurada por la coordinadora
   const permissionsMap = getStoredPermissionsMap();
-  const allowedIds = permissionsMap[user.id];
-
-  // Si no se han configurado aún permisos personalizados para este empleado, por defecto ve Clockify, TaskFlow y Chat
-  if (!allowedIds || !Array.isArray(allowedIds)) {
-    return BRAIN_UP_HUB_APPS.filter((app) => app.id === 'clockify' || app.id === 'taskflow' || app.id === 'chat');
-  }
+  const allowedIds = permissionsMap[user.id] && Array.isArray(permissionsMap[user.id])
+    ? permissionsMap[user.id]
+    : DEFAULT_EMPLOYEE_APPS;
 
   return BRAIN_UP_HUB_APPS.filter((app) => allowedIds.includes(app.id));
 }
@@ -179,11 +189,10 @@ export function canUserAccessHubApp(user: Profile | null, appId: string): boolea
   if (user.role === 'admin' || user.role === 'coordinator') return true;
 
   const permissionsMap = getStoredPermissionsMap();
-  const allowedIds = permissionsMap[user.id];
-
-  if (!allowedIds || !Array.isArray(allowedIds)) {
-    return appId === 'clockify' || appId === 'taskflow' || appId === 'chat';
-  }
+  const allowedIds = permissionsMap[user.id] && Array.isArray(permissionsMap[user.id])
+    ? permissionsMap[user.id]
+    : DEFAULT_EMPLOYEE_APPS;
 
   return allowedIds.includes(appId);
 }
+

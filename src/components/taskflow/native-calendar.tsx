@@ -271,15 +271,15 @@ export function NativeCalendar({
     <div className="flex flex-col h-full w-full space-y-2">
       
       {/* BARRA SUPERIOR DE GOOGLE CALENDAR / TASKFLOW */}
-      <div className="bg-white border border-[#D8CFF0] rounded-sm px-3 py-2 shadow-2xs flex flex-wrap items-center justify-between gap-2.5 shrink-0">
+      <div className="bg-white border-2 border-[#D8CFF0] rounded-lg px-4 py-2.5 shadow-xs flex flex-wrap items-center justify-between gap-3 shrink-0">
         
         {/* Navegación < Hoy > + Título del Período */}
-        <div className="flex items-center gap-2.5">
-          <div className="flex items-center rounded-sm border border-[#D8CFF0] bg-[#F8F6FC] p-0.5">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center rounded-md border-2 border-[#D8CFF0] bg-[#F8F6FC] p-1 shadow-2xs">
             <button
               type="button"
               onClick={handlePrev}
-              className="p-1 rounded-sm hover:bg-white text-[#4A4A4A] hover:text-[#8E0E75] transition-all cursor-pointer"
+              className="p-1.5 rounded-md hover:bg-white text-[#4A4A4A] hover:text-[#8E0E75] transition-all cursor-pointer"
               title="Período anterior"
             >
               <ChevronLeft className="h-4 w-4" />
@@ -287,7 +287,7 @@ export function NativeCalendar({
             <button
               type="button"
               onClick={handleGoToday}
-              className="px-2.5 py-0.5 text-xs font-extrabold uppercase tracking-wider text-[#8E0E75] hover:bg-white rounded-sm transition-all cursor-pointer"
+              className="px-3.5 py-1 text-xs font-black uppercase tracking-wider text-[#8E0E75] hover:bg-white rounded-md transition-all cursor-pointer"
               title="Ir a hoy"
             >
               Hoy
@@ -295,24 +295,24 @@ export function NativeCalendar({
             <button
               type="button"
               onClick={handleNext}
-              className="p-1 rounded-sm hover:bg-white text-[#4A4A4A] hover:text-[#8E0E75] transition-all cursor-pointer"
+              className="p-1.5 rounded-md hover:bg-white text-[#4A4A4A] hover:text-[#8E0E75] transition-all cursor-pointer"
               title="Período siguiente"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
 
-          <h2 className="text-sm sm:text-base font-extrabold tracking-tight text-[#292929]">
+          <h2 className="text-sm sm:text-base font-black tracking-tight text-[#292929]">
             {getHeaderTitle()}
           </h2>
         </div>
 
         {/* SELECTOR DE VISTAS TIPO GOOGLE CALENDAR (DÍA, SEMANA, MES, AÑO) */}
-        <div className="flex items-center rounded-sm bg-[#F8F6FC] p-0.5 border border-[#D8CFF0] text-xs font-extrabold uppercase tracking-wider">
+        <div className="flex items-center rounded-md bg-[#F8F6FC] p-1 border-2 border-[#D8CFF0] text-xs font-black uppercase tracking-wider shadow-2xs">
           <button
             type="button"
             onClick={() => setViewType('day')}
-            className={`px-3 py-1 rounded-sm transition-all cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-md transition-all cursor-pointer ${
               viewType === 'day'
                 ? 'bg-[#8E0E75] text-white shadow-xs'
                 : 'text-[#4A4A4A] hover:text-[#292929]'
@@ -323,7 +323,7 @@ export function NativeCalendar({
           <button
             type="button"
             onClick={() => setViewType('week')}
-            className={`px-3 py-1 rounded-sm transition-all cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-md transition-all cursor-pointer ${
               viewType === 'week'
                 ? 'bg-[#8E0E75] text-white shadow-xs'
                 : 'text-[#4A4A4A] hover:text-[#292929]'
@@ -334,7 +334,7 @@ export function NativeCalendar({
           <button
             type="button"
             onClick={() => setViewType('month')}
-            className={`px-3 py-1 rounded-sm transition-all cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-md transition-all cursor-pointer ${
               viewType === 'month'
                 ? 'bg-[#8E0E75] text-white shadow-xs'
                 : 'text-[#4A4A4A] hover:text-[#292929]'
@@ -345,7 +345,7 @@ export function NativeCalendar({
           <button
             type="button"
             onClick={() => setViewType('year')}
-            className={`px-3 py-1 rounded-sm transition-all cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-md transition-all cursor-pointer ${
               viewType === 'year'
                 ? 'bg-[#8E0E75] text-white shadow-xs'
                 : 'text-[#4A4A4A] hover:text-[#292929]'
@@ -356,24 +356,24 @@ export function NativeCalendar({
         </div>
 
         {/* Popups Interactivos de Control: Advertencias y Tareas Hechas */}
-        <div className="flex items-center gap-1.5 text-xs">
+        <div className="flex items-center gap-2 text-xs">
           {/* Botón de auto-desplazamiento de tareas pendientes vencidas */}
           {onRescheduleOverdue && overdueItems.length > 0 && (
             <button
               type="button"
               onClick={onRescheduleOverdue}
-              className="px-2.5 py-1 rounded-sm bg-purple-50 hover:bg-purple-100 text-[#8E0E75] border border-[#8E0E75]/30 font-extrabold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs animate-pulse"
+              className="px-3 py-1.5 rounded-md bg-purple-50 hover:bg-purple-100 text-[#8E0E75] border-2 border-[#8E0E75]/40 font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-xs animate-pulse hover:scale-105 active:scale-95"
               title="Desplazar automáticamente las tareas no completadas a hoy para mantenerlas como recordatorio activo"
             >
               <RotateCw className="h-3.5 w-3.5 text-[#8E0E75]" />
-              <span>Desplazar {overdueItems.length} vencidas a hoy</span>
+              <span>Desplazar {overdueItems.length} vencidas</span>
             </button>
           )}
 
           <button
             type="button"
             onClick={() => setActivePopup('urgent_warnings')}
-            className={`px-2 py-1 rounded-sm border font-extrabold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs ${
+            className={`px-3 py-1.5 rounded-md border font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95 ${
               monthPending.length > 0
                 ? 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300'
                 : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
@@ -387,7 +387,7 @@ export function NativeCalendar({
           <button
             type="button"
             onClick={() => setActivePopup('goods_done')}
-            className="px-2 py-1 rounded-sm bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-extrabold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+            className="px-3 py-1.5 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
             title="Abrir tareas completadas con éxito"
           >
             <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
@@ -397,7 +397,7 @@ export function NativeCalendar({
           <button
             type="button"
             onClick={() => setActivePopup('meetings')}
-            className="px-2 py-1 rounded-sm bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-extrabold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs hidden sm:flex"
+            className="px-3 py-1.5 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs hidden sm:flex hover:scale-105 active:scale-95"
             title="Abrir reuniones agendadas"
           >
             <Clock className="h-3.5 w-3.5 text-blue-600" />
@@ -406,23 +406,23 @@ export function NativeCalendar({
         </div>
 
         {/* Acciones de Calendario: Exportar .ics y Añadir Tarea */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => downloadAllEventsIcs(items, `BrainUp_Calendario_${viewType}_${year}.ics`)}
-            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-sm border border-[#D8CFF0] bg-white hover:border-[#8E0E75] hover:text-[#8E0E75] text-[#292929] text-[11px] font-extrabold uppercase tracking-wider shadow-2xs transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md border-2 border-[#D8CFF0] bg-white hover:border-[#8E0E75] hover:text-[#8E0E75] text-[#292929] text-xs font-black uppercase tracking-wider shadow-2xs hover:shadow-xs transition-all cursor-pointer hover:scale-105 active:scale-95"
             title="Descargar eventos en archivo .ics compatible con Google Calendar / Outlook"
           >
-            <Download className="h-3.5 w-3.5 text-[#8E0E75]" />
+            <Download className="h-4 w-4 text-[#8E0E75]" />
             <span className="hidden md:inline">Exportar .ics</span>
           </button>
 
           <button
             type="button"
             onClick={() => onOpenCreateModal(selectedDate)}
-            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-sm bg-[#8E0E75] hover:bg-[#700B5C] text-white text-[11px] font-extrabold uppercase tracking-wider shadow-2xs transition-all cursor-pointer"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-[#8E0E75] hover:bg-[#700B5C] text-white text-xs sm:text-sm font-black uppercase tracking-wider shadow-md hover:shadow-lg hover:shadow-[#8E0E75]/30 hover:scale-105 active:scale-95 transition-all cursor-pointer"
           >
-            <Plus className="h-3.5 w-3.5" />
+            <Plus className="h-4 w-4" />
             <span>Agregar Tarea</span>
           </button>
         </div>

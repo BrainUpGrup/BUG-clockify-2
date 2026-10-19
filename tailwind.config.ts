@@ -10,8 +10,17 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["var(--font-montserrat)", "sans-serif"],
-        montserrat: ["var(--font-montserrat)", "sans-serif"],
+        sans: ["'Google Sans'", "'Google Sans Text'", "'Plus Jakarta Sans'", "-apple-system", "BlinkMacSystemFont", "'Segoe UI'", "Roboto", "sans-serif"],
+        googlesans: ["'Google Sans'", "'Google Sans Text'", "'Plus Jakarta Sans'", "sans-serif"],
+        montserrat: ["'Google Sans'", "'Google Sans Text'", "'Plus Jakarta Sans'", "sans-serif"],
+      },
+      letterSpacing: {
+        tighter: '-0.04em',
+        tight: '-0.02em',
+        normal: '0em',
+        wide: '0.005em',
+        wider: '0.015em',
+        widest: '0.025em',
       },
       colors: {
         primary: {

@@ -579,11 +579,251 @@
       - Tarjeta 3: **Super Administrador** (`appadmin@brainupgrup.com`).
       - Rellena y autentica automáticamente sin tener que tipear contraseñas complejas.
 
+### [v2.8.0] - 2026-10-19 - Refactorización Visual de Botones y Migración Tipográfica a Google Sans
+- **Solicitud del Usuario:**
+  1. Refactorización visual de la aplicación manteniendo estrictamente la paleta de colores corporativa (`#8E0E75`, `#700B5C`, `#191654`, `#10B981`, `#DC2626`).
+  2. Hacer todos los botones de la suite mucho más grandes, visuales y con mayor presencia táctil.
+  3. Cambiar la tipografía de toda la aplicación por **Google Sans**.
+  4. Mantener intacto el PDF y los documentos de estudio de usabilidad.
+- **Decisión Técnica e Implementación:**
+  - **Tipografía Google Sans:**
+    - `src/app/layout.tsx`: Inyección de preconnect y hojas de estilo de Google Sans y Product Sans. Actualización del `<body>` a `font-sans`.
+    - `src/app/globals.css`: Importación oficial `@import url('https://fonts.cdnfonts.com/css/google-sans')` y `@import url('https://fonts.cdnfonts.com/css/google-sans-2')`. Establecimiento de Google Sans como fuente global prioritaria en `:root` y `body`.
+    - `tailwind.config.ts`: Configuración de familias `sans`, `googlesans` y `montserrat` para mapear a Google Sans con fallbacks progresivos.
+  - **Refactorización de Botones de Alto Impacto:**
+    - `src/components/navbar.tsx`: Botones de navegación agrandados a `px-3.5 py-2 rounded-md text-xs sm:text-sm font-black`, botón Play/Stop con texto claro y padding ampliado, botón "Flotante" con micro-elevación interactiva.
+    - `src/components/employee/time-tracker-bar.tsx`: Botón principal **INICIAR / PARAR** transformado en botón hero de altura 48px (`h-11 sm:h-12 px-5 py-2.5 rounded-lg text-sm sm:text-base font-black shadow-lg hover:scale-105`), conmutadores de Cuota / Puntual y botones de jornada agrandados.
+    - `src/app/hub/page.tsx`: Tarjetas de aplicaciones con botón de entrada en estilo CTA de ancho completo (`py-3 px-5 text-sm font-black uppercase rounded-md shadow-md`), pestañas superiores agrandadas con texto en negrita y altura generosa.
+    - `src/app/login/page.tsx`: Botón "Entrar a mi Cuenta" agrandado a `py-3.5 px-6 text-sm font-black rounded-md shadow-lg`, inputs con altura de 48px y tarjetas de acceso rápido de 1 clic más espaciosas y contrastadas.
+    - `src/components/taskflow/native-calendar.tsx`: Botón "+ Agregar Tarea" hero agrandado (`px-5 py-2.5 rounded-md font-black shadow-md`), selector de vista (Día/Semana/Mes/Año) y badges de estado expandidos.
+    - `src/components/chat/chat-view.tsx`: Botón "Enviar" agrandado con padding táctil, botón "Marcar como Tarea" con mayor tamaño de icono y texto, y botones de cabecera ampliados.
+    - `src/components/coordinator/monthly-reports.tsx`: Botones de exportación PDF y Excel agrandados a `px-5 py-2.5 text-sm font-black` con sombras de profundidad y efecto hover reactivo.
+    - `src/components/timer/floating-timer-companion.tsx` & `src/app/floating-timer/page.tsx`: Estilos de botones de la ventana flotante actualizados a Google Sans con mayor área de clic.
 
+### [v2.8.1] - 2026-10-19 - Modo Súper Reducido y Modo Grande para la Ventana Flotante
+- **Solicitud del Usuario:**
+  1. Permitir que la ventana flotante disponga de dos modalidades de visualización:
+     - **Modo Grande:** Vista extendida con información detallada, selector interactivo de clientes, estado y botones de acción completos.
+     - **Modo Súper Reducido:** Barra ultra compacta y discreta que ocupe el mínimo espacio visual en pantalla, pensada para no estorbar en la navegación ni tapar tablas, calendarios o elementos de trabajo en otras pantallas y webs.
+  2. Mantener la interactividad completa: que incluso en modo súper reducido se pueda ver la empresa, el cronómetro en vivo y pausar o reanudar el tiempo con 1 solo clic.
+- **Decisión Técnica e Implementación:**
+  - `src/app/floating-timer/page.tsx` (Ventana Popup / Standalone):
+    - Estado reactivo `viewMode: 'large' | 'compact'` con persistencia en `localStorage['bug_floating_timer_mode']`.
+    - **Modo Súper Reducido:**
+      - Barra minimalista de 48px de altura con borde `#D8CFF0` y fondo blanco puro.
+      - Indicador pulsante de estado en vivo (rojo intermitente si corre, gris si está detenido).
+      - Nombre abreviado / truncado del cliente activo (`#191654` en negrita).
+      - Cronómetro digital nítido en fuente monospace (`font-black text-base`).
+      - Botón táctil directo `PARAR` (rojo) / `INICIAR` (verde esmeralda).
+      - Botón de alternancia instantánea `[ ⛶ ]` para regresar al Modo Grande.
+      - Botón `[ ↗ ]` para volver a enfocar la aplicación principal en 1 clic.
+      - Redimensionamiento dinámico automático de la ventana del navegador con `window.resizeTo(360, 84)`.
+    - **Modo Grande:**
+      - Cabecera corporativa con insignia "Brain Up • Flotante", badge de estado y botón prominente `[ ⚊ Reducido ]`.
+      - Tarjeta de cliente con selector desplegable de cambio rápido entre clientes activos.
+      - Cronómetro gigante y botones táctiles hero de `PARAR / INICIAR` y `VOLVER A APP`.
+      - Redimensionamiento dinámico a `window.resizeTo(390, 230)`.
+  - `src/components/timer/floating-timer-companion.tsx`:
+    - **Ventana Nativa Document Picture-in-Picture (OS Always-on-Top):**
+      - Integración de estilos CSS específicos para `.pip-compact-view` y `.pip-container`.
+      - Botón de alternancia `[ ⚊ REDUCIDO ]` en cabecera y `[ ⛶ ]` en vista compacta.
+      - Redimensionamiento de ventana nativa con `pipWindow.resizeTo(340, 68)` y `(380, 165)`.
+    - **Widget Flotante Arrastrable Interno:**
+      - Modo contraído mejorado a una barra flotante de 36px de altura que incluye grip de arrastre, nombre de empresa, cronómetro activo, botón Play/Stop táctil directo, botón de expandir a modo grande y botón de cierre.
+      - Posición y preferencia de modo persistidas en `localStorage`.
+    - Aislamiento de ruta: no monta el widget duplicado dentro de la propia página `/floating-timer`.
 
+### [v2.8.2] - 2026-10-19 - Interconexión Integral de Permisos, Sincronización del Hub y Módulo Chat en Matriz
+- **Solicitud del Usuario:**
+  1. Corregir la discrepancia de permisos: en el panel del coordinador el empleado de prueba aparecía con acceso a solo 2 herramientas, pero al iniciar sesión como empleado se mostraban 3 herramientas en el Hub.
+  2. La aplicación de Chat no aparecía de forma identificable en el apartado de permisos de la coordinadora.
+  3. Garantizar la interconexión global: cualquier cambio en los permisos de un usuario debe reflejarse en tiempo real en su Hub, en la barra de navegación superior (Navbar de escritorio y móvil) y en la protección de rutas.
+- **Decisión Técnica e Implementación:**
+  - `src/lib/hub-apps.ts`:
+    - Homogeneización de la constante `DEFAULT_EMPLOYEE_APPS: string[] = ['clockify', 'taskflow']` como fuente única de verdad para trabajadores sin permisos personalizados.
+    - Sincronización estricta de `getAuthorizedAppsForUser(user)` y `canUserAccessHubApp(user, appId)` para respetar exactamente `DEFAULT_EMPLOYEE_APPS`.
+    - Renombrado de la herramienta `chat` a **"Brain Up Chat"** (con badge `'Módulo Slack'` y tagline `'Comunicación por Clientes & Tareas Anti-Ruido'`), garantizando que en la matriz y el Hub se identifique de forma directa y clara.
+    - Emisión del evento nativo `bug_permissions_updated` en `saveUserAppPermissions` para notificar a todos los componentes en tiempo real.
+  - `src/components/coordinator/hub-permissions-matrix.tsx`:
+    - Incorporación del icono `MessageSquare` para la columna de Chat.
+    - Sincronización de `getUserAllowedApps` y `handleSelectBasicOnly` con `DEFAULT_EMPLOYEE_APPS`.
+    - Actualización dinámica del contador de cabecera a `{BRAIN_UP_HUB_APPS.length} Herramientas Integradas` (8 herramientas totales).
+    - Botones de acción rápida actualizados a `Todas (8)` y `Básicas (2)`.
+  - `src/lib/mock-data.ts`:
+    - Inclusión permanente de `Empleado de Prueba` (`00000000-0000-0000-0000-000000000003`, `empleado@brainupgrup.com`) en `MOCK_PROFILES` para garantizar que la coordinadora siempre lo tenga disponible en la matriz y en gestión de usuarios independientemente del estado de Supabase.
+  - `src/app/dashboard/coordinator/page.tsx` & `src/app/hub/page.tsx`:
+    - Fusión automática de perfiles mock con datos remotos de Supabase para prevenir omisión de cuentas demo.
+    - Escucha activa del evento `bug_permissions_updated` y del evento `storage` en el Hub para recargar las tarjetas autorizadas sin recargar la página.
+  - `src/components/navbar.tsx`:
+    - Condicionamiento estricto de los enlaces `Clockify`, `TaskFlow` y `Chat` tanto en escritorio como en la barra de navegación móvil (`canAccessClockify`, `canAccessTaskflow`, `canAccessChat`).
+    - Escucha del evento `bug_permissions_updated` para ocultar o mostrar los accesos de la barra instantáneamente cuando la coordinadora modifica permisos.
+  - `src/app/apps/chat/page.tsx` & `src/app/apps/taskflow/page.tsx`:
+    - Guards de seguridad en cliente: si un empleado intenta acceder directamente por URL a una herramienta que no tiene permitida, es redirigido automáticamente a `/hub`.
 
+### [v2.8.3] - 2026-10-19 - Transiciones Táctiles en Botones y Pastilla Morada Deslizante Fluida en Toda la Suite
+- **Solicitud del Usuario:**
+  1. Añadir transiciones suaves a todos los botones para que la interacción sea mucho más fluida.
+  2. Implementar una pastilla morada (`la pastilla morada vaya deslizándose`) que se mueva y deslice de forma fluida y orgánica conforme el usuario navega o se desliza por el layout de la aplicación.
+- **Decisión Técnica e Implementación:**
+  - `src/app/globals.css`:
+    - Curvas de aceleración cúbicas optimizadas: `transition: all 0.24s cubic-bezier(0.25, 1, 0.5, 1)` para todos los controles interactivos (`button`, `a`, `[role="button"]`).
+    - Micro-elevaciones con sombra ambiental en `:hover` (`translateY(-2px) scale(1.025)`) y compresión táctil con feedback elástico en `:active` (`transform: scale(0.975) translateY(1px)`).
+    - Refactorización de `.btn-visual-primary`, `.btn-visual-success`, `.btn-visual-danger`, `.btn-editorial-primary` y `.btn-editorial-secondary` para mantener la misma física fluida en toda la suite.
+    - Clases de soporte `.sliding-pill-container`, `.sliding-pill-indicator` y `.sliding-pill-tab`.
+  - **Pastilla Morada Deslizante en Toda la Navegación del Layout:**
+    1. **Barra de Navegación Principal (`src/components/navbar.tsx`):**
+       - Cálculo continuo y reactivo de `offsetLeft` y `offsetWidth` mediante `useRef` y eventos de redimensionamiento.
+       - La pastilla morada corporativa (`#8E0E75`) se desliza suavemente sobre los enlaces (`HUB Apps`, `Clockify`, `TaskFlow`, `Chat`, `Admin`) tanto al pasar el ratón (hover predictivo) como al cambiar de ruta activa.
+       - Implementación paralela de la pastilla morada en la barra de navegación móvil.
+    2. **Panel Global de Coordinación (`src/app/dashboard/coordinator/page.tsx`):**
+       - Conmutador de 5 pestañas (`Estadísticas e Informes`, `Gestión de Empresas`, `Gestión de Usuarios`, `Permisos del HUB`, `Colores RGB`) dotado con la pastilla morada que vuela entre las opciones con física de muelle (`cubic-bezier(0.25, 1, 0.5, 1)`).
+    3. **HUB Central de Aplicaciones (`src/app/hub/page.tsx`):**
+       - Pestañas de gestión (`Mis Herramientas`, `Matriz de Permisos por Trabajador`, `Personalización de Colores RGB`) convertidas en selector de pastilla morada deslizante interactiva.
+    4. **Barra de Control de Horas del Empleado (`src/components/employee/time-tracker-bar.tsx`):**
+       - Conmutador de modo `Temporizador` vs `Entrada Manual`: la pastilla morada se desliza de izquierda a derecha de forma fluida.
+       - Selector de cuota `Horas Cuota` vs `Trabajo Puntual / Extra`: transición suave de la píldora entre ambas modalidades.
+    5. **Brain Up TaskFlow (`src/app/apps/taskflow/page.tsx`):**
+       - Conmutador de vistas (`Calendario (L-V)`, `Mural de Post-its`, `Lista`): la pastilla morada se desliza elásticamente entre las tres vistas al hacer hover o clic.
+  - **Validación y Pruebas:**
+    - Verificación estricta de TypeScript con `npx tsc --noEmit` completada con 0 errores.
+    - Verificación de integridad de `Estudio_Usabilidad_Brain_Up_Grup.pdf` (exactamente 1,684,483 bytes, intacto).
+    - Peticiones HTTP 200 OK validadas en `/hub`, `/dashboard/coordinator`, `/dashboard/employee`, `/apps/taskflow` y `/apps/chat`.
 
+### [v2.8.4] - 2026-10-19 - Arquitectura de Layout Persistente (AppShell) y Eliminación de Dobles Transiciones
+- **Solicitud del Usuario:**
+  - Corregir el efecto en el layout donde, al hacer clic en un enlace de navegación y regenerarse la página, la pastilla morada repetía la transición de deslizamiento desde cero. El layout debe estar permanentemente cargado por encima para no regenerar dobles transiciones.
+- **Diagnóstico:**
+  - El componente `<Navbar />` se encontraba montado individualmente dentro de cada una de las 6 páginas (`/hub`, `/dashboard/coordinator`, `/dashboard/employee`, `/dashboard/admin`, `/apps/taskflow`, `/apps/chat`).
+  - Al cambiar de ruta, Next.js desmontaba la página saliente con su Navbar y montaba una nueva instancia en la página entrante, reinicializando la pastilla morada desde `{ left: 0, width: 0, opacity: 0 }` y disparando una segunda animación visible no deseada (parpadeo/doble deslizamiento).
+- **Decisión Técnica e Implementación:**
+  - `src/components/layout/app-shell.tsx`:
+    - Creación de un shell persistente en el nivel raíz de la aplicación (`RootLayout`).
+    - Centralización de la barra de navegación `<Navbar />` en el `AppShell`. Ahora el Navbar se monta **una sola vez** en la aplicación y **nunca se desmonta** durante la navegación entre herramientas del Hub, Clockify, TaskFlow, Chat o Admin.
+    - Ocultamiento inteligente y automático en `/login` y `/floating-timer` (ventana compacta Picture-in-Picture).
+  - `src/app/layout.tsx`:
+    - Envoltorio de `{children}` dentro de `<AppShell>` para garantizar la persistencia del shell por encima de cualquier vista hija.
+  - `src/components/navbar.tsx`:
+    - Introducción de banderas de posicionamiento inicial `hasPositionedDesktop` y `hasPositionedMobile`.
+    - En la primera carga o refresco F5, la pastilla se posiciona de forma directa con `transition-none` (sin animar desde `x=0`), activando la transición fluida `duration-300` en el siguiente frame (`requestAnimationFrame`).
+    - Al hacer clic en un enlace de navegación, la Navbar no se destruye ni se reinicia: la pastilla morada se desliza de forma limpia, continua y en un único movimiento orgánico hacia la nueva herramienta seleccionada.
+  - **Limpieza en Páginas Hijas:**
+    - Eliminación de imports y llamadas redundantes a `<Navbar />` en `src/app/hub/page.tsx`, `src/app/dashboard/coordinator/page.tsx`, `src/app/dashboard/employee/page.tsx`, `src/app/dashboard/admin/page.tsx`, `src/app/apps/chat/page.tsx` y `src/app/apps/taskflow/page.tsx`.
+    - Ajuste de altura a pantalla completa en `chat/page.tsx` (`h-[calc(100vh-4rem)]`).
+- **Validación y Pruebas:**
+  - Verificación estricta de compilación con `npx tsc --noEmit`: **0 errores**.
+  - Peticiones HTTP 200 OK verificadas en `/hub`, `/dashboard/coordinator`, `/dashboard/employee`, `/dashboard/admin`, `/apps/taskflow`, `/apps/chat` y `/login`.
+  - Integridad verificada de `Estudio_Usabilidad_Brain_Up_Grup.pdf` (exactamente 1,684,483 bytes, intacto).
 
+### [v2.8.5] - 2026-10-19 - Ampliación de Escala del Layout, Botones de Navegación Más Grandes y Rediseño Compacto del Perfil
+- **Solicitud del Usuario:**
+  1. Agrandar un poco el layout general para darle mayor amplitud y presencia.
+  2. Hacer aún más grandes los botones ("los botoncicos") para mejorar visibilidad, ergonomía y contundencia táctil.
+  3. Reformular el apartado del perfil de usuario en la barra superior porque ocupaba demasiado espacio horizontal del layout.
+- **Decisión Técnica e Implementación:**
+  - `src/components/navbar.tsx`:
+    - **Ampliación de Escala del Layout:**
+      - Cabecera incrementada a `h-20` (80px) con mayor holgura y respiración vertical.
+      - Logotipo ampliado a `h-11 w-11` (en móviles) y `h-12 w-12` (en escritorio) con textos BRAIN UP en `17px` font-black.
+    - **Botones y Controles Más Grandes:**
+      - Enlaces de navegación (`HUB Apps`, `Clockify`, `TaskFlow`, `Chat`, `Admin`) aumentados a `px-5 py-2.5`, tipografía `text-[14px] font-black`, iconos a `h-4.5 w-4.5` y contenedor a `p-2 rounded-xl border-2`.
+      - Botones de acción (`INICIAR / PARAR`, `Flotante`, `Pin`) aumentados a `px-4 py-2`, iconos `h-4 w-4` y tipografía `text-sm font-black`.
+      - Reloj/contador en vivo aumentado a `text-base font-black font-mono` y caja del logo de empresa ampliada a `h-7 w-7`.
+      - Barra de navegación móvil también ampliada con padding `p-2`, botones `px-3.5 py-2` e iconos `h-4 w-4`.
+    - **Reformulación del Perfil de Usuario:**
+      - Eliminación del bloque textual multilínea rígido que consumía ~250px horizontales.
+      - Implementación de una cápsula de perfil circular ultra-compacta (`h-11 w-11`) con degradado corporativo, indicador de estado online verde (`h-3 w-3`), chevron discreto y botón de logout directo (`p-2.5`).
+      - Menú flotante interactivo (popover) al pulsar sobre el avatar con el nombre completo, correo electrónico, insignia de rol y botón de cierre de sesión, consumiendo solo ~85px en la barra principal y liberando más de 165px de espacio para los botones principales.
+  - `src/app/globals.css`:
+    - Clases visuales de botón (`.btn-visual-primary`, `.btn-visual-success`, `.btn-visual-danger`) aumentadas a `padding: 0.75rem 1.5rem; font-size: 0.9375rem; border-radius: 0.625rem;`.
+  - `src/app/apps/chat/page.tsx`:
+    - Sincronización del contenedor del chat a `h-[calc(100vh-5rem)]` para coincidir exactamente con los 80px (`5rem`) de la cabecera ampliada sin provocar scroll vertical.
+- **Validación y Pruebas:**
+  - Verificación estricta de compilación con `npx tsc --noEmit`: **0 errores**.
+  - Peticiones HTTP 200 OK verificadas en `/hub`, `/dashboard/coordinator`, `/dashboard/employee`, `/apps/taskflow` y `/apps/chat`.
+  - Integridad verificada de `Estudio_Usabilidad_Brain_Up_Grup.pdf` (exactamente 1,684,483 bytes, intacto).
 
+### [v2.8.6] - 2026-10-19 - Corrección Tipográfica Integral: Eliminación de Letras Alargadas y Normalización de Proporciones y Tracking
+- **Solicitud del Usuario:**
+  - *"ahora las letras estan como alargadas no me gustan"* (Las letras se visualizaban estiradas, achatadas u horizontalmente alargadas).
+- **Diagnóstico y Causa Raíz:**
+  1. **Distorsión por Variable Font (`opsz` / `GRAD` / `wght`):** El archivo importado anteriormente desde CDNFonts (`GoogleSans-VariableFont_GRADopszwght.woff`) solo tenía declarado `@font-face { font-weight: 400; }`. Al aplicarse pesos mayores (`font-bold`, `font-extrabold`, `font-black`), el motor de renderizado de Chromium/DirectWrite aplicaba *faux-bolding* (engrosamiento artificial horizontal) y estiraba los glifos por el eje de tamaño óptico (`opsz`).
+  2. **Tracking Excesivo por Defecto:** En Tailwind CSS, las clases `tracking-wider` (`0.05em`) y `tracking-widest` (`0.1em`) separaban artificialmente las letras en mayúsculas de los encabezados, pestañas y botones, provocando un efecto visual de estiramiento horizontal.
+- **Decisión Técnica e Implementación:**
+  - `src/app/globals.css`:
+    - Eliminadas las importaciones de fuentes variables distorsionadas de CDNFonts.
+    - Definidas reglas `@font-face` limpias para `'Google Sans'` y `'Google Sans Text'` vinculadas directamente a archivos WOFF estáticos con proporciones geométricas perfectas:
+      - `GoogleSansTextRegular.woff` (400)
+      - `GoogleSansTextMedium.woff` (500 / 600)
+      - `GoogleSansTextBold.woff` (700 / 800 / 900)
+    - Incorporada como fallback principal la tipografía geométrica oficial de Google Fonts: **Plus Jakarta Sans** (pesos 400 a 900).
+    - Desactivado el escalado óptico variable (`font-optical-sizing: none; font-stretch: 100%;`).
+    - Configurado `letter-spacing: -0.01em` en `body` y `-0.02em` en `h1-h6` para un acabado tipográfico nítido, compacto, geométrico y premium (estilo Apple/Linear/Google).
+  - `src/app/layout.tsx`:
+    - Sustituidas las referencias externas en `<head>` por preconexiones optimizadas a Google Fonts (`fonts.googleapis.com` y `fonts.gstatic.com`).
+  - `tailwind.config.ts`:
+    - Actualizada la familia `fontFamily.sans`, `googlesans` y `montserrat` para priorizar `'Google Sans'`, `'Google Sans Text'`, `'Plus Jakarta Sans'`.
+    - Sobrescrita la escala de `letterSpacing`:
+      - `wider: '0.015em'` (antes `0.05em`, reducción del 70% en espaciado excesivo).
+      - `widest: '0.025em'` (antes `0.1em`, reducción del 75%).
+  - `src/components/navbar.tsx`:
+    - Normalizado el tracking y pesos en el logotipo `BRAIN UP`, el selector de empresa en curso (`tracking-normal`), el botón flotante y las pestañas de navegación principales (`tracking-tight font-extrabold`).
+  - `src/app/dashboard/coordinator/page.tsx`:
+    - Normalizado el tracking de las 5 pestañas de coordinación (`Estadísticas e Informes`, `Gestión de Empresas`, `Gestión de Usuarios`, `Permisos del HUB`, `Colores RGB`) a `tracking-tight font-extrabold`.
+  - `src/components/coordinator/monthly-reports.tsx`:
+    - Normalizado el tracking en las 3 perspectivas de informe (`Estadísticas Generales`, `Por Empresa / Cliente`, `Por Empleado`), los botones de descarga `PDF General` y `Excel General`, las etiquetas de filtros de mes/año y las tarjetas KPI a `tracking-tight`.
+    - Normalizado el espaciado en los badges de horas faltantes, sobrantes y en las cabeceras de la matriz de clientes.
+  - `src/app/hub/page.tsx` y `src/components/employee/time-tracker-bar.tsx`:
+    - Ajustado el espaciado de pestañas y botones de modo de temporizador a `tracking-tight`.
+- **Validación y Pruebas:**
+  - Verificación estricta de compilación con `npx tsc --noEmit`: **0 errores**.
+  - Peticiones HTTP 200 OK verificadas en `/hub`, `/dashboard/coordinator`, `/dashboard/employee`, `/apps/taskflow` y `/apps/chat`.
+  - Integridad verificada de `Estudio_Usabilidad_Brain_Up_Grup.pdf` (exactamente 1,684,483 bytes, intacto).
 
-
+### [v2.8.7] - 2026-10-19 - Escalado Visual y Ampliación Significativa de Elementos en HUB Central y Panel de Empleado
+- **Solicitud del Usuario:**
+  - *"necesito que ambas paginas, sin tocar el layout que ya etsa muy bien agrandes los elementos se ve MUY PEQUEÑO agrandalos MUCHO y si te pasas y acorreguiremos"*
+  - Directriz clara: No modificar la barra de navegación superior (layout) que ya quedó validada, pero agrandar contundentemente todos los elementos de contenido de ambas páginas mostradas en las capturas (HUB Central y Clockify Empleado / Horas por Cliente).
+- **Decisión Técnica e Implementación:**
+  1. **Página 1: HUB Central (`src/app/hub/page.tsx`):**
+     - **Contenedor Principal:** Expandido a `max-w-[1550px]` con espaciados generosos (`px-4 sm:px-8 lg:px-12 py-8 sm:py-10 space-y-8 sm:space-y-10`).
+     - **Cabecera Hero del Hub:** Tarjeta aumentada a `p-7 sm:p-10 rounded-2xl border-2`, título en escala `text-3xl sm:text-4xl lg:text-5xl font-black`, descripción ampliada a `text-sm sm:text-base lg:text-lg` y tarjeta de rol del usuario ampliada con avatar `h-16 w-16` y texto `text-2xl`.
+     - **Pestañas de Coordinación (si aplica):** Botones con altura e icono aumentado (`px-6 py-3.5 text-base`).
+     - **Encabezado de Sección:** `text-xl sm:text-2xl lg:text-3xl font-black` con badge de conteo agrandado `px-4 py-2 text-sm`.
+     - **Tarjetas de Aplicaciones Heroicas:**
+       - Distribución inteligente `grid-cols-1 md:grid-cols-2 gap-8 lg:gap-10` cuando hay hasta 2 aplicaciones para evitar columnas vacías y dotarlas de máxima presencia.
+       - Padding interno ampliado a `p-8 sm:p-10 rounded-3xl border-2 shadow-sm hover:shadow-xl`.
+       - Icono de aplicación: Caja `p-4 sm:p-5 rounded-2xl` con icono de `h-11 w-11` (antes `h-6 w-6`).
+       - Título: `text-2xl sm:text-3xl lg:text-4xl font-black`.
+       - Subtítulo y descripción: `text-base` con interlineado holgado.
+       - Botón gigante de acceso: `px-6 py-4 sm:py-5 rounded-2xl font-black text-base sm:text-lg` con sombra de elevación `shadow-lg hover:shadow-2xl hover:scale-[1.02]`.
+     - **Aviso Modo Limpio:** Ampliado a `p-6 sm:p-7 rounded-2xl border-2 text-sm sm:text-base` con icono `h-7 w-7`.
+  2. **Página 2: Clockify Empleado (`src/app/dashboard/employee/page.tsx`):**
+     - **Contenedor:** Expandido a `max-w-[1550px]` con `px-4 sm:px-8 lg:px-12 py-6 sm:py-8 space-y-7 sm:space-y-8`.
+     - **Cabecera "HORAS POR CLIENTE":** Título ampliado a `text-2xl sm:text-3xl lg:text-4xl font-black`, icono `h-8 w-8` y badge "Supervisión de Agencia" a `px-3.5 py-1.5 text-sm`.
+     - **Encabezado de Historial:** Título `text-xl sm:text-2xl lg:text-3xl font-black` y badge de total tareas a `px-4 py-2 text-sm sm:text-base font-bold`.
+  3. **Banner de Cliente Fijado (`src/components/employee/company-hero-banner.tsx`):**
+     - Tarjeta ampliada a `p-6 sm:p-8 lg:p-10 rounded-3xl border-3 border-[#8E0E75] shadow-md`.
+     - Badge flotante `Cliente Activo (Fijado)` ampliado a `px-4 py-1 text-xs sm:text-sm -top-3.5 left-8`.
+     - Caja para logotipo: Aumentada a `h-20 w-20 sm:h-24 sm:w-24 rounded-2xl border-2 border-dashed`.
+     - Nombre de la empresa: `text-2xl sm:text-3xl lg:text-4xl font-black uppercase text-[#191654]`.
+     - Badge de cuota pactada: `px-4 py-1.5 rounded-xl border-2 text-xs sm:text-sm`.
+     - Columna de selección para cambiar cliente: Ampliada a `sm:w-80 lg:w-96 text-sm sm:text-base`.
+  4. **Barra de Control de Horas (`src/components/employee/time-tracker-bar.tsx`):**
+     - Tarjeta ampliada a `rounded-3xl border-2 border-[#D8CFF0] p-5 sm:p-7 shadow-sm`.
+     - Título "CONTROL DE HORAS": `text-base sm:text-lg lg:text-xl font-black`.
+     - Selectores de Cuota/Puntual y Modo: Pestañas con mayor padding `px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black`.
+     - Botones desplegables de resumen de jornada y dedicación a empresa: `px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black border-2`.
+     - Input de descripción: Aumentado a `px-5 py-3.5 sm:py-4 rounded-xl text-base sm:text-lg font-semibold`.
+     - Reloj/Timer: Escala ampliada a `text-2xl sm:text-3xl font-mono tabular-nums font-black px-4 py-3 sm:py-3.5 rounded-xl border-2`.
+     - Botón de Acción (`INICIAR`, `PARAR`, `AÑADIR`): Ampliado a `h-13 sm:h-15 text-base sm:text-lg font-black rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02]`.
+     - Fila inferior de resumen por empresa: Badges aumentados a `px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold border-2`, total hoy a `text-base sm:text-lg font-black`.
+  5. **Listado de Tareas Agrupadas por Día (`src/components/employee/time-entries-list.tsx`):**
+     - **Cabeceras de Día Acordeón:** Padding incrementado a `px-5 sm:px-7 py-3.5 sm:py-4.5 rounded-2xl border-2 bg-[#F8F6FC] hover:bg-[#F1EAF8]`, icono `h-5 w-5`, fecha en `text-sm sm:text-base lg:text-lg font-black`, badge de total tiempo `px-4 py-1.5 rounded-xl border-2 text-xs sm:text-sm font-black`.
+     - **Filas de Tarea:** Espaciado `p-4 sm:px-7 sm:py-4`, texto de descripción editable `text-sm sm:text-base lg:text-lg font-bold`, etiqueta de empresa `px-3.5 py-1.5 rounded-xl border-2 text-xs sm:text-sm font-bold`, badge de cuota/puntual `px-3 py-1.5 rounded-xl border-2 text-xs font-black`.
+     - **Botón Repetir:** Ampliado a `px-4 py-2.5 rounded-xl font-black text-xs sm:text-sm uppercase tracking-tight shadow-xs hover:scale-105`.
+     - **Edición Inline de Tiempo:** Botón y caja `px-4 py-2.5 rounded-xl border-2 text-sm sm:text-base font-black font-mono shadow-xs`.
+     - **Botón de Papelera:** `p-2.5 rounded-xl` con icono `h-5 w-5`.
+- **Validación y Pruebas:**
+  - Verificación estricta de compilación con `npx tsc --noEmit`: **0 errores**.
+  - Peticiones HTTP 200 OK verificadas en `/hub`, `/dashboard/coordinator`, `/dashboard/employee`, `/apps/taskflow` y `/apps/chat`.
+  - Integridad verificada de `Estudio_Usabilidad_Brain_Up_Grup.pdf` (exactamente 1,684,483 bytes, intacto).

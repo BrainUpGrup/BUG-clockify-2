@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, Suspense, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Navbar } from '@/components/navbar';
 import { useAuth } from '@/context/auth-context';
 import { useNotifications } from '@/context/notifications-context';
 import { createClient } from '@/lib/supabase/client';
@@ -16,6 +15,7 @@ import { SummaryDashboard } from '@/components/chat/summary-dashboard';
 import { ChatView } from '@/components/chat/chat-view';
 import { CreateChannelModal } from '@/components/chat/create-channel-modal';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
+import { canUserAccessHubApp } from '@/lib/hub-apps';
 
 function BrainUpChatContent() {
   const router = useRouter();
@@ -52,10 +52,14 @@ function BrainUpChatContent() {
     }, 4000);
   };
 
-  // Redirigir a login si no hay sesión
+  // Redirigir a login si no hay sesión, o al hub si el usuario no tiene permisos para Chat
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.replace('/login');
+    if (!authLoading) {
+      if (!user) {
+        router.replace('/login');
+      } else if (user.role === 'employee' && !canUserAccessHubApp(user, 'chat')) {
+        router.replace('/hub');
+      }
     }
   }, [user, authLoading, router]);
 
@@ -320,8 +324,7 @@ function BrainUpChatContent() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-white overflow-hidden font-sans">
-      <Navbar />
+    <div className="h-[calc(100vh-5rem)] flex flex-col bg-white overflow-hidden font-sans w-full">
 
       {/* Notificación Toast Flotante */}
       {toastMessage && (

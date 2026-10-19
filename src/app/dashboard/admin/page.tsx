@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Navbar } from '@/components/navbar';
 import { useAuth } from '@/context/auth-context';
 import { createClient } from '@/lib/supabase/client';
 import { MOCK_PROFILES } from '@/lib/mock-data';
@@ -466,9 +465,7 @@ export default function SuperAdminDashboardPage() {
   const pendingCount = profiles.filter((p) => p.status === 'pending').length;
 
   return (
-    <div className="min-h-screen bg-[#F8F6FC] flex flex-col font-sans">
-      <Navbar />
-
+    <div className="flex-1 flex flex-col bg-[#F8F6FC] font-sans w-full">
       <main className="page-transition flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         
         {/* Cabecera Principal del Super Admin */}

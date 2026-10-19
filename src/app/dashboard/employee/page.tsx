@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Navbar } from '@/components/navbar';
 import { CompanyHeroBanner } from '@/components/employee/company-hero-banner';
 import { TimeTrackerBar } from '@/components/employee/time-tracker-bar';
 import { EmployeeStats } from '@/components/employee/employee-stats';
@@ -251,27 +250,25 @@ export default function EmployeeDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FFFFFF] flex flex-col w-full">
-      <Navbar />
-
-      {/* Contenedor Compacto de Pantalla Única (Casi sin scroll) */}
-      <main className="page-transition flex-1 w-full px-4 sm:px-6 lg:px-8 py-3.5 space-y-3.5">
+    <div className="flex-1 flex flex-col bg-[#FFFFFF] w-full">
+      {/* Contenedor Amplio y Heroico con Gran Presencia Visual */}
+      <main className="page-transition flex-1 w-full max-w-[1550px] mx-auto px-4 sm:px-8 lg:px-12 py-6 sm:py-8 space-y-7 sm:space-y-8">
         
-        {/* Cabecera compacta: HORAS POR CLIENTE */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-2 border-b border-[#EAE4F5] gap-2">
+        {/* Cabecera Ampliada: HORAS POR CLIENTE */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b-2 border-[#EAE4F5] gap-3">
           <div>
-            <h1 className="text-lg sm:text-xl font-black uppercase tracking-tight text-[#292929] flex items-center gap-2">
-              <Clock className="h-5 w-5 text-[#8E0E75] shrink-0" />
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black uppercase tracking-tight text-[#292929] flex items-center gap-3">
+              <Clock className="h-7 w-7 sm:h-8 sm:w-8 text-[#8E0E75] shrink-0" />
               <span>HORAS POR <span className="text-[#8E0E75]">CLIENTE</span></span>
             </h1>
-            <p className="text-[11px] text-[#4A4A4A] font-light">
+            <p className="text-sm sm:text-base text-[#4A4A4A] font-light mt-1">
               Control rápido de jornada y tiempo imputado por cliente
             </p>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-sm bg-[#F8F6FC] border border-[#D8CFF0] text-[10px] font-extrabold uppercase tracking-wider text-[#8E0E75]">
-              <ShieldCheck className="h-3 w-3 text-[#8E0E75]" />
+            <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-[#F8F6FC] border-2 border-[#D8CFF0] text-xs sm:text-sm font-extrabold uppercase tracking-tight text-[#8E0E75] shadow-2xs">
+              <ShieldCheck className="h-4 w-4 text-[#8E0E75]" />
               Supervisión de Agencia
             </span>
           </div>
@@ -299,18 +296,18 @@ export default function EmployeeDashboardPage() {
         </section>
 
         {/* 3. Historial de registros agrupados con días desplegables y botón Repetir */}
-        <section aria-label="Historial de registros" className="w-full pt-1">
-          <div className="flex items-center justify-between mb-2.5">
+        <section aria-label="Historial de registros" className="w-full pt-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 mb-4 border-b border-[#EAE4F5] gap-3">
             <div>
-              <h2 className="text-sm sm:text-base font-black uppercase tracking-tight text-[#292929]">
+              <h2 className="text-xl sm:text-2xl lg:text-3xl font-black uppercase tracking-tight text-[#292929]">
                 REGISTROS RECIENTES <span className="text-[#8E0E75]">POR CLIENTE</span>
               </h2>
-              <p className="text-[11px] text-[#4A4A4A] font-light">
-                Haz clic en cualquier día para plegar o desplegar • Pulsa "Repetir" para reanudar una tarea
+              <p className="text-sm sm:text-base text-[#4A4A4A] font-light mt-0.5">
+                Haz clic en cualquier día para plegar o desplegar • Pulsa &quot;Repetir&quot; para reanudar una tarea
               </p>
             </div>
-            <div className="text-[11px] text-[#4A4A4A] font-medium tabular-nums">
-              Total tareas: <span className="font-extrabold text-[#8E0E75]">{entries.length}</span>
+            <div className="text-xs sm:text-sm text-[#191654] font-bold bg-[#F8F6FC] px-4 py-2 rounded-xl border-2 border-[#D8CFF0] tabular-nums shadow-2xs self-start sm:self-auto">
+              Total tareas registradas: <span className="font-black text-[#8E0E75] text-sm sm:text-base">{entries.length}</span>
             </div>
           </div>
 
