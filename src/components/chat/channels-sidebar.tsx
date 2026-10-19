@@ -59,11 +59,11 @@ export function ChannelsSidebar({
           <h2 className="text-sm font-black uppercase tracking-wider text-white leading-tight flex items-center gap-1.5">
             <span>Brain Up Comms</span>
           </h2>
-          <p className="text-[10px] text-white/60 font-medium">
+          <p className="text-[11px] text-white/60 font-medium">
             Canales Clientes & Equipo
           </p>
         </div>
-        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-xs bg-white/15 text-white/90 uppercase tracking-widest">
+        <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-xs bg-white/15 text-white/90 uppercase tracking-widest">
           Slack Hub
         </span>
       </div>
@@ -101,11 +101,11 @@ export function ChannelsSidebar({
               <span className="truncate">Mi Resumen (Lo Importante)</span>
             </div>
             {pendingActionItemsCount > 0 ? (
-              <span className="h-4 min-w-4 px-1 rounded-full bg-red-600 text-white text-[9px] font-black flex items-center justify-center shrink-0 shadow-xs">
+              <span className="h-4 min-w-4 px-1 rounded-full bg-red-600 text-white text-[11px] font-black flex items-center justify-center shrink-0 shadow-xs">
                 {pendingActionItemsCount}
               </span>
             ) : (
-              <span className="text-[10px] text-emerald-300 font-bold">
+              <span className="text-[11px] text-emerald-300 font-bold">
                 Al día
               </span>
             )}
@@ -118,7 +118,7 @@ export function ChannelsSidebar({
             <button
               type="button"
               onClick={() => setIsClientsOpen(!isClientsOpen)}
-              className="flex items-center gap-1.5 font-black text-[10px] uppercase tracking-wider cursor-pointer"
+              className="flex items-center gap-1.5 font-black text-[11px] uppercase tracking-wider cursor-pointer"
             >
               {isClientsOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
               <Building2 className="h-3 w-3 text-white/70" />
@@ -157,7 +157,7 @@ export function ChannelsSidebar({
                         <span className="truncate">{channel.name}</span>
                       </div>
                       {channel.unread_count && channel.unread_count > 0 ? (
-                        <span className="h-4 min-w-4 px-1 rounded-full bg-[#8E0E75] text-white text-[9px] font-black flex items-center justify-center shrink-0 border border-white/20">
+                        <span className="h-4 min-w-4 px-1 rounded-full bg-[#8E0E75] text-white text-[11px] font-black flex items-center justify-center shrink-0 border border-white/20">
                           {channel.unread_count}
                         </span>
                       ) : null}
@@ -175,7 +175,7 @@ export function ChannelsSidebar({
             <button
               type="button"
               onClick={() => setIsGroupsOpen(!isGroupsOpen)}
-              className="flex items-center gap-1.5 font-black text-[10px] uppercase tracking-wider cursor-pointer"
+              className="flex items-center gap-1.5 font-black text-[11px] uppercase tracking-wider cursor-pointer"
             >
               {isGroupsOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
               <Hash className="h-3 w-3 text-white/70" />
@@ -211,7 +211,7 @@ export function ChannelsSidebar({
                       <span className="truncate">{channel.name}</span>
                     </div>
                     {channel.unread_count && channel.unread_count > 0 ? (
-                      <span className="h-4 min-w-4 px-1 rounded-full bg-[#8E0E75] text-white text-[9px] font-black flex items-center justify-center shrink-0 border border-white/20">
+                      <span className="h-4 min-w-4 px-1 rounded-full bg-[#8E0E75] text-white text-[11px] font-black flex items-center justify-center shrink-0 border border-white/20">
                         {channel.unread_count}
                       </span>
                     ) : null}
@@ -228,7 +228,7 @@ export function ChannelsSidebar({
             <button
               type="button"
               onClick={() => setIsDmsOpen(!isDmsOpen)}
-              className="flex items-center gap-1.5 font-black text-[10px] uppercase tracking-wider cursor-pointer"
+              className="flex items-center gap-1.5 font-black text-[11px] uppercase tracking-wider cursor-pointer"
             >
               {isDmsOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
               <MessageSquare className="h-3 w-3 text-white/70" />
@@ -264,7 +264,7 @@ export function ChannelsSidebar({
                       <span className="truncate">{channel.name}</span>
                     </div>
                     {channel.unread_count && channel.unread_count > 0 ? (
-                      <span className="h-4 min-w-4 px-1 rounded-full bg-[#8E0E75] text-white text-[9px] font-black flex items-center justify-center shrink-0 border border-white/20">
+                      <span className="h-4 min-w-4 px-1 rounded-full bg-[#8E0E75] text-white text-[11px] font-black flex items-center justify-center shrink-0 border border-white/20">
                         {channel.unread_count}
                       </span>
                     ) : null}
@@ -278,12 +278,12 @@ export function ChannelsSidebar({
       </div>
 
       {/* Pie de Barra de Canales: Estado de Conexión Realtime */}
-      <div className="p-2.5 bg-black/15 border-t border-white/10 flex items-center justify-between text-[10px] text-white/70">
+      <div className="p-2.5 bg-black/15 border-t border-white/10 flex items-center justify-between text-[11px] text-white/70">
         <div className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-[#3BB54A] animate-pulse" />
           <span className="font-bold">Realtime Activo</span>
         </div>
-        <span className="text-[9px] opacity-75">Supabase v15</span>
+        <span className="text-[11px] opacity-75">Supabase v15</span>
       </div>
 
     </aside>

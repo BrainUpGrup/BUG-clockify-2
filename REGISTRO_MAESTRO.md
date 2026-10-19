@@ -827,3 +827,20 @@
   - Verificación estricta de compilación con `npx tsc --noEmit`: **0 errores**.
   - Peticiones HTTP 200 OK verificadas en `/hub`, `/dashboard/coordinator`, `/dashboard/employee`, `/apps/taskflow` y `/apps/chat`.
   - Integridad verificada de `Estudio_Usabilidad_Brain_Up_Grup.pdf` (exactamente 1,684,483 bytes, intacto).
+
+
+### [v2.9.0] - 2026-10-19 - Aplicación del Estudio de Usabilidad (Estudio_Usabilidad_Mejoras_Brain_Up.pdf)
+- **Solicitud del Usuario:** Aplicar todas las mejoras del estudio de usabilidad, teniendo en cuenta que el chat no se seguirá desarrollando desde cero: se conectará Slack mediante API para reflejar su funcionalidad en el Hub.
+- **Decisión Técnica e Implementación:**
+  1. **Feedback propio (A4, M1):** Nuevo sistema `src/lib/feedback.ts` + `FeedbackProvider` (toasts, diálogo de confirmación y "Deshacer"). Eliminados todos los `alert()`/`confirm()` nativos. Borrar registros horarios, tareas y post-its se deshace durante 6 s. Los errores de Supabase se muestran en lenguaje de usuario. Las redirecciones por falta de permiso muestran un aviso ("No tienes acceso a Chat...").
+  2. **Navbar (A1, A2, B4):** Sin desbordamiento horizontal a 1366 px: cerrar sesión dentro del menú de perfil (con Escape y aria-expanded), etiquetas de navegación solo desde `lg`, botón Flotante compacto. El widget de temporizador se oculta en `/dashboard/employee` (que ya tiene su selector y botón) y muestra "Elegir cliente" cuando no hay cliente activo.
+  3. **Imputación de horas (A2, A3, M7):** Un único selector de cliente (banner, con buscador). Vista previa en vivo de la duración (`DurationPreview`) con aviso cuando el formato es ambiguo (`2.50` = 2h 50m; `15` = 15 min). Descripción obligatoria en entrada manual y sugerencias con un clic desde las tareas abiertas de TaskFlow del cliente. Eliminada la descripción automática "Trabajo para X" y la insignia "Supervisión de Agencia" en la vista del trabajador.
+  4. **AppSelect accesible (A5):** Roles ARIA (combobox/listbox/option), navegación con flechas, Home/End, Enter, Escape, búsqueda tecleando y buscador interno a partir de 7 opciones.
+  5. **TaskFlow (M2, M3, M4):** Modal con foco automático en el título, Escape para cerrar, Ctrl+Enter para guardar, controles propios (AppSelect/AppCalendar) en lugar de nativos y paleta de color plegable. La prioridad sigue eliminada según v2.5.7. Recuento de listas corregido (tareas sin lista cuentan en la primera), filtro de listas en un desplegable, "Nueva lista" crea una lista (antes abría el modal de tarea), títulos de tira en 2 líneas y corrección de la pestaña activa que aparecía en blanco.
+  6. **Coordinación (M5, M6):** Marca de "ritmo esperado" en las barras de cuota (% de días laborables transcurridos) con estados Retrasada / En ritmo / Cumplida; corrección de la pestaña activa en blanco y de su ajuste de línea. Permisos y colores se gestionan solo en Coordinación (el Hub enlaza a ellos; el Super Admin los mantiene en el Hub).
+  7. **Hub y Login (B2, M9):** Tarjetas de aplicación clicables completas y cabecera compacta (sin scroll a 1366x768). El login reconoce una sesión activa ("Ir al Hub" / "Cambiar de cuenta"); el acceso rápido demo solo aparece en desarrollo o con `NEXT_PUBLIC_SHOW_DEMO_LOGIN=true`; emojis sustituidos por iconos SVG (DM-01).
+  8. **Legibilidad y movimiento (A6, B1, B3):** Todos los tamaños de 7–10 px elevados a 11 px mínimo (201 usos). Títulos principales y botones de Clockify en tipo oración. Regla `prefers-reduced-motion` en `globals.css`.
+  9. **Chat:** Sin mejoras funcionales (M8) por la futura integración con Slack vía API; solo hereda el aviso de acceso denegado y los tamaños mínimos de texto.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: 0 errores.
+  - Verificado en navegador: login con sesión activa, Hub y TaskFlow sin scroll horizontal a 1366 px, desplegable de listas con teclado, modal de TaskFlow (foco, Escape), vista previa "2.50 = 2h 50m" con aviso, validación de descripción, ritmo esperado en cuotas y aviso de acceso denegado al Chat.

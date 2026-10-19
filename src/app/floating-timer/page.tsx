@@ -98,7 +98,7 @@ export default function FloatingTimerPage() {
             )}
           </div>
           <div className="flex flex-col min-w-0">
-            <span className="text-[7.5px] font-black uppercase text-[#8E0E75] leading-none tracking-wider">
+            <span className="text-[11px] font-black uppercase text-[#8E0E75] leading-none tracking-wider">
               Cliente
             </span>
             <span 
@@ -123,7 +123,7 @@ export default function FloatingTimerPage() {
             <button
               type="button"
               onClick={() => stopTimer()}
-              className="px-2.5 py-1.5 rounded-md bg-[#DC2626] hover:bg-[#B91C1C] text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm shadow-red-500/20 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+              className="px-2.5 py-1.5 rounded-md bg-[#DC2626] hover:bg-[#B91C1C] text-white text-[11px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm shadow-red-500/20 transition-all hover:scale-105 active:scale-95 cursor-pointer"
               title="Parar temporizador"
             >
               <Square className="h-3 w-3 fill-white" />
@@ -133,7 +133,7 @@ export default function FloatingTimerPage() {
             <button
               type="button"
               onClick={() => startTimer(activeCompanyId)}
-              className="px-2.5 py-1.5 rounded-md bg-[#10B981] hover:bg-[#059669] text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm shadow-emerald-500/20 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+              className="px-2.5 py-1.5 rounded-md bg-[#10B981] hover:bg-[#059669] text-white text-[11px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm shadow-emerald-500/20 transition-all hover:scale-105 active:scale-95 cursor-pointer"
               title="Iniciar temporizador"
             >
               <Play className="h-3 w-3 fill-white" />
@@ -182,13 +182,13 @@ export default function FloatingTimerPage() {
           <span className="text-[11px] font-black uppercase text-[#191654] tracking-wider">
             Brain <span className="text-[#8E0E75]">Up</span>
           </span>
-          <span className="text-[9px] font-bold text-slate-400 font-mono">
+          <span className="text-[11px] font-bold text-slate-400 font-mono">
             • Flotante
           </span>
         </div>
 
         <div className="flex items-center gap-1.5">
-          <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-xs text-[9px] font-extrabold uppercase ${
+          <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-xs text-[11px] font-extrabold uppercase ${
             isTimerRunning ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-slate-50 text-slate-600 border border-slate-200'
           }`}>
             {isTimerRunning ? (
@@ -205,7 +205,7 @@ export default function FloatingTimerPage() {
           <button
             type="button"
             onClick={() => handleToggleMode('compact')}
-            className="px-2 py-1 rounded-md bg-[#F8F6FC] hover:bg-[#8E0E75] hover:text-white text-[#8E0E75] border border-[#D8CFF0] text-[9.5px] font-black uppercase tracking-wider flex items-center gap-1 transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-2xs"
+            className="px-2 py-1 rounded-md bg-[#F8F6FC] hover:bg-[#8E0E75] hover:text-white text-[#8E0E75] border border-[#D8CFF0] text-[11px] font-black uppercase tracking-wider flex items-center gap-1 transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-2xs"
             title="Cambiar a Modo Súper Reducido (barra ultra compacta que no estorba en pantalla)"
           >
             <Minimize2 className="h-3 w-3" />
@@ -221,7 +221,7 @@ export default function FloatingTimerPage() {
             <Building2 className="h-4 w-4" />
           </div>
           <div className="flex flex-col min-w-0">
-            <span className="text-[8px] font-black uppercase text-[#8E0E75] tracking-wider leading-none">
+            <span className="text-[11px] font-black uppercase text-[#8E0E75] tracking-wider leading-none">
               Empresa en Curso
             </span>
             <button
@@ -246,7 +246,7 @@ export default function FloatingTimerPage() {
       {/* Desplegable de selección rápida de empresa */}
       {showCompanySelect && (
         <div className="mb-2 max-h-36 overflow-y-auto bg-white border border-[#D8CFF0] rounded-sm p-1 shadow-md space-y-1">
-          <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block px-1">
+          <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider block px-1">
             Cambiar Empresa Activa:
           </span>
           {MOCK_COMPANIES.map((c) => (
@@ -254,7 +254,7 @@ export default function FloatingTimerPage() {
               key={c.id}
               type="button"
               onClick={() => handleSelectCompany(c)}
-              className={`w-full px-2 py-1 text-left text-[10px] font-extrabold uppercase rounded-xs transition-colors flex items-center justify-between ${
+              className={`w-full px-2 py-1 text-left text-[11px] font-extrabold uppercase rounded-xs transition-colors flex items-center justify-between ${
                 activeCompanyId === c.id ? 'bg-[#8E0E75] text-white' : 'hover:bg-[#F8F6FC] text-[#292929]'
               }`}
             >

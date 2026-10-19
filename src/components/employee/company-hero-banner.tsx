@@ -54,7 +54,7 @@ export function CompanyHeroBanner({
             ) : (
               <div className="flex flex-col items-center justify-center text-center">
                 <Building2 className="h-8 w-8 text-[#8E0E75]/70" />
-                <span className="text-[9px] font-black uppercase tracking-tight text-[#8E0E75] leading-none mt-1">
+                <span className="text-[11px] font-black uppercase tracking-tight text-[#8E0E75] leading-none mt-1">
                   LOGO
                 </span>
               </div>
@@ -63,7 +63,7 @@ export function CompanyHeroBanner({
 
           {/* Nombre de la Empresa y tipo de cuota (SIN CIF NI RESPONSABLE PARA EMPLEADOS) */}
           <div className="min-w-0 flex-1">
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black uppercase tracking-tight text-[#191654] truncate leading-tight">
+            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-[#191654] truncate leading-tight">
               {selectedCompany?.name || 'Selecciona una Empresa'}
             </h2>
 
@@ -94,6 +94,8 @@ export function CompanyHeroBanner({
             onChange={onSelectCompany}
             disabled={disabled}
             placeholder="Selecciona cliente..."
+            ariaLabel="Cambiar cliente"
+            searchable
             icon={<Building2 className="h-4 w-4 text-[#8E0E75]" />}
             options={selectOptions}
             className="w-full text-sm sm:text-base font-bold bg-white"

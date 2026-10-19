@@ -9,6 +9,8 @@ import { createClient } from '@/lib/supabase/client';
 import { MOCK_COMPANIES, MOCK_PROFILES } from '@/lib/mock-data';
 import { Company, Profile } from '@/types/database';
 import { canUserAccessHubApp } from '@/lib/hub-apps';
+import { removeWithUndo, flagAccessDenied } from '@/lib/feedback';
+import { AppSelect } from '@/components/ui/app-select';
 import { 
   TaskFlowItem, 
   TaskPriority, 
@@ -821,7 +823,9 @@ function TaskFlowContent() {
     updateViewPill();
     window.addEventListener('resize', updateViewPill);
     return () => window.removeEventListener('resize', updateViewPill);
-  }, [targetView, viewMode]);
+    // user/authLoading: la barra no existe mientras se muestra la pantalla de carga,
+    // así que hay que volver a medir cuando aparece (si no, la pestaña activa queda en blanco)
+  }, [targetView, viewMode, user, authLoading]);
 
   // Estado de Post-its / Recordatorios
   const [postIts, setPostIts] = useState<PostItItem[]>([]);
@@ -838,6 +842,9 @@ function TaskFlowContent() {
   const [scopeFilter, setScopeFilter] = useState<'all' | 'mine' | 'shared' | 'meetings'>('all');
   const [clientFilter, setClientFilter] = useState<string>('all');
   const [selectedListFilter, setSelectedListFilter] = useState<string>('all');
+  const [showNewListForm, setShowNewListForm] = useState(false);
+  const [newListName, setNewListName] = useState('');
+  const [newListColor, setNewListColor] = useState('#8E0E75');
 
   // Listas de tareas con colores asignados
   const [taskLists, setTaskLists] = useState<TaskList[]>(DEFAULT_TASK_LISTS);
@@ -863,6 +870,7 @@ function TaskFlowContent() {
       if (!user) {
         router.replace('/login');
       } else if (user.role === 'employee' && !canUserAccessHubApp(user, 'taskflow')) {
+        flagAccessDenied('No tienes acceso a TaskFlow. Pídeselo a tu coordinadora.');
         router.replace('/hub');
       }
     }
@@ -1133,10 +1141,12 @@ function TaskFlowContent() {
   // Eliminar elemento
   const handleDeleteItem = (itemId: string) => {
     const item = items.find((i) => i.id === itemId);
-    if (!confirm(`¿Eliminar "${item?.title || 'este elemento'}" de TaskFlow?`)) return;
-    const updated = items.filter((i) => i.id !== itemId);
-    saveItems(updated);
-    showToast('Elemento eliminado del tablero y calendario.', 'info');
+    const previous = items;
+    removeWithUndo(
+      `"${item?.title || 'Elemento'}" eliminado de TaskFlow.`,
+      () => saveItems(items.filter((i) => i.id !== itemId)),
+      () => saveItems(previous)
+    );
   };
 
   // Iniciar temporizador directo en Clockify
@@ -1239,6 +1249,9 @@ function TaskFlowContent() {
 
   // Filtrar elementos
   const currentUserName = user.full_name || 'Trabajador Brain Up';
+  const defaultListId = taskLists[0]?.id;
+  const resolveListId = (item: TaskFlowItem) =>
+    item.listId && taskLists.some((l) => l.id === item.listId) ? item.listId : defaultListId;
 
   const filteredItems = items.filter((item) => {
     // Filtro por texto de búsqueda
@@ -1263,8 +1276,8 @@ function TaskFlowContent() {
     // Filtro por cliente
     const matchesClient = clientFilter === 'all' || item.companyName === clientFilter;
 
-    // Filtro por lista de tareas
-    const matchesList = selectedListFilter === 'all' || item.listId === selectedListFilter;
+    // Filtro por lista de tareas (las tareas sin lista cuentan como de la primera lista)
+    const matchesList = selectedListFilter === 'all' || resolveListId(item) === selectedListFilter;
 
     return matchesSearch && matchesScope && matchesClient && matchesList;
   });
@@ -1335,7 +1348,7 @@ function TaskFlowContent() {
               <StickyNote className={`h-3.5 w-3.5 shrink-0 transition-transform ${targetView === 'postits' ? 'scale-110 text-white' : 'text-[#8E0E75]'}`} />
               <span>Mural de Post-its</span>
               {postIts.length > 0 && (
-                <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-bold ${
+                <span className={`text-[11px] px-1.5 py-0.2 rounded-full font-bold ${
                   targetView === 'postits' ? 'bg-white/25 text-white' : 'bg-[#D8CFF0] text-[#8E0E75]'
                 }`}>
                   {postIts.length}
@@ -1361,7 +1374,7 @@ function TaskFlowContent() {
 
           {/* Filtros de Ámbito */}
           <div className="flex items-center gap-1 text-[11px] font-bold">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#4A4A4A] mr-0.5 hidden md:inline">
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#4A4A4A] mr-0.5 hidden md:inline">
               Ver:
             </span>
             <button
@@ -1410,6 +1423,86 @@ function TaskFlowContent() {
             </button>
           </div>
 
+          {/* Filtro de lista (desplegable con recuento) + creación rápida de lista */}
+          <div className="flex items-center gap-1.5">
+            <div className="w-60">
+              <AppSelect
+                value={selectedListFilter}
+                onChange={setSelectedListFilter}
+                ariaLabel="Filtrar por lista"
+                icon={<Layers className="h-4 w-4" />}
+                options={[
+                  { value: 'all', label: `Todas las listas (${items.length})` },
+                  ...taskLists.map((list) => ({
+                    value: list.id,
+                    label: `${list.name} (${items.filter((it) => resolveListId(it) === list.id).length})`,
+                    icon: <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: list.color }} />,
+                  })),
+                ]}
+              />
+            </div>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowNewListForm((v) => !v)}
+                aria-expanded={showNewListForm}
+                className="inline-flex items-center gap-1 px-2.5 py-2 rounded-sm border border-[#D8CFF0] hover:border-[#8E0E75] text-[#8E0E75] text-sm font-semibold hover:bg-[#F8F6FC] transition-all cursor-pointer"
+                title="Crear una nueva lista"
+              >
+                <FolderPlus className="h-4 w-4" />
+                <span className="hidden xl:inline">Nueva lista</span>
+              </button>
+              {showNewListForm && (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!newListName.trim()) return;
+                    handleCreateList({
+                      id: 'list-' + Date.now(),
+                      name: newListName.trim(),
+                      color: newListColor,
+                      createdAt: new Date().toISOString(),
+                    });
+                    setNewListName('');
+                    setShowNewListForm(false);
+                  }}
+                  className="absolute right-0 top-full mt-1.5 z-50 w-72 bg-white border border-[#D8CFF0] rounded-sm shadow-xl p-3 space-y-2"
+                >
+                  <input
+                    autoFocus
+                    type="text"
+                    value={newListName}
+                    onChange={(e) => setNewListName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Escape' && setShowNewListForm(false)}
+                    placeholder="Nombre de la lista"
+                    aria-label="Nombre de la nueva lista"
+                    className="w-full px-2.5 py-2 text-sm border border-[#D8CFF0] rounded-sm outline-none focus:border-[#8E0E75]"
+                  />
+                  <div className="flex items-center gap-1.5 flex-wrap" role="radiogroup" aria-label="Color de la lista">
+                    {['#D50000', '#F4511E', '#F6BF26', '#33B679', '#039BE5', '#3F51B5', '#8E24AA', '#8E0E75'].map((hex) => (
+                      <button
+                        key={hex}
+                        type="button"
+                        role="radio"
+                        aria-checked={newListColor === hex}
+                        aria-label={`Color ${hex}`}
+                        onClick={() => setNewListColor(hex)}
+                        className={`h-6 w-6 rounded-full cursor-pointer ${newListColor === hex ? 'ring-2 ring-offset-1 ring-[#191654]' : ''}`}
+                        style={{ backgroundColor: hex }}
+                      />
+                    ))}
+                  </div>
+                  <button
+                    type="submit"
+                    className="w-full py-2 rounded-sm bg-[#8E0E75] hover:bg-[#700B5C] text-white text-sm font-bold cursor-pointer"
+                  >
+                    Crear lista
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+
           {/* Botón de Desplazar Pendientes Vencidas (Reemplaza filtro de prioridad) */}
           <button
             type="button"
@@ -1435,59 +1528,6 @@ function TaskFlowContent() {
 
         </div>
 
-        {/* Barra de Listas de Tareas con Colores Asignados */}
-        <div className="bg-white border border-[#D8CFF0] px-3 py-1.5 rounded-sm shadow-2xs flex flex-wrap items-center justify-between gap-2 shrink-0">
-          <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 text-xs">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#4A4A4A] mr-1 hidden sm:inline flex items-center gap-1">
-              <Layers className="h-3 w-3 text-[#8E0E75]" />
-              <span>Listas:</span>
-            </span>
-            <button
-              type="button"
-              onClick={() => setSelectedListFilter('all')}
-              className={`px-2.5 py-1 rounded-sm border text-xs font-bold transition-all cursor-pointer ${
-                selectedListFilter === 'all'
-                  ? 'bg-[#8E0E75] text-white border-[#8E0E75] shadow-xs'
-                  : 'bg-[#F8F6FC] text-[#4A4A4A] border-slate-200 hover:bg-slate-100'
-              }`}
-            >
-              Todas ({items.length})
-            </button>
-            {taskLists.map((list) => {
-              const count = items.filter(it => it.listId === list.id).length;
-              const isSelected = selectedListFilter === list.id;
-              return (
-                <button
-                  key={list.id}
-                  type="button"
-                  onClick={() => setSelectedListFilter(list.id)}
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm border text-xs font-bold transition-all cursor-pointer ${
-                    isSelected
-                      ? 'bg-white border-[#8E0E75] text-[#8E0E75] shadow-xs ring-1 ring-[#8E0E75]'
-                      : 'bg-[#F8F6FC] text-[#4A4A4A] border-slate-200 hover:bg-white'
-                  }`}
-                >
-                  <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: list.color }} />
-                  <span>{list.name}</span>
-                  <span className="text-[10px] opacity-70">({count})</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Botón rápido para crear nueva lista de tareas */}
-          <button
-            type="button"
-            onClick={() => {
-              setEditingItem(null);
-              setIsModalOpen(true);
-            }}
-            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-sm border border-[#D8CFF0] hover:border-[#8E0E75] text-[#8E0E75] text-[11px] font-extrabold uppercase tracking-wider hover:bg-[#F8F6FC] transition-all cursor-pointer"
-          >
-            <FolderPlus className="h-3.5 w-3.5" />
-            <span>Nueva Lista</span>
-          </button>
-        </div>
 
         {/* Vista Renderizada: Calendario Nativo (L-V con panel de notificaciones), Mural de Post-its o Lista */}
         {viewMode === 'calendar' && (

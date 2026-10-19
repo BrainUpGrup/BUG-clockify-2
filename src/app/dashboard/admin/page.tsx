@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
+import { notify, confirmDialog, friendlyError, flagAccessDenied } from '@/lib/feedback';
 import { createClient } from '@/lib/supabase/client';
 import { MOCK_PROFILES } from '@/lib/mock-data';
 import { Profile, UserRole, ProfileStatus } from '@/types/database';
@@ -71,6 +72,7 @@ export default function SuperAdminDashboardPage() {
       if (!user) {
         router.replace('/login');
       } else if (user.role !== 'admin') {
+        flagAccessDenied('La Administración es solo para el Super Administrador.');
         router.replace(user.role === 'coordinator' ? '/dashboard/coordinator' : '/dashboard/employee');
       }
     }
@@ -324,7 +326,7 @@ export default function SuperAdminDashboardPage() {
       setEditingProfile(null);
     } catch (e) {
       console.error('Error actualizando perfil:', e);
-      alert('Error al actualizar el perfil en la base de datos.');
+      notify(friendlyError('actualizar el perfil'), { type: 'error' });
     } finally {
       setIsSavingEdit(false);
     }
@@ -372,7 +374,7 @@ export default function SuperAdminDashboardPage() {
     const target = profiles.find((p) => p.id === profileId);
     if (!target) return;
     if (target.email === 'appadmin@brainupgrup.com') {
-      alert('La cuenta maestra de Super Administrador no puede cambiar de rol.');
+      notify('La cuenta maestra de Super Administrador no puede cambiar de rol.', { type: 'warning' });
       return;
     }
 
@@ -406,13 +408,17 @@ export default function SuperAdminDashboardPage() {
   // Eliminar cuenta con confirmación de seguridad
   const handleDeleteUser = async (profileId: string, profileEmail: string) => {
     if (profileEmail === 'appadmin@brainupgrup.com') {
-      alert('No es posible eliminar la cuenta principal de Super Administrador.');
+      notify('No es posible eliminar la cuenta principal de Super Administrador.', { type: 'warning' });
       return;
     }
 
-    if (!confirm(`¿Estás seguro de que deseas eliminar permanentemente la cuenta de "${profileEmail}"? Esta acción no se puede deshacer.`)) {
-      return;
-    }
+    const ok = await confirmDialog({
+      title: `¿Eliminar la cuenta de ${profileEmail}?`,
+      message: 'Se eliminará de forma permanente. Esta acción no se puede deshacer.',
+      confirmLabel: 'Eliminar cuenta',
+      danger: true,
+    });
+    if (!ok) return;
 
     if (isSupabaseConnected) {
       try {
@@ -707,7 +713,7 @@ export default function SuperAdminDashboardPage() {
                                     {p.full_name}
                                   </span>
                                   {isMainAdmin && (
-                                    <span className="text-[10px] text-[#8E0E75] font-extrabold uppercase tracking-wide">
+                                    <span className="text-[11px] text-[#8E0E75] font-extrabold uppercase tracking-wide">
                                       Cuenta Maestra
                                     </span>
                                   )}
@@ -743,7 +749,7 @@ export default function SuperAdminDashboardPage() {
                                   <button
                                     type="button"
                                     onClick={() => handleQuickRoleChange(p.id, p.role === 'coordinator' ? 'employee' : 'coordinator')}
-                                    className="p-1 rounded-sm border border-[#D8CFF0] bg-[#F8F6FC] hover:bg-white text-[#4A4A4A] hover:text-[#8E0E75] transition-colors cursor-pointer text-[10px] font-bold"
+                                    className="p-1 rounded-sm border border-[#D8CFF0] bg-[#F8F6FC] hover:bg-white text-[#4A4A4A] hover:text-[#8E0E75] transition-colors cursor-pointer text-[11px] font-bold"
                                     title={p.role === 'coordinator' ? 'Cambiar a Empleado' : 'Promocionar a Coordinadora'}
                                   >
                                     {p.role === 'coordinator' ? 'Hacer Empleado' : 'Hacer Coordinador'}
@@ -786,7 +792,7 @@ export default function SuperAdminDashboardPage() {
                                   <button
                                     type="button"
                                     onClick={() => handleQuickStatusChange(p.id, 'active')}
-                                    className="p-1 rounded-sm border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-colors text-[10px] font-bold cursor-pointer"
+                                    className="p-1 rounded-sm border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-colors text-[11px] font-bold cursor-pointer"
                                     title="Activar cuenta inmediatamente"
                                   >
                                     Activar
@@ -1046,7 +1052,7 @@ export default function SuperAdminDashboardPage() {
 
               <div className="space-y-3 text-xs">
                 <div className="p-3 bg-neutral-50 rounded-sm border border-neutral-200 space-y-1">
-                  <span className="text-[10px] uppercase font-bold text-[#4A4A4A] block">
+                  <span className="text-[11px] uppercase font-bold text-[#4A4A4A] block">
                     Correo Maestro Super Admin
                   </span>
                   <div className="flex items-center justify-between font-mono text-[#292929]">
@@ -1063,7 +1069,7 @@ export default function SuperAdminDashboardPage() {
                 </div>
 
                 <div className="p-3 bg-neutral-50 rounded-sm border border-neutral-200 space-y-1">
-                  <span className="text-[10px] uppercase font-bold text-[#4A4A4A] block">
+                  <span className="text-[11px] uppercase font-bold text-[#4A4A4A] block">
                     Contraseña Maestra Asignada
                   </span>
                   <div className="flex items-center justify-between font-mono text-[#292929]">

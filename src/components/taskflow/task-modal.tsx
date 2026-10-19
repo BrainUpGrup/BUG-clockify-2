@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { AppSelect } from '@/components/ui/app-select';
+import { AppCalendar } from '@/components/ui/app-calendar';
 import { 
   X, 
   Calendar as CalendarIcon, 
@@ -105,6 +107,10 @@ export function TaskModal({
   const [estimatedHours, setEstimatedHours] = useState('2');
   const [isShared, setIsShared] = useState(true);
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([currentUserName]);
+  const [showPalette, setShowPalette] = useState(false);
+
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   // Cargar colores recientes de localStorage
   useEffect(() => {
@@ -165,6 +171,23 @@ export function TaskModal({
     }
   }, [editingItem, defaultDate, companies, currentUserName, isOpen, taskLists]);
 
+  // Teclado: Escape cierra (si no hay un desplegable abierto) y Ctrl/Cmd + Enter guarda
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !e.defaultPrevented) {
+        const openPopup = dialogRef.current?.querySelector('[aria-expanded="true"]');
+        if (!openPopup) onClose();
+      }
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        formRef.current?.requestSubmit();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handleToggleAssignee = (name: string) => {
@@ -201,9 +224,12 @@ export function TaskModal({
     setShowNewListForm(false);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim()) return;
+  const handleSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!title.trim()) {
+      dialogRef.current?.querySelector<HTMLInputElement>('#taskflow-title')?.focus();
+      return;
+    }
 
     const matchedCompany = companies.find(c => c.name.toLowerCase() === companyName.toLowerCase());
 
@@ -252,10 +278,12 @@ export function TaskModal({
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4">
       {/* Contenedor Modal de 2 Columnas Optimizadas para ZERO SCROLL */}
-      <div 
-        className="bg-white border border-[#D8CFF0] rounded-sm shadow-2xl w-full max-w-4xl flex flex-col tab-transition overflow-hidden my-auto"
+      <div
+        ref={dialogRef}
+        className="bg-white border border-[#D8CFF0] rounded-sm shadow-2xl w-full max-w-4xl flex flex-col tab-transition my-auto max-h-[calc(100vh-1rem)]"
         role="dialog"
         aria-modal="true"
+        aria-labelledby="taskflow-modal-title"
       >
         {/* Cabecera Compacta en una sola fila */}
         <div className="py-2 px-3 sm:px-4 border-b border-[#EAE4F5] bg-gradient-to-r from-[#F8F6FC] to-white flex items-center justify-between shrink-0">
@@ -264,15 +292,15 @@ export function TaskModal({
               {type === 'meeting' ? <CalendarIcon className="h-3.5 w-3.5" /> : <CheckSquare className="h-3.5 w-3.5" />}
             </div>
             <div>
-              <h2 className="text-xs font-black uppercase tracking-tight text-[#292929]">
-                {editingItem ? 'EDITAR ELEMENTO' : 'CREAR EN TASKFLOW'}
+              <h2 id="taskflow-modal-title" className="text-sm font-bold text-[#292929]">
+                {editingItem ? 'Editar elemento' : 'Crear en TaskFlow'}
               </h2>
             </div>
           </div>
 
           {/* Selector de Tipo Tarea / Reunión Integrado Compacto */}
           <div className="flex items-center gap-2">
-            <div className="flex items-center rounded-sm bg-[#F8F6FC] p-0.5 border border-[#D8CFF0] text-[10px] font-extrabold uppercase">
+            <div className="flex items-center rounded-sm bg-[#F8F6FC] p-0.5 border border-[#D8CFF0] text-[11px] font-extrabold uppercase">
               <button
                 type="button"
                 onClick={() => setType('task')}
@@ -307,18 +335,20 @@ export function TaskModal({
         </div>
 
         {/* Cuerpo del Formulario en 2 Columnas para CERO SCROLL */}
-        <form onSubmit={handleSubmit} className="p-3 grid grid-cols-1 md:grid-cols-12 gap-3 flex-1 overflow-y-auto md:overflow-visible">
+        <form ref={formRef} id="taskflow-form" onSubmit={handleSubmit} className="p-3 grid grid-cols-1 md:grid-cols-12 gap-3 flex-1 overflow-y-auto md:overflow-visible">
           
           {/* COLUMNA 1 (md:col-span-7): TÍTULO, CLIENTE, PRIORIDAD, FECHA Y ASIGNADOS */}
           <div className="md:col-span-7 space-y-2 flex flex-col justify-between">
             {/* Título */}
             <div>
-              <label className="block text-[10px] font-extrabold uppercase tracking-wider text-[#292929] mb-0.5">
+              <label htmlFor="taskflow-title" className="block text-[11px] font-bold uppercase tracking-wide text-[#292929] mb-0.5">
                 {type === 'meeting' ? 'Asunto / Título de la Reunión *' : 'Título de la Tarea / Entregable *'}
               </label>
               <input
+                id="taskflow-title"
                 type="text"
                 required
+                autoFocus
                 placeholder={
                   type === 'meeting'
                     ? 'ej. Reunión mensual cuota y objetivos'
@@ -333,23 +363,21 @@ export function TaskModal({
             {/* Fila: Cliente y Fecha Programada (Prioridad retirada por directriz del usuario) */}
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-[10px] font-extrabold uppercase tracking-wider text-[#292929] mb-0.5 flex items-center gap-1">
+                <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#292929] mb-0.5 flex items-center gap-1">
                   <Building2 className="h-3 w-3 text-[#8E0E75]" />
                   <span>Empresa / Cliente</span>
                 </label>
                 {companies.length > 0 ? (
-                  <select
+                  <AppSelect
                     value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
-                    className="w-full px-2 py-1 border border-[#D8CFF0] rounded-sm text-xs bg-[#F8F6FC] focus:bg-white focus:border-[#8E0E75] outline-none font-medium truncate"
-                  >
-                    {companies.map((c) => (
-                      <option key={c.id} value={c.name}>
-                        {c.name}
-                      </option>
-                    ))}
-                    <option value="Brain Up Interno">Brain Up (Interno)</option>
-                  </select>
+                    onChange={setCompanyName}
+                    ariaLabel="Empresa / Cliente"
+                    searchable
+                    options={[
+                      ...companies.map((c) => ({ value: c.name, label: c.name })),
+                      { value: 'Brain Up Interno', label: 'Brain Up (Interno)' },
+                    ]}
+                  />
                 ) : (
                   <input
                     type="text"
@@ -362,17 +390,11 @@ export function TaskModal({
               </div>
 
               <div>
-                <label className="block text-[10px] font-extrabold uppercase tracking-wider text-[#292929] mb-0.5 flex items-center gap-1">
+                <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#292929] mb-0.5 flex items-center gap-1">
                   <CalendarIcon className="h-3 w-3 text-[#8E0E75]" />
                   <span>Fecha Programada</span>
                 </label>
-                <input
-                  type="date"
-                  required
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="w-full px-2 py-1 border border-[#D8CFF0] rounded-sm text-xs bg-[#F8F6FC] focus:bg-white focus:border-[#8E0E75] outline-none font-bold"
-                />
+                <AppCalendar value={date} onChange={setDate} />
               </div>
             </div>
 
@@ -381,16 +403,16 @@ export function TaskModal({
               {type === 'task' ? (
                 <div className="col-span-12 flex items-center justify-between gap-2">
                   <div className="w-1/2">
-                    <label className="block text-[10px] font-extrabold uppercase tracking-wider text-[#292929] mb-0.5 flex items-center gap-1">
+                    <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#292929] mb-0.5 flex items-center gap-1">
                       <Clock className="h-3 w-3 text-[#8E0E75]" />
                       <span>Horas Estimadas</span>
                     </label>
                     <input
-                      type="number"
-                      min="0.25"
-                      step="0.25"
+                      type="text"
+                      inputMode="decimal"
+                      aria-label="Horas estimadas"
                       value={estimatedHours}
-                      onChange={(e) => setEstimatedHours(e.target.value)}
+                      onChange={(e) => setEstimatedHours(e.target.value.replace(',', '.'))}
                       className="w-full px-2 py-1 border border-[#D8CFF0] rounded-sm text-xs bg-[#F8F6FC] focus:bg-white focus:border-[#8E0E75] outline-none font-bold"
                     />
                   </div>
@@ -400,7 +422,7 @@ export function TaskModal({
                       <button
                         type="button"
                         onClick={handleShiftToNextBusinessDay}
-                        className="px-2.5 py-1 rounded-sm bg-[#8E0E75]/10 hover:bg-[#8E0E75] text-[#8E0E75] hover:text-white border border-[#8E0E75]/30 text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
+                        className="px-2.5 py-1 rounded-sm bg-[#8E0E75]/10 hover:bg-[#8E0E75] text-[#8E0E75] hover:text-white border border-[#8E0E75]/30 text-[11px] font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
                         title="Desplazar tarea a mañana (+1 día hábil) en cualquier momento del día"
                       >
                         <FastForward className="h-3 w-3" />
@@ -412,7 +434,7 @@ export function TaskModal({
               ) : (
                 <>
                   <div className="col-span-6">
-                    <label className="block text-[10px] font-extrabold uppercase tracking-wider text-[#292929] mb-0.5">
+                    <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#292929] mb-0.5">
                       Inicio
                     </label>
                     <input
@@ -423,7 +445,7 @@ export function TaskModal({
                     />
                   </div>
                   <div className="col-span-6">
-                    <label className="block text-[10px] font-extrabold uppercase tracking-wider text-[#292929] mb-0.5">
+                    <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#292929] mb-0.5">
                       Fin
                     </label>
                     <input
@@ -441,7 +463,7 @@ export function TaskModal({
             {type === 'meeting' && (
               <div className="grid grid-cols-2 gap-2 p-1.5 rounded-sm bg-[#F8F6FC] border border-[#D8CFF0]">
                 <div>
-                  <label className="block text-[9px] font-extrabold uppercase text-[#292929] mb-0.5">
+                  <label className="block text-[11px] font-extrabold uppercase text-[#292929] mb-0.5">
                     Ubicación / Meet
                   </label>
                   <input
@@ -453,7 +475,7 @@ export function TaskModal({
                   />
                 </div>
                 <div>
-                  <label className="block text-[9px] font-extrabold uppercase text-[#292929] mb-0.5">
+                  <label className="block text-[11px] font-extrabold uppercase text-[#292929] mb-0.5">
                     Enlace Reunión (URL)
                   </label>
                   <input
@@ -461,7 +483,7 @@ export function TaskModal({
                     placeholder="https://meet.google.com/..."
                     value={meetingUrl}
                     onChange={(e) => setMeetingUrl(e.target.value)}
-                    className="w-full px-2 py-0.5 border border-[#D8CFF0] rounded-sm text-xs bg-white focus:border-[#8E0E75] outline-none font-mono text-[10px]"
+                    className="w-full px-2 py-0.5 border border-[#D8CFF0] rounded-sm text-xs bg-white focus:border-[#8E0E75] outline-none font-mono text-[11px]"
                   />
                 </div>
               </div>
@@ -469,7 +491,7 @@ export function TaskModal({
 
             {/* Notas / Descripción (Compacta) */}
             <div>
-              <label className="block text-[10px] font-extrabold uppercase tracking-wider text-[#292929] mb-0.5">
+              <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#292929] mb-0.5">
                 Detalles / Notas de la Tarea
               </label>
               <textarea
@@ -495,11 +517,11 @@ export function TaskModal({
 
               {isShared && (
                 <div className="flex items-center gap-1 overflow-x-auto max-w-[240px]">
-                  <span className="text-[10px] text-slate-400 font-bold mr-0.5">Asignados:</span>
+                  <span className="text-[11px] text-slate-400 font-bold mr-0.5">Asignados:</span>
                   <button
                     type="button"
                     onClick={() => handleToggleAssignee(currentUserName)}
-                    className={`px-1.5 py-0.5 rounded-xs text-[10px] font-bold border ${
+                    className={`px-1.5 py-0.5 rounded-xs text-[11px] font-bold border ${
                       selectedAssignees.includes(currentUserName)
                         ? 'bg-[#8E0E75] text-white border-[#8E0E75]'
                         : 'bg-slate-100 text-slate-500'
@@ -512,7 +534,7 @@ export function TaskModal({
                       key={p.id}
                       type="button"
                       onClick={() => handleToggleAssignee(p.full_name)}
-                      className={`px-1.5 py-0.5 rounded-xs text-[10px] font-bold border truncate max-w-[90px] ${
+                      className={`px-1.5 py-0.5 rounded-xs text-[11px] font-bold border truncate max-w-[90px] ${
                         selectedAssignees.includes(p.full_name)
                           ? 'bg-[#8E0E75] text-white border-[#8E0E75]'
                           : 'bg-slate-100 text-slate-500'
@@ -533,31 +555,30 @@ export function TaskModal({
             {/* 1. Selector de Lista de Tareas Asignada */}
             <div className="p-2 rounded-sm bg-[#F8F6FC] border border-[#D8CFF0] space-y-1.5">
               <div className="flex items-center justify-between">
-                <label className="text-[10px] font-extrabold uppercase tracking-wider text-[#292929] flex items-center gap-1">
+                <label className="text-[11px] font-extrabold uppercase tracking-wider text-[#292929] flex items-center gap-1">
                   <Layers className="h-3 w-3 text-[#8E0E75]" />
                   <span>Lista de Tareas Asignada</span>
                 </label>
                 <button
                   type="button"
                   onClick={() => setShowNewListForm(!showNewListForm)}
-                  className="text-[10px] font-extrabold text-[#8E0E75] hover:underline cursor-pointer"
+                  className="text-[11px] font-extrabold text-[#8E0E75] hover:underline cursor-pointer"
                 >
                   {showNewListForm ? 'Cerrar' : '+ Nueva'}
                 </button>
               </div>
 
               {/* Selector Desplegable Rápido de Lista */}
-              <select
+              <AppSelect
                 value={listId}
-                onChange={(e) => handleSelectList(e.target.value)}
-                className="w-full px-2 py-1 border border-[#D8CFF0] rounded-sm text-xs bg-white font-bold text-[#292929] outline-none"
-              >
-                {taskLists.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    ● {l.name}
-                  </option>
-                ))}
-              </select>
+                onChange={handleSelectList}
+                ariaLabel="Lista de tareas"
+                options={taskLists.map((l) => ({
+                  value: l.id,
+                  label: l.name,
+                  icon: <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: l.color }} />,
+                }))}
+              />
 
               {/* Mini formulario nueva lista */}
               {showNewListForm && (
@@ -573,13 +594,13 @@ export function TaskModal({
                     <button
                       type="button"
                       onClick={handleCreateNewList}
-                      className="px-2 py-0.5 bg-[#8E0E75] text-white rounded-sm text-[10px] font-black uppercase shrink-0 cursor-pointer"
+                      className="px-2 py-0.5 bg-[#8E0E75] text-white rounded-sm text-[11px] font-black uppercase shrink-0 cursor-pointer"
                     >
                       OK
                     </button>
                   </div>
                   <div className="flex items-center gap-1 overflow-x-auto py-0.5">
-                    <span className="text-[9px] font-bold text-slate-400 shrink-0">Color:</span>
+                    <span className="text-[11px] font-bold text-slate-400 shrink-0">Color:</span>
                     {GOOGLE_CALENDAR_COLORS.slice(0, 11).map((col) => (
                       <button
                         key={col.hex}
@@ -602,7 +623,7 @@ export function TaskModal({
             {/* 2. Color de la Tira (Exclusivo Paleta Google Calendar) */}
             <div className="p-2.5 rounded-sm bg-[#F8F6FC] border border-[#D8CFF0] space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-[10px] font-extrabold uppercase tracking-wider text-[#292929] flex items-center gap-1.5">
+                <label className="text-[11px] font-extrabold uppercase tracking-wider text-[#292929] flex items-center gap-1.5">
                   <Palette className="h-3.5 w-3.5 text-[#8E0E75]" />
                   <span>Color de Tira</span>
                 </label>
@@ -611,7 +632,7 @@ export function TaskModal({
                     className="h-2.5 w-2.5 rounded-full inline-block shadow-2xs"
                     style={{ backgroundColor: customColor }}
                   />
-                  <span className="text-[10px] font-extrabold text-[#292929]">
+                  <span className="text-[11px] font-extrabold text-[#292929]">
                     {GOOGLE_CALENDAR_COLORS.find(c => c.hex.toLowerCase() === customColor.toLowerCase())?.name || 'Personalizado'}
                   </span>
                 </div>
@@ -628,12 +649,22 @@ export function TaskModal({
                   </span>
                   <span className="truncate text-[11px]">{title.trim() || 'Vista previa de la tira'}</span>
                 </div>
-                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-xs bg-black/10 shrink-0 ml-1 font-bold">
+                <span className="text-[11px] font-mono px-1.5 py-0.5 rounded-xs bg-black/10 shrink-0 ml-1 font-bold">
                   {type === 'meeting' ? startTime : '~' + estimatedHours + 'h'}
                 </span>
               </div>
 
-              {/* Paleta Oficial de Google Calendar: 2 filas de 11 círculos exactos */}
+              <button
+                type="button"
+                onClick={() => setShowPalette((v) => !v)}
+                aria-expanded={showPalette}
+                className="text-[12px] font-semibold text-[#8E0E75] hover:underline cursor-pointer"
+              >
+                {showPalette ? 'Ocultar colores' : 'Cambiar color'}
+              </button>
+
+              {/* Paleta Oficial de Google Calendar: 2 filas de 11 círculos exactos (plegable) */}
+              {showPalette && (
               <div className="space-y-1.5 pt-0.5">
                 <div className="grid grid-cols-11 gap-1.5 justify-items-center">
                   {GOOGLE_CALENDAR_COLORS.map((col) => {
@@ -673,26 +704,30 @@ export function TaskModal({
                   <span>Predeterminada</span>
                 </button>
               </div>
+              )}
             </div>
 
             {/* 3. Desplazamiento: Manual o Automático (A libre elección del usuario) */}
             <div className="p-2 rounded-sm bg-[#F8F6FC] border border-[#D8CFF0] space-y-1.5">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#292929] flex items-center gap-1">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#292929] flex items-center gap-1">
                   <RotateCw className="h-3 w-3 text-[#8E0E75]" />
                   <span>Desplazamiento de Tarea</span>
                 </span>
 
-                <select
-                  value={rescheduleDays}
-                  onChange={(e) => setRescheduleDays(Number(e.target.value))}
-                  className="px-1.5 py-0.5 text-[10px] border border-[#D8CFF0] rounded-sm bg-white font-bold text-[#8E0E75] outline-none cursor-pointer"
-                >
-                  <option value={1}>+1 día hábil (mañana)</option>
-                  <option value={2}>+2 días hábiles</option>
-                  <option value={3}>+3 días hábiles</option>
-                  <option value={7}>+1 semana</option>
-                </select>
+                <div className="w-48">
+                  <AppSelect
+                    value={String(rescheduleDays)}
+                    onChange={(v) => setRescheduleDays(Number(v))}
+                    ariaLabel="Días de desplazamiento"
+                    options={[
+                      { value: '1', label: '+1 día hábil (mañana)' },
+                      { value: '2', label: '+2 días hábiles' },
+                      { value: '3', label: '+3 días hábiles' },
+                      { value: '7', label: '+1 semana' },
+                    ]}
+                  />
+                </div>
               </div>
 
               {/* Botones de Modo: Manual vs Automático */}
@@ -700,7 +735,7 @@ export function TaskModal({
                 <button
                   type="button"
                   onClick={() => setAutoReschedule(false)}
-                  className={`py-1 px-1.5 rounded-xs border text-[10px] font-bold text-center transition-all cursor-pointer ${
+                  className={`py-1 px-1.5 rounded-xs border text-[11px] font-bold text-center transition-all cursor-pointer ${
                     !autoReschedule
                       ? 'bg-[#8E0E75] text-white border-[#8E0E75] shadow-2xs'
                       : 'bg-white text-slate-700 border-[#D8CFF0] hover:bg-slate-50'
@@ -711,7 +746,7 @@ export function TaskModal({
                 <button
                   type="button"
                   onClick={() => setAutoReschedule(true)}
-                  className={`py-1 px-1.5 rounded-xs border text-[10px] font-bold text-center transition-all cursor-pointer ${
+                  className={`py-1 px-1.5 rounded-xs border text-[11px] font-bold text-center transition-all cursor-pointer ${
                     autoReschedule
                       ? 'bg-[#8E0E75] text-white border-[#8E0E75] shadow-2xs'
                       : 'bg-white text-slate-700 border-[#D8CFF0] hover:bg-slate-50'
@@ -721,7 +756,7 @@ export function TaskModal({
                 </button>
               </div>
 
-              <p className="text-[9px] text-slate-500 leading-tight">
+              <p className="text-[11px] text-slate-500 leading-tight">
                 {autoReschedule
                   ? 'Se reprogramará automáticamente al día siguiente si no se completa hoy.'
                   : 'Desplazamiento manual: desplázala en cualquier momento del día con el botón de flecha o arrastrándola.'}
@@ -740,7 +775,7 @@ export function TaskModal({
                   href={getGoogleCalendarUrl(editingItem)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 px-2 py-1 rounded-sm bg-white border border-slate-300 text-slate-700 hover:text-[#8E0E75] text-[10px] font-bold shadow-2xs"
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-sm bg-white border border-slate-300 text-slate-700 hover:text-[#8E0E75] text-[11px] font-bold shadow-2xs"
                 >
                   <ExternalLink className="h-3 w-3 text-blue-600" />
                   <span>Google Cal</span>
@@ -748,7 +783,7 @@ export function TaskModal({
                 <button
                   type="button"
                   onClick={() => downloadSingleEventIcs(editingItem)}
-                  className="inline-flex items-center gap-1 px-2 py-1 rounded-sm bg-white border border-slate-300 text-slate-700 hover:text-[#8E0E75] text-[10px] font-bold shadow-2xs"
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-sm bg-white border border-slate-300 text-slate-700 hover:text-[#8E0E75] text-[11px] font-bold shadow-2xs"
                 >
                   <Download className="h-3 w-3" />
                   <span>.ics</span>
@@ -766,11 +801,12 @@ export function TaskModal({
               Cancelar
             </button>
             <button
-              type="button"
-              onClick={handleSubmit}
-              className="px-4 py-1.5 rounded-sm bg-[#8E0E75] hover:bg-[#700B5C] text-white text-xs font-extrabold uppercase tracking-wider shadow-xs transition-all cursor-pointer"
+              type="submit"
+              form="taskflow-form"
+              title="Ctrl + Enter"
+              className="px-4 py-1.5 rounded-sm bg-[#8E0E75] hover:bg-[#700B5C] text-white text-sm font-bold shadow-xs transition-all cursor-pointer"
             >
-              {editingItem ? 'Guardar Cambios' : 'Crear Tarea'}
+              {editingItem ? 'Guardar cambios' : type === 'meeting' ? 'Crear reunión' : 'Crear tarea'}
             </button>
           </div>
         </div>

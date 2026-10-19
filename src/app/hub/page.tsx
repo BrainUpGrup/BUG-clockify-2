@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/auth-context';
@@ -41,29 +41,6 @@ export default function BrainUpHubPage() {
   const [activeTab, setActiveTab] = useState<'apps' | 'permissions' | 'customizer'>('apps');
   const [allProfiles, setAllProfiles] = useState<Profile[]>([]);
   const [authorizedApps, setAuthorizedApps] = useState<HubApp[]>([]);
-
-  const tabsContainerRef = useRef<HTMLDivElement>(null);
-  const [pillStyle, setPillStyle] = useState<{ left: number; width: number; opacity: number }>({ left: 0, width: 0, opacity: 0 });
-  const [hoveredTab, setHoveredTab] = useState<string | null>(null);
-
-  const targetTab = hoveredTab || activeTab;
-
-  useEffect(() => {
-    const updatePill = () => {
-      if (!tabsContainerRef.current) return;
-      const targetEl = tabsContainerRef.current.querySelector(`[data-tab-id="${targetTab}"]`) as HTMLElement;
-      if (targetEl) {
-        setPillStyle({
-          left: targetEl.offsetLeft,
-          width: targetEl.offsetWidth,
-          opacity: 1,
-        });
-      }
-    };
-    updatePill();
-    window.addEventListener('resize', updatePill);
-    return () => window.removeEventListener('resize', updatePill);
-  }, [targetTab, activeTab, authorizedApps.length]);
 
   // Redirigir a login si no hay sesión
   useEffect(() => {
@@ -176,136 +153,59 @@ export default function BrainUpHubPage() {
 
   return (
     <div className="flex-1 flex flex-col w-full font-sans">
-      <main className="page-transition flex-1 w-full max-w-[1550px] mx-auto px-4 sm:px-8 lg:px-12 py-8 sm:py-10 space-y-8 sm:space-y-10">
+      <main className="page-transition flex-1 w-full max-w-[1550px] mx-auto px-4 sm:px-8 lg:px-12 py-6 sm:py-8 space-y-6">
         
-        {/* Cabecera Principal del HUB con Dimensiones Hero */}
-        <div className="rounded-2xl border-2 border-[#D8CFF0] bg-white p-7 sm:p-10 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-md bg-[#8E0E75]/10 text-[#8E0E75] text-xs sm:text-sm font-extrabold uppercase tracking-tight border border-[#8E0E75]/30">
-                <LayoutGrid className="h-4 w-4 text-[#8E0E75]" />
-                SUITE EMPRESARIAL INTERCONECTADA
-              </span>
-              <span className="text-xs sm:text-sm font-bold text-[#4A4A4A] bg-[#F8F6FC] px-3.5 py-1 rounded-md border border-[#D8CFF0]">
-                {authorizedApps.length} {authorizedApps.length === 1 ? 'herramienta habilitada' : 'herramientas habilitadas'}
-              </span>
-            </div>
-
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black uppercase tracking-tight text-[#292929] leading-tight">
-              HUB CENTRAL <span className="text-[#8E0E75]">BRAIN UP</span>
+        {/* Cabecera compacta del HUB */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#292929] leading-tight">
+              Hola, <span className="text-[#8E0E75]">{user.full_name?.split(' ')[0] || 'equipo'}</span>
             </h1>
-            <p className="text-sm sm:text-base lg:text-lg text-[#4A4A4A] font-light max-w-3xl leading-relaxed">
-              Hola, <strong className="font-bold text-[#191654]">{user.full_name}</strong>. Accede a tus herramientas de trabajo autorizadas desde este panel central unificado.
+            <p className="text-sm sm:text-base text-[#4A4A4A] mt-1">
+              Elige la herramienta con la que quieres trabajar hoy.
             </p>
           </div>
-
-          {/* Tarjeta de Rol & Estado en Escala Destacada */}
-          <div className="flex items-center gap-4 shrink-0 self-start md:self-auto bg-[#F8F6FC] p-3 sm:p-4 rounded-2xl border-2 border-[#D8CFF0]">
-            <div className="text-right">
-              <span className="block text-sm sm:text-base font-black text-[#292929]">
-                {user.role === 'admin' ? 'Super Administrador' : user.role === 'coordinator' ? 'Coordinadora de Agencia' : 'Trabajador / Empleado'}
-              </span>
-              <span className="text-xs sm:text-sm font-mono text-[#8E0E75] font-bold">
-                {user.email}
-              </span>
+          {/* Ajustes (permisos y colores): viven en Coordinación; el Super Admin, que no
+              tiene ese panel, los abre aquí mismo */}
+          {user.role === 'coordinator' && (
+            <Link
+              href="/dashboard/coordinator"
+              className="inline-flex items-center gap-2 self-start sm:self-auto px-3.5 py-2 rounded-lg border-2 border-[#D8CFF0] bg-white text-sm font-semibold text-[#8E0E75] hover:border-[#8E0E75]"
+            >
+              <ShieldCheck className="h-4 w-4" />
+              Permisos y colores
+            </Link>
+          )}
+          {user.role === 'admin' && (
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              {([
+                ['apps', 'Aplicaciones', LayoutGrid],
+                ['permissions', 'Permisos', ShieldCheck],
+                ['customizer', 'Colores', Palette],
+              ] as const).map(([id, label, Icon]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setActiveTab(id)}
+                  aria-pressed={activeTab === id}
+                  className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border-2 text-sm font-semibold cursor-pointer ${
+                    activeTab === id ? 'bg-[#8E0E75] border-[#8E0E75] text-white' : 'bg-white border-[#D8CFF0] text-[#8E0E75] hover:border-[#8E0E75]'
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  {label}
+                </button>
+              ))}
             </div>
-            <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-gradient-to-tr from-[#191654] via-[#700B5C] to-[#8E0E75] text-white flex items-center justify-center font-black text-lg sm:text-2xl shadow-md ring-4 ring-[#8E0E75]/25">
-              {user.full_name?.charAt(0) || 'B'}
-            </div>
-          </div>
+          )}
         </div>
 
-        {/* Pestañas de Gestión para Coordinadoras y Administradores con Pastilla Morada Deslizante */}
-        {isCoordinatorOrAdmin && (
-          <div 
-            ref={tabsContainerRef}
-            onMouseLeave={() => setHoveredTab(null)}
-            className="relative flex items-center bg-[#F8F6FC] p-2 border-2 border-[#D8CFF0] rounded-2xl gap-3 flex-wrap shadow-2xs select-none"
-          >
-            {/* Pastilla morada deslizante fluida */}
-            <div
-              className="absolute rounded-xl bg-[#8E0E75] shadow-md shadow-[#8E0E75]/35 pointer-events-none transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)]"
-              style={{
-                left: `${pillStyle.left}px`,
-                width: `${pillStyle.width}px`,
-                top: '8px',
-                bottom: '8px',
-                opacity: pillStyle.opacity,
-              }}
-            />
-
-            <button
-              type="button"
-              data-tab-id="apps"
-              onClick={() => setActiveTab('apps')}
-              onMouseEnter={() => setHoveredTab('apps')}
-              className={`relative z-10 flex items-center gap-3 px-6 py-3.5 rounded-xl text-sm sm:text-base uppercase tracking-tight transition-colors duration-200 cursor-pointer ${
-                targetTab === 'apps'
-                  ? 'text-white font-extrabold'
-                  : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75]'
-              }`}
-            >
-              <LayoutGrid className={`h-5 w-5 shrink-0 transition-transform ${targetTab === 'apps' ? 'scale-110 text-white' : 'text-[#8E0E75]'}`} />
-              <span>Mis Herramientas ({authorizedApps.length})</span>
-            </button>
-
-            <button
-              type="button"
-              data-tab-id="permissions"
-              onClick={() => setActiveTab('permissions')}
-              onMouseEnter={() => setHoveredTab('permissions')}
-              className={`relative z-10 flex items-center gap-3 px-6 py-3.5 rounded-xl text-sm sm:text-base uppercase tracking-tight transition-colors duration-200 cursor-pointer ${
-                targetTab === 'permissions'
-                  ? 'text-white font-extrabold'
-                  : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75]'
-              }`}
-            >
-              <ShieldCheck className={`h-5 w-5 shrink-0 transition-transform ${targetTab === 'permissions' ? 'scale-110 text-white' : 'text-[#8E0E75]'}`} />
-              <span>Matriz de Permisos por Trabajador</span>
-            </button>
-
-            <button
-              type="button"
-              data-tab-id="customizer"
-              onClick={() => setActiveTab('customizer')}
-              onMouseEnter={() => setHoveredTab('customizer')}
-              className={`relative z-10 flex items-center gap-3 px-6 py-3.5 rounded-xl text-sm sm:text-base uppercase tracking-tight transition-colors duration-200 cursor-pointer ${
-                targetTab === 'customizer'
-                  ? 'text-white font-extrabold'
-                  : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75]'
-              }`}
-            >
-              <Palette className={`h-5 w-5 shrink-0 transition-transform ${targetTab === 'customizer' ? 'scale-110 text-white' : 'text-[#8E0E75]'}`} />
-              <span>Personalización de Colores RGB</span>
-            </button>
-          </div>
-        )}
-
-        {/* CONTENIDO CON ANIMACIÓN SUAVE SEGÚN PESTAÑA */}
-        <div key={activeTab} className="tab-transition">
-          
-          {/* VISTA 1: DASHBOARD DE APLICACIONES PERMITIDAS */}
+        <div className="tab-transition">
           {activeTab === 'apps' && (
             <div className="space-y-8">
-              
-              {/* Resumen de Herramientas Disponibles con Mayor Presencia */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[#EAE4F5]">
-                <div>
-                  <h2 className="text-xl sm:text-2xl lg:text-3xl font-black uppercase tracking-tight text-[#292929]">
-                    APLICACIONES <span className="text-[#8E0E75]">DISPONIBLES</span>
-                  </h2>
-                  <p className="text-sm sm:text-base text-[#4A4A4A] font-light mt-0.5">
-                    Selecciona la herramienta con la que deseas trabajar hoy
-                  </p>
-                </div>
 
-                <div className="text-xs sm:text-sm text-[#191654] font-bold bg-[#F8F6FC] px-4 py-2 rounded-xl border-2 border-[#D8CFF0] self-start sm:self-auto shadow-2xs">
-                  {authorizedApps.length} de {BRAIN_UP_HUB_APPS.length} herramientas en tu perfil
-                </div>
-              </div>
-
-              {/* Grid de Aplicaciones del HUB: Tarjetas Heroicas y Espaciosas */}
-              <div className={`grid gap-8 lg:gap-10 ${
+              {/* Grid de Aplicaciones del HUB: la tarjeta entera es el enlace */}
+              <div className={`grid gap-6 lg:gap-8 ${
                 authorizedApps.length <= 2 
                   ? 'grid-cols-1 md:grid-cols-2' 
                   : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
@@ -318,73 +218,36 @@ export default function BrainUpHubPage() {
                   }
 
                   return (
-                    <div
+                    <Link
                       key={app.id}
-                      className="group relative rounded-3xl border-2 border-[#D8CFF0] bg-white p-8 sm:p-10 shadow-sm hover:shadow-xl hover:border-[#8E0E75] transition-all duration-300 flex flex-col justify-between"
+                      href={targetHref}
+                      className="group relative rounded-2xl border-2 border-[#D8CFF0] bg-white p-6 sm:p-7 shadow-sm hover:shadow-lg hover:border-[#8E0E75] focus-visible:border-[#8E0E75] focus-visible:ring-4 focus-visible:ring-[#8E0E75]/20 outline-none transition-all duration-200 flex items-start gap-5"
                     >
-                      {/* Cabecera de la Tarjeta en Escala Ampliada */}
-                      <div className="space-y-5">
-                        <div className="flex items-center justify-between">
-                          <div className="p-4 sm:p-5 rounded-2xl bg-[#F8F6FC] text-[#8E0E75] border-2 border-[#D8CFF0] group-hover:bg-[#8E0E75] group-hover:text-white transition-all shadow-xs group-hover:scale-105 duration-200">
-                            {renderAppIcon(app.iconName, 'h-9 w-9 sm:h-11 sm:w-11')}
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`px-3 py-1 rounded-lg text-xs sm:text-sm font-extrabold uppercase tracking-tight border-2 shadow-2xs ${
-                                app.id === 'clockify'
-                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                                  : app.id === 'taskflow'
-                                  ? 'bg-[#8E0E75]/10 text-[#8E0E75] border-[#8E0E75]/30'
-                                  : 'bg-blue-50 text-blue-800 border-blue-200'
-                              }`}
-                            >
-                              {app.badge}
-                            </span>
-                            <span className="text-xs sm:text-sm font-mono font-bold text-slate-400">
-                              v{app.version}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div>
-                          <h3 className="font-black text-2xl sm:text-3xl lg:text-4xl text-[#292929] group-hover:text-[#8E0E75] transition-colors uppercase tracking-tight">
-                            {app.name}
-                          </h3>
-                          <p className="text-sm sm:text-base font-bold text-[#8E0E75] mt-1.5">
-                            {app.tagline}
-                          </p>
-                        </div>
-
-                        <p className="text-sm sm:text-base text-[#4A4A4A] leading-relaxed font-light">
-                          {app.description}
-                        </p>
+                      <div className="p-4 rounded-2xl bg-[#F8F6FC] text-[#8E0E75] border-2 border-[#D8CFF0] group-hover:bg-[#8E0E75] group-hover:text-white transition-colors shrink-0">
+                        {renderAppIcon(app.iconName, 'h-8 w-8')}
                       </div>
-
-                      {/* Botón Gigante de Entrada a la Aplicación */}
-                      <div className="pt-6 mt-6 border-t-2 border-[#EAE4F5]">
-                        <Link
-                          href={targetHref}
-                          className="w-full flex items-center justify-center gap-3 px-6 py-4 sm:py-5 rounded-2xl bg-[#8E0E75] hover:bg-[#700B5C] text-white font-black text-base sm:text-lg uppercase tracking-tight shadow-lg shadow-[#8E0E75]/25 hover:shadow-2xl hover:shadow-[#8E0E75]/40 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer group/btn"
-                        >
-                          <span>Acceder a la Aplicación</span>
-                          <ArrowRight className="h-5 w-5 sm:h-6 sm:w-6 group-hover/btn:translate-x-2 transition-transform" />
-                        </Link>
+                      <div className="min-w-0 flex-1">
+                        <h2 className="font-black text-xl sm:text-2xl text-[#292929] group-hover:text-[#8E0E75] transition-colors tracking-tight">
+                          {app.name}
+                        </h2>
+                        <p className="text-sm font-bold text-[#8E0E75] mt-0.5">{app.tagline}</p>
+                        <p className="text-sm text-[#4A4A4A] leading-relaxed mt-2">{app.description}</p>
+                        <span className="inline-flex items-center gap-1.5 mt-3 text-sm font-bold text-[#8E0E75]">
+                          Abrir
+                          <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                        </span>
                       </div>
-
-                    </div>
+                    </Link>
                   );
                 })}
               </div>
 
-              {/* Si el trabajador tiene permisos reducidos, aviso positivo de limpieza visual con Mayor Amplitud */}
+              {/* Si el trabajador tiene permisos reducidos, explicar cómo pedir más */}
               {authorizedApps.length < BRAIN_UP_HUB_APPS.length && !isCoordinatorOrAdmin && (
-                <div className="p-6 sm:p-7 rounded-2xl border-2 border-[#D8CFF0] bg-white flex items-center gap-4 text-sm sm:text-base text-[#4A4A4A] shadow-xs">
-                  <Sparkles className="h-6 w-6 sm:h-7 sm:w-7 text-[#8E0E75] shrink-0" />
-                  <span className="leading-relaxed">
-                    Tu perfil está configurado en <strong className="font-extrabold text-[#191654]">Modo Limpio</strong> con {authorizedApps.length} de las {BRAIN_UP_HUB_APPS.length} herramientas totales de Brain Up. Si precisas activar herramientas adicionales, consulta con tu coordinadora de cuenta.
-                  </span>
-                </div>
+                <p className="flex items-center gap-2 text-sm text-[#4A4A4A]">
+                  <Sparkles className="h-4 w-4 text-[#8E0E75] shrink-0" />
+                  ¿Necesitas otra herramienta? Pídesela a tu coordinadora.
+                </p>
               )}
 
             </div>

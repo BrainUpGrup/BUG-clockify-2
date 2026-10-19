@@ -72,7 +72,7 @@ export function RailSidebar({
         >
           <Inbox className="h-5 w-5" />
           {pendingCount > 0 && (
-            <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-red-600 text-white text-[9px] font-black flex items-center justify-center ring-2 ring-[#191654] animate-pulse">
+            <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-red-600 text-white text-[11px] font-black flex items-center justify-center ring-2 ring-[#191654] animate-pulse">
               {pendingCount}
             </span>
           )}

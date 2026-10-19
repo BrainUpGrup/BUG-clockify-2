@@ -48,7 +48,7 @@ export function TaskListView({
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="border-b border-[#EAE4F5] bg-[#F8F6FC] text-[10px] font-extrabold uppercase tracking-wider text-[#292929]">
+            <tr className="border-b border-[#EAE4F5] bg-[#F8F6FC] text-[11px] font-extrabold uppercase tracking-wider text-[#292929]">
               <th className="py-3 px-4 w-10 text-center">Estado</th>
               <th className="py-3 px-4">Tarea / Reunión</th>
               <th className="py-3 px-4">Cliente / Empresa</th>
@@ -122,7 +122,7 @@ export function TaskListView({
                   {/* Prioridad */}
                   <td className="py-3 px-4">
                     <span
-                      className={`inline-block px-2 py-0.5 rounded-sm text-[10px] font-extrabold uppercase tracking-wider border ${
+                      className={`inline-block px-2 py-0.5 rounded-sm text-[11px] font-extrabold uppercase tracking-wider border ${
                         item.priority === 'alta'
                           ? 'bg-red-50 text-red-700 border-red-300'
                           : item.priority === 'media'
@@ -140,11 +140,11 @@ export function TaskListView({
                       {item.date ? item.date.split('-').reverse().join('/') : '-'}
                     </div>
                     {isMeeting && item.startTime ? (
-                      <div className="text-[10px] text-slate-500 font-mono">
+                      <div className="text-[11px] text-slate-500 font-mono">
                         {item.startTime} - {item.endTime || 'fin'}
                       </div>
                     ) : (
-                      <div className="text-[10px] text-slate-500 font-mono">
+                      <div className="text-[11px] text-slate-500 font-mono">
                         ~{item.estimatedHours || 1}h est.
                       </div>
                     )}
@@ -170,7 +170,7 @@ export function TaskListView({
                       <button
                         type="button"
                         onClick={() => onStartClockifyTimer(item)}
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-sm bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[10px] font-extrabold cursor-pointer shadow-2xs"
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-sm bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[11px] font-extrabold cursor-pointer shadow-2xs"
                         title="Iniciar cronómetro en Clockify para este cliente y tarea"
                       >
                         <Play className="h-2.5 w-2.5 fill-emerald-700 text-emerald-700" />
@@ -181,7 +181,7 @@ export function TaskListView({
                         href={getGoogleCalendarUrl(item)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-sm bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-[10px] font-extrabold cursor-pointer shadow-2xs"
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-sm bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-[11px] font-extrabold cursor-pointer shadow-2xs"
                         title="Añadir a Google Calendar"
                       >
                         <ExternalLink className="h-2.5 w-2.5 text-blue-600" />

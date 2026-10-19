@@ -2,18 +2,28 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { 
-  LogIn, 
-  Mail, 
-  Lock, 
-  AlertCircle
+import {
+  LogIn,
+  Mail,
+  Lock,
+  AlertCircle,
+  Briefcase,
+  User,
+  ShieldCheck,
+  ArrowRight
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 
+// El acceso rápido con cuentas demo solo se muestra en desarrollo, o si se habilita
+// explícitamente con NEXT_PUBLIC_SHOW_DEMO_LOGIN=true (p. ej. en un entorno de staging).
+const SHOW_DEMO_LOGIN =
+  process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_SHOW_DEMO_LOGIN === 'true';
+
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, logout, user, isLoading } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -91,6 +101,30 @@ export default function LoginPage() {
           </div>
         </div>
 
+        {/* Sesión ya iniciada: ofrecer continuar o cambiar de cuenta */}
+        {!isLoading && user && (
+          <div className="p-3.5 rounded-md bg-[#F8F6FC] border border-[#D8CFF0] text-sm text-[#292929] space-y-2.5">
+            <p>
+              Ya has entrado como <strong>{user.full_name}</strong> ({user.email}).
+            </p>
+            <div className="flex gap-2">
+              <Link
+                href="/hub"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#8E0E75] text-white text-sm font-bold hover:bg-[#700B5C]"
+              >
+                Ir al Hub <ArrowRight className="h-4 w-4" />
+              </Link>
+              <button
+                type="button"
+                onClick={() => logout()}
+                className="px-3 py-1.5 rounded-md border border-[#D8CFF0] text-sm font-semibold text-[#4A4A4A] hover:bg-white cursor-pointer"
+              >
+                Cambiar de cuenta
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Mensaje de Error o Estado Pendiente */}
         {errorMessage && (
           <div className="p-3.5 rounded-sm bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2.5">
@@ -145,13 +179,14 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* Acceso Rápido con Cuentas de Demostración (1 Clic) */}
+        {/* Acceso Rápido con Cuentas de Demostración (1 Clic) — solo desarrollo */}
+        {SHOW_DEMO_LOGIN && (
         <div className="pt-4 border-t border-[#D8CFF0] space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-black uppercase tracking-wider text-[#8E0E75]">
               Acceso Rápido (1 Clic)
             </span>
-            <span className="text-[10px] text-slate-400 font-extrabold uppercase">Cuentas de Prueba</span>
+            <span className="text-[11px] text-slate-400 font-extrabold uppercase">Cuentas de Prueba</span>
           </div>
 
           <div className="grid grid-cols-1 gap-2.5">
@@ -164,13 +199,13 @@ export default function LoginPage() {
             >
               <div className="flex items-center gap-3">
                 <span className="h-8 w-8 rounded-full bg-white group-hover:bg-white/20 border border-[#D8CFF0] flex items-center justify-center text-base shrink-0 shadow-2xs">
-                  👩‍💼
+                  <Briefcase className="h-4 w-4 text-[#8E0E75] group-hover:text-white" />
                 </span>
                 <div>
                   <div className="text-xs font-black uppercase leading-tight text-[#191654] group-hover:text-white">
                     Coordinadora de Operaciones
                   </div>
-                  <div className="text-[10px] text-[#8E0E75] group-hover:text-white/80 font-mono mt-0.5">
+                  <div className="text-[11px] text-[#8E0E75] group-hover:text-white/80 font-mono mt-0.5">
                     coordinacion@brainupgrup.com
                   </div>
                 </div>
@@ -189,13 +224,13 @@ export default function LoginPage() {
             >
               <div className="flex items-center gap-3">
                 <span className="h-8 w-8 rounded-full bg-white group-hover:bg-white/20 border border-[#D8CFF0] flex items-center justify-center text-base shrink-0 shadow-2xs">
-                  👨‍💻
+                  <User className="h-4 w-4 text-emerald-700 group-hover:text-white" />
                 </span>
                 <div>
                   <div className="text-xs font-black uppercase leading-tight text-[#191654] group-hover:text-white">
                     Empleado / Trabajador
                   </div>
-                  <div className="text-[10px] text-emerald-700 group-hover:text-white/80 font-mono mt-0.5">
+                  <div className="text-[11px] text-emerald-700 group-hover:text-white/80 font-mono mt-0.5">
                     empleado@brainupgrup.com
                   </div>
                 </div>
@@ -214,13 +249,13 @@ export default function LoginPage() {
             >
               <div className="flex items-center gap-3">
                 <span className="h-8 w-8 rounded-full bg-white group-hover:bg-white/20 border border-[#D8CFF0] flex items-center justify-center text-base shrink-0 shadow-2xs">
-                  👑
+                  <ShieldCheck className="h-4 w-4 text-[#191654] group-hover:text-white" />
                 </span>
                 <div>
                   <div className="text-xs font-black uppercase leading-tight text-[#191654] group-hover:text-white">
                     Super Administrador
                   </div>
-                  <div className="text-[10px] text-slate-500 group-hover:text-white/80 font-mono mt-0.5">
+                  <div className="text-[11px] text-slate-500 group-hover:text-white/80 font-mono mt-0.5">
                     appadmin@brainupgrup.com
                   </div>
                 </div>
@@ -231,6 +266,7 @@ export default function LoginPage() {
             </button>
           </div>
         </div>
+        )}
       </div>
     </div>
   );

@@ -105,8 +105,15 @@ export function Navbar() {
         setShowProfileMenu(false);
       }
     };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowProfileMenu(false);
+    };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
   }, []);
 
   const activeLink = navLinks.find((l) => l.isActive) || navLinks[0];
@@ -197,8 +204,9 @@ export function Navbar() {
           </div>
         </Link>
 
-        {/* Widget Central: Empresa Fijada y Temporizador en la Cabecera con Botones Grandes */}
-        <div className="hidden lg:flex items-center gap-3 px-3.5 py-2 rounded-lg bg-[#F8F6FC] border-2 border-[#D8CFF0] shadow-xs transition-all max-w-[480px] xl:max-w-2xl ml-3 mr-auto">
+        {/* Widget Central: Empresa Fijada y Temporizador. Se oculta en la propia pantalla de
+            imputación (que ya tiene su selector y botón) para no duplicar controles. */}
+        <div className={`${isEmployeeActive ? 'hidden' : 'hidden xl:flex'} items-center gap-2.5 px-3 py-1.5 rounded-lg bg-[#F8F6FC] border-2 border-[#D8CFF0] shadow-xs transition-all min-w-0 ml-2 mr-auto`}>
           {/* Logo / Hueco de la empresa con salto a Clockify */}
           <Link
             href="/dashboard/employee"
@@ -214,14 +222,14 @@ export function Navbar() {
               )}
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-[10px] font-bold uppercase tracking-normal text-[#8E0E75] leading-none">
-                Empresa en Curso
+              <span className="text-[11px] font-semibold text-[#8E0E75] leading-none">
+                Cliente en curso
               </span>
-              <span 
-                className="text-xs sm:text-sm font-black uppercase tracking-tight text-[#191654] truncate max-w-[120px] xl:max-w-[160px] leading-tight group-hover:text-[#8E0E75] transition-colors" 
-                title={activeCompany?.name || 'Empresa'}
+              <span
+                className="text-sm font-bold text-[#191654] truncate max-w-[110px] 2xl:max-w-[180px] leading-tight group-hover:text-[#8E0E75] transition-colors"
+                title={activeCompany?.name || 'Elegir cliente'}
               >
-                {activeCompany?.name || 'Selecciona Cliente'}
+                {activeCompany?.name || 'Elegir cliente'}
               </span>
             </div>
           </Link>
@@ -242,11 +250,6 @@ export function Navbar() {
             <span className={`font-mono tabular-nums text-sm sm:text-base font-black ${isTimerRunning ? 'text-red-600' : 'text-[#292929]'}`}>
               {formatSecondsToTimer(timerSeconds)}
             </span>
-            {isTimerRunning && (
-              <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-sm bg-red-100 text-red-700 tracking-wider animate-pulse hidden xl:inline">
-                EN MARCHA
-              </span>
-            )}
           </div>
 
           {/* Divisor vertical */}
@@ -258,22 +261,31 @@ export function Navbar() {
               <button
                 type="button"
                 onClick={() => stopTimer()}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#DC2626] hover:bg-[#B91C1C] text-white shadow-md shadow-red-500/25 transition-all hover:scale-105 active:scale-95 cursor-pointer font-black text-xs sm:text-sm uppercase tracking-wide"
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-[#DC2626] hover:bg-[#B91C1C] text-white shadow-md shadow-red-500/25 transition-all cursor-pointer font-bold text-sm"
                 title="Detener temporizador y guardar registro"
               >
                 <Square className="h-4 w-4 fill-white" />
-                <span>PARAR</span>
+                <span>Parar</span>
               </button>
-            ) : (
+            ) : activeCompanyId && activeCompany ? (
               <button
                 type="button"
                 onClick={() => startTimer(activeCompanyId)}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#10B981] hover:bg-[#059669] text-white shadow-md shadow-emerald-500/25 transition-all hover:scale-105 active:scale-95 cursor-pointer font-black text-xs sm:text-sm uppercase tracking-wide"
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-[#10B981] hover:bg-[#059669] text-white shadow-md shadow-emerald-500/25 transition-all cursor-pointer font-bold text-sm"
                 title="Iniciar temporizador en esta empresa"
               >
                 <Play className="h-4 w-4 fill-white" />
-                <span>INICIAR</span>
+                <span>Iniciar</span>
               </button>
+            ) : (
+              <Link
+                href="/dashboard/employee"
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-white border-2 border-[#D8CFF0] hover:border-[#8E0E75] text-[#8E0E75] font-bold text-sm"
+                title="Elige un cliente para poder iniciar el temporizador"
+              >
+                <Building2 className="h-4 w-4" />
+                <span>Elegir cliente</span>
+              </Link>
             )}
 
             {/* Abrir Ventana Flotante Always-on-Top */}
@@ -284,11 +296,12 @@ export function Navbar() {
                   window.dispatchEvent(new CustomEvent('bug_open_pip_window'));
                 }
               }}
-              className="px-3.5 py-2 rounded-lg bg-white hover:bg-[#8E0E75] hover:text-white text-[#8E0E75] border-2 border-[#D8CFF0] hover:border-[#8E0E75] shadow-xs transition-all cursor-pointer flex items-center gap-1.5 text-xs sm:text-sm font-bold uppercase tracking-tight hover:scale-105 active:scale-95"
-              title="Abrir ventana flotante Always-on-Top"
+              className="p-2 2xl:px-3 rounded-lg bg-white hover:bg-[#8E0E75] hover:text-white text-[#8E0E75] border-2 border-[#D8CFF0] hover:border-[#8E0E75] shadow-xs transition-all cursor-pointer flex items-center gap-1.5 text-sm font-semibold"
+              title="Abrir ventana flotante siempre visible"
+              aria-label="Abrir ventana flotante"
             >
               <ExternalLink className="h-4 w-4" />
-              <span>Flotante</span>
+              <span className="hidden 2xl:inline">Flotante</span>
             </button>
 
             {/* Activar/Fijar Widget Arrastrable dentro del Hub */}
@@ -299,8 +312,9 @@ export function Navbar() {
                   window.dispatchEvent(new CustomEvent('bug_open_floating_widget'));
                 }
               }}
-              className="p-2.5 rounded-lg bg-white hover:bg-[#F8F6FC] text-[#8E0E75] border-2 border-[#D8CFF0] hover:border-[#8E0E75] shadow-xs transition-all cursor-pointer hover:scale-105 active:scale-95"
+              className="p-2 rounded-lg bg-white hover:bg-[#F8F6FC] text-[#8E0E75] border-2 border-[#D8CFF0] hover:border-[#8E0E75] shadow-xs transition-all cursor-pointer"
               title="Fijar widget arrastrable en pantalla"
+              aria-label="Fijar widget del temporizador"
             >
               <Pin className="h-4 w-4 text-[#8E0E75]" />
             </button>
@@ -311,7 +325,8 @@ export function Navbar() {
         <nav 
           ref={desktopNavRef}
           onMouseLeave={() => setHoveredHref(null)}
-          className="hidden md:flex items-center gap-1.5 bg-[#F8F6FC] p-2 rounded-xl border-2 border-[#D8CFF0] shrink-0 ml-auto mr-3 sm:mr-5 shadow-xs relative select-none"
+          aria-label="Aplicaciones"
+          className="hidden md:flex items-center gap-1 bg-[#F8F6FC] p-1.5 rounded-xl border-2 border-[#D8CFF0] shrink-0 ml-auto shadow-xs relative select-none"
         >
           {/* Pastilla morada que se desliza suavemente */}
           <div
@@ -338,26 +353,31 @@ export function Navbar() {
                 data-nav-href={link.href}
                 onClick={() => setHoveredHref(null)}
                 onMouseEnter={() => setHoveredHref(link.href)}
-                className={`relative z-10 whitespace-nowrap flex items-center gap-2.5 px-4.5 sm:px-5 py-2.5 rounded-lg text-xs sm:text-[14px] uppercase tracking-tight transition-colors duration-200 cursor-pointer ${
+                aria-current={link.isActive ? 'page' : undefined}
+                title={link.label}
+                className={`relative z-10 whitespace-nowrap flex items-center gap-2 px-3 lg:px-3.5 py-2 rounded-lg text-sm transition-colors duration-200 cursor-pointer ${
                   isTargeted
-                    ? 'text-white font-extrabold'
+                    ? 'text-white font-bold'
                     : 'text-[#4A4A4A] font-semibold hover:text-[#8E0E75]'
                 }`}
               >
-                <Icon className={`h-4.5 w-4.5 shrink-0 transition-transform duration-200 ${isTargeted ? 'text-white scale-110' : 'text-[#8E0E75]'}`} />
-                <span>{link.label}</span>
+                <Icon className={`h-4.5 w-4.5 shrink-0 transition-transform duration-200 ${isTargeted ? 'text-white' : 'text-[#8E0E75]'}`} />
+                <span className="hidden lg:inline">{link.label}</span>
               </Link>
             );
           })}
         </nav>
 
         {/* Perfil del Usuario Compacto & Reformulado (No satura el layout) */}
-        <div ref={profileMenuRef} className="relative flex items-center gap-2 shrink-0">
+        <div ref={profileMenuRef} className="relative flex items-center gap-2 shrink-0 ml-2">
           <button
             type="button"
             onClick={() => setShowProfileMenu(!showProfileMenu)}
+            aria-haspopup="menu"
+            aria-expanded={showProfileMenu}
+            aria-label={`Menú de ${user?.full_name || 'usuario'}: perfil y cerrar sesión`}
             className="flex items-center gap-2 p-1.5 rounded-full hover:bg-[#F8F6FC] border-2 border-transparent hover:border-[#D8CFF0] transition-all cursor-pointer group"
-            title={`Perfil: ${user?.full_name || 'Usuario'} (Haz clic para detalles)`}
+            title={`${user?.full_name || 'Usuario'} · Perfil y cerrar sesión`}
           >
             <div className="relative">
               <div className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-full bg-gradient-to-tr from-[#191654] via-[#700B5C] to-[#8E0E75] text-white font-black text-xs sm:text-sm shadow-sm group-hover:scale-105 transition-transform ring-2 ring-[#8E0E75]/25">
@@ -366,16 +386,6 @@ export function Navbar() {
               <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-white" />
             </div>
             <ChevronDown className={`h-4 w-4 text-[#4A4A4A] group-hover:text-[#8E0E75] transition-transform ${showProfileMenu ? 'rotate-180' : ''}`} />
-          </button>
-
-          {/* Botón Directo de Cerrar Sesión */}
-          <button
-            type="button"
-            onClick={handleLogoutClick}
-            className="p-2.5 rounded-lg border-2 border-[#D8CFF0] bg-[#F8F6FC] text-[#4A4A4A] hover:bg-white hover:text-red-600 hover:border-red-300 shadow-2xs transition-all cursor-pointer hover:scale-105 active:scale-95"
-            title="Cerrar sesión"
-          >
-            <LogOut className="h-4.5 w-4.5" />
           </button>
 
           {/* Menú Desplegable Compacto del Perfil */}
@@ -392,7 +402,7 @@ export function Navbar() {
                   <p className="text-xs text-[#4A4A4A] truncate font-medium">
                     {user?.email || 'usuario@brainupgrup.com'}
                   </p>
-                  <span className="inline-block mt-1 text-[10px] font-black uppercase tracking-wider text-[#8E0E75] bg-[#F8F6FC] px-2 py-0.5 rounded-md border border-[#D8CFF0]">
+                  <span className="inline-block mt-1 text-[11px] font-black uppercase tracking-wider text-[#8E0E75] bg-[#F8F6FC] px-2 py-0.5 rounded-md border border-[#D8CFF0]">
                     {isAdmin ? 'Super Administrador' : isCoordinator ? 'Coordinadora & Empleada' : 'Empleado / Trabajador'}
                   </span>
                 </div>
@@ -442,14 +452,16 @@ export function Navbar() {
               key={link.href}
               href={link.href}
               data-nav-href={link.href}
-              className={`relative z-10 whitespace-nowrap flex items-center gap-1.5 px-3.5 py-2 rounded-md text-xs font-extrabold uppercase tracking-tight transition-colors duration-200 ${
+              aria-label={link.label}
+              aria-current={isCurrentActive ? 'page' : undefined}
+              className={`relative z-10 whitespace-nowrap flex items-center gap-1.5 px-3.5 py-2 rounded-md text-sm font-semibold transition-colors duration-200 ${
                 isCurrentActive
                   ? 'text-white'
                   : 'text-[#4A4A4A]'
               }`}
             >
               <Icon className={`h-4 w-4 ${isCurrentActive ? 'text-white' : 'text-[#8E0E75]'}`} />
-              <span>{link.label}</span>
+              <span className="hidden sm:inline">{link.label}</span>
             </Link>
           );
         })}

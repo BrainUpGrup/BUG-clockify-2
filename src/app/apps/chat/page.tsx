@@ -16,6 +16,7 @@ import { ChatView } from '@/components/chat/chat-view';
 import { CreateChannelModal } from '@/components/chat/create-channel-modal';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
 import { canUserAccessHubApp } from '@/lib/hub-apps';
+import { flagAccessDenied } from '@/lib/feedback';
 
 function BrainUpChatContent() {
   const router = useRouter();
@@ -58,6 +59,7 @@ function BrainUpChatContent() {
       if (!user) {
         router.replace('/login');
       } else if (user.role === 'employee' && !canUserAccessHubApp(user, 'chat')) {
+        flagAccessDenied('No tienes acceso a Chat. Pídeselo a tu coordinadora.');
         router.replace('/hub');
       }
     }

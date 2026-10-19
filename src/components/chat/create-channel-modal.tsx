@@ -101,7 +101,7 @@ export function CreateChannelModal({
           
           {type === 'client' && (
             <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase tracking-wider text-[#8E0E75]">
+              <label className="text-[11px] font-black uppercase tracking-wider text-[#8E0E75]">
                 Empresa / Cliente Asociado *
               </label>
               <select
@@ -124,7 +124,7 @@ export function CreateChannelModal({
 
           {type === 'dm' && (
             <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase tracking-wider text-[#8E0E75]">
+              <label className="text-[11px] font-black uppercase tracking-wider text-[#8E0E75]">
                 Selecciona Compañero de Equipo *
               </label>
               <select
@@ -143,7 +143,7 @@ export function CreateChannelModal({
 
           {type !== 'dm' && (
             <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase tracking-wider text-[#8E0E75]">
+              <label className="text-[11px] font-black uppercase tracking-wider text-[#8E0E75]">
                 Nombre del Canal (sin espacios) *
               </label>
               <div className="relative">
@@ -162,7 +162,7 @@ export function CreateChannelModal({
 
           {type !== 'dm' && (
             <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase tracking-wider text-[#4A4A4A]">
+              <label className="text-[11px] font-black uppercase tracking-wider text-[#4A4A4A]">
                 Propósito o Descripción Breve
               </label>
               <input

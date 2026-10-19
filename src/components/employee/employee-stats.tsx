@@ -113,7 +113,7 @@ export function EmployeeStats({ entries, selectedCompany }: EmployeeStatsProps) 
               PLANO 1: HORAS DE TRABAJO GENERALES <span className="text-[#8E0E75]">(JORNADA GLOBAL)</span>
             </h3>
           </div>
-          <span className="text-[10px] sm:text-[11px] font-bold text-[#4A4A4A] uppercase tracking-wider bg-[#F8F6FC] px-2 py-0.5 rounded-sm border border-[#D8CFF0]">
+          <span className="text-[11px] sm:text-[11px] font-bold text-[#4A4A4A] uppercase tracking-wider bg-[#F8F6FC] px-2 py-0.5 rounded-sm border border-[#D8CFF0]">
             Suma de todas las empresas
           </span>
         </div>
@@ -227,7 +227,7 @@ export function EmployeeStats({ entries, selectedCompany }: EmployeeStatsProps) 
               PLANO 2: DEDICACIÓN EN <span className="text-[#191654]">"{selectedCompany?.name || 'EMPRESA SELECCIONADA'}"</span>
             </h3>
           </div>
-          <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-extrabold text-[#8E0E75] uppercase tracking-wider bg-[#F8F6FC] px-2.5 py-0.5 rounded-sm border border-[#8E0E75]/30">
+          <span className="inline-flex items-center gap-1 text-[11px] sm:text-[11px] font-extrabold text-[#8E0E75] uppercase tracking-wider bg-[#F8F6FC] px-2.5 py-0.5 rounded-sm border border-[#8E0E75]/30">
             <Sparkles className="h-3 w-3" />
             Reactivas al cambiar de empresa
           </span>

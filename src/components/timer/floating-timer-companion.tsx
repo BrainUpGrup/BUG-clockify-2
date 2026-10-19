@@ -443,7 +443,7 @@ export function FloatingTimerCompanion() {
               <div className="flex items-center gap-1.5 max-w-[110px] min-w-0 pr-1">
                 <Building2 className="h-3 w-3 text-[#8E0E75] shrink-0" />
                 <span 
-                  className="text-[10px] font-black uppercase text-[#191654] truncate leading-tight"
+                  className="text-[11px] font-black uppercase text-[#191654] truncate leading-tight"
                   title={activeCompany?.name || 'Cliente'}
                 >
                   {activeCompany?.name || 'Cliente'}
@@ -474,7 +474,7 @@ export function FloatingTimerCompanion() {
                   <button
                     type="button"
                     onClick={() => stopTimer()}
-                    className="px-2 py-1 rounded-md bg-[#DC2626] hover:bg-[#B91C1C] text-white text-[9.5px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm shadow-red-500/20 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                    className="px-2 py-1 rounded-md bg-[#DC2626] hover:bg-[#B91C1C] text-white text-[11px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm shadow-red-500/20 transition-all hover:scale-105 active:scale-95 cursor-pointer"
                     title="Parar temporizador"
                   >
                     <Square className="h-2.5 w-2.5 fill-white" />
@@ -484,7 +484,7 @@ export function FloatingTimerCompanion() {
                   <button
                     type="button"
                     onClick={() => startTimer(activeCompanyId)}
-                    className="px-2 py-1 rounded-md bg-[#10B981] hover:bg-[#059669] text-white text-[9.5px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm shadow-emerald-500/20 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                    className="px-2 py-1 rounded-md bg-[#10B981] hover:bg-[#059669] text-white text-[11px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm shadow-emerald-500/20 transition-all hover:scale-105 active:scale-95 cursor-pointer"
                     title="Iniciar temporizador"
                   >
                     <Play className="h-2.5 w-2.5 fill-white" />
@@ -528,10 +528,10 @@ export function FloatingTimerCompanion() {
                   >
                     <GripVertical className="h-3.5 w-3.5" />
                   </div>
-                  <span className="text-[10px] font-black uppercase tracking-wider text-[#191654]">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-[#191654]">
                     Temporizador Flotante
                   </span>
-                  <span className="text-[8px] font-bold text-slate-400 font-mono">
+                  <span className="text-[11px] font-bold text-slate-400 font-mono">
                     (Fijado)
                   </span>
                 </div>
@@ -541,7 +541,7 @@ export function FloatingTimerCompanion() {
                   <button
                     type="button"
                     onClick={() => handleSetCollapsed(true)}
-                    className="px-1.5 py-0.5 rounded-md bg-[#F8F6FC] hover:bg-[#8E0E75] hover:text-white text-[#8E0E75] border border-[#D8CFF0] text-[9px] font-black uppercase tracking-wider flex items-center gap-1 transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-2xs"
+                    className="px-1.5 py-0.5 rounded-md bg-[#F8F6FC] hover:bg-[#8E0E75] hover:text-white text-[#8E0E75] border border-[#D8CFF0] text-[11px] font-black uppercase tracking-wider flex items-center gap-1 transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-2xs"
                     title="Minimizar a modo súper reducido que no moleste en pantalla"
                   >
                     <Minimize2 className="h-2.5 w-2.5" />
@@ -575,7 +575,7 @@ export function FloatingTimerCompanion() {
                     <Building2 className="h-3.5 w-3.5" />
                   </div>
                   <div className="flex flex-col min-w-0">
-                    <span className="text-[7.5px] font-black uppercase text-[#8E0E75] leading-none">
+                    <span className="text-[11px] font-black uppercase text-[#8E0E75] leading-none">
                       Empresa en Curso
                     </span>
                     <span className="text-[11.5px] font-black uppercase text-[#191654] truncate leading-tight mt-0.5">

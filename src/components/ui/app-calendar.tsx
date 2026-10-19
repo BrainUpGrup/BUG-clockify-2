@@ -184,7 +184,7 @@ export function AppCalendar({
           {/* Días de la semana (Lu, Ma, Mi...) */}
           <div className="grid grid-cols-7 gap-1 pt-3 pb-1 text-center">
             {WEEK_DAYS.map((wd) => (
-              <span key={wd} className="text-[10px] font-bold text-[#8E0E75] uppercase">
+              <span key={wd} className="text-[11px] font-bold text-[#8E0E75] uppercase">
                 {wd}
               </span>
             ))}
@@ -235,14 +235,14 @@ export function AppCalendar({
             <button
               type="button"
               onClick={() => setQuickDate(0)}
-              className="px-3 py-1 rounded-sm border border-[#8E0E75] bg-white text-[#8E0E75] hover:bg-[#8E0E75] hover:text-white font-bold text-[10px] uppercase tracking-wider transition-all cursor-pointer"
+              className="px-3 py-1 rounded-sm border border-[#8E0E75] bg-white text-[#8E0E75] hover:bg-[#8E0E75] hover:text-white font-bold text-[11px] uppercase tracking-wider transition-all cursor-pointer"
             >
               Hoy
             </button>
             <button
               type="button"
               onClick={() => setQuickDate(1)}
-              className="px-3 py-1 rounded-sm border border-[#8E0E75] bg-white text-[#8E0E75] hover:bg-[#8E0E75] hover:text-white font-bold text-[10px] uppercase tracking-wider transition-all cursor-pointer"
+              className="px-3 py-1 rounded-sm border border-[#8E0E75] bg-white text-[#8E0E75] hover:bg-[#8E0E75] hover:text-white font-bold text-[11px] uppercase tracking-wider transition-all cursor-pointer"
             >
               Ayer
             </button>

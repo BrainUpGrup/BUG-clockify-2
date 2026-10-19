@@ -155,7 +155,7 @@ export function LayerColorCustomizer() {
                     <span className="text-xs font-extrabold text-[#292929]">{preset.name}</span>
                     {isSelected && <span className="h-2 w-2 rounded-full bg-[#8E0E75]" />}
                   </div>
-                  <p className="text-[10px] text-[#4A4A4A] line-clamp-1 mb-2 font-light">
+                  <p className="text-[11px] text-[#4A4A4A] line-clamp-1 mb-2 font-light">
                     {preset.description}
                   </p>
                   <div className="flex items-center gap-1">
@@ -198,7 +198,7 @@ export function LayerColorCustomizer() {
                   >
                     <div>
                       <span className="text-xs block font-bold">{def.name}</span>
-                      <span className={`text-[10px] block mt-0.5 ${isCurrent ? 'text-white/80' : 'text-[#4A4A4A]'}`}>
+                      <span className={`text-[11px] block mt-0.5 ${isCurrent ? 'text-white/80' : 'text-[#4A4A4A]'}`}>
                         {layers[def.key]}
                       </span>
                     </div>
@@ -246,7 +246,7 @@ export function LayerColorCustomizer() {
                   <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#292929] block">
                     Ruleta de Color
                   </span>
-                  <span className="text-[10px] text-[#4A4A4A]">Haz clic en la muestra para seleccionar visualmente</span>
+                  <span className="text-[11px] text-[#4A4A4A]">Haz clic en la muestra para seleccionar visualmente</span>
                 </div>
               </div>
 
@@ -357,7 +357,7 @@ export function LayerColorCustomizer() {
               >
                 <div className="flex items-center gap-2">
                   <div
-                    className="h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+                    className="h-5 w-5 rounded-full flex items-center justify-center text-[11px] font-bold text-white"
                     style={{ backgroundColor: layers.accent }}
                   >
                     BU
@@ -371,7 +371,7 @@ export function LayerColorCustomizer() {
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span
-                    className="px-2 py-0.5 rounded-xs text-[9px] font-extrabold uppercase text-white shadow-xs"
+                    className="px-2 py-0.5 rounded-xs text-[11px] font-extrabold uppercase text-white shadow-xs"
                     style={{ backgroundColor: layers.accent }}
                   >
                     Activo
@@ -387,7 +387,7 @@ export function LayerColorCustomizer() {
                   style={{ backgroundColor: layers.card1 }}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                       Capa 3 (Bloque 1)
                     </span>
                     <span className="h-2 w-2 rounded-full" style={{ backgroundColor: layers.accent }} />
@@ -405,7 +405,7 @@ export function LayerColorCustomizer() {
                   style={{ backgroundColor: layers.card1 }}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                       Capa 3 (Bloque 1)
                     </span>
                     <span className="h-2 w-2 rounded-full bg-emerald-500" />
@@ -425,22 +425,22 @@ export function LayerColorCustomizer() {
                 style={{ backgroundColor: layers.card2 }}
               >
                 <div className="flex items-center justify-between pb-1.5 border-b border-black/5">
-                  <span className="text-[10px] font-extrabold uppercase tracking-tight" style={{ color: layers.text }}>
+                  <span className="text-[11px] font-extrabold uppercase tracking-tight" style={{ color: layers.text }}>
                     Capa 4: Bloque 2 (Listado y Tablas)
                   </span>
                   <span
-                    className="text-[9px] font-mono px-1.5 py-0.5 rounded-xs font-bold text-white"
+                    className="text-[11px] font-mono px-1.5 py-0.5 rounded-xs font-bold text-white"
                     style={{ backgroundColor: layers.accent }}
                   >
                     Lila Abuela
                   </span>
                 </div>
                 <div className="space-y-1">
-                  <div className="flex items-center justify-between text-[10px] p-1 rounded-xs bg-black/5">
+                  <div className="flex items-center justify-between text-[11px] p-1 rounded-xs bg-black/5">
                     <span style={{ color: layers.text }}>Registro de horas cliente A</span>
                     <span className="font-bold text-emerald-600">Al milímetro</span>
                   </div>
-                  <div className="flex items-center justify-between text-[10px] p-1 rounded-xs bg-black/5">
+                  <div className="flex items-center justify-between text-[11px] p-1 rounded-xs bg-black/5">
                     <span style={{ color: layers.text }}>Proyecto nueva campaña B</span>
                     <span className="font-bold text-amber-600">En proceso</span>
                   </div>
@@ -448,7 +448,7 @@ export function LayerColorCustomizer() {
               </div>
 
               <div className="text-center pt-1">
-                <span className="text-[9px] uppercase tracking-wider font-bold text-slate-400">
+                <span className="text-[11px] uppercase tracking-wider font-bold text-slate-400">
                   Fondo del simulador: Capa 1 ({layers.bg})
                 </span>
               </div>
@@ -456,7 +456,7 @@ export function LayerColorCustomizer() {
 
             <div className="mt-3 p-2.5 rounded-sm bg-[#F8F6FC] border border-[#D8CFF0] text-[11px] text-[#4A4A4A] space-y-1">
               <span className="font-bold text-[#292929] block">Guía de Capas para la Agencia:</span>
-              <ul className="list-disc list-inside space-y-0.5 text-[10px]">
+              <ul className="list-disc list-inside space-y-0.5 text-[11px]">
                 <li><strong>Capa 1:</strong> El fondo general del Hub y de las páginas.</li>
                 <li><strong>Capa 2:</strong> Cabecera, barra superior y selector de herramientas.</li>
                 <li><strong>Capa 3:</strong> Tarjetas principales de aplicaciones y métricas.</li>

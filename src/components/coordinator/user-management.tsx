@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Profile, TimeEntry, UserRole } from '@/types/database';
 import { formatMinutes } from '@/lib/utils';
+import { confirmDialog } from '@/lib/feedback';
 
 interface UserManagementProps {
   employees: Profile[];
@@ -65,7 +66,13 @@ export function UserManagement({
   };
 
   const handleReject = async (id: string) => {
-    if (!confirm('¿Rechazar y descartar esta solicitud de registro?')) return;
+    const ok = await confirmDialog({
+      title: '¿Rechazar esta solicitud de registro?',
+      message: 'La persona no podrá entrar en la plataforma hasta que vuelva a solicitar acceso.',
+      confirmLabel: 'Rechazar',
+      danger: true,
+    });
+    if (!ok) return;
     setProcessingId(id);
     try {
       await onRejectUser(id);
@@ -137,7 +144,7 @@ export function UserManagement({
               value={registerUrl}
               className="w-full px-4 py-2.5 pr-20 rounded-sm border border-[#D8CFF0] bg-[#F8F6FC] text-xs font-mono text-[#8E0E75] select-all outline-none"
             />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] uppercase font-bold text-[#4A4A4A] tracking-wider pointer-events-none">
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] uppercase font-bold text-[#4A4A4A] tracking-wider pointer-events-none">
               Link Oficial
             </span>
           </div>
@@ -287,7 +294,7 @@ export function UserManagement({
                         <div>
                           <span className="text-sm block">{emp.full_name}</span>
                           {emp.department && (
-                            <span className="text-[10px] text-[#4A4A4A] font-light block">
+                            <span className="text-[11px] text-[#4A4A4A] font-light block">
                               {emp.department}
                             </span>
                           )}
@@ -302,7 +309,7 @@ export function UserManagement({
                     </td>
                     <td className="px-6 py-3.5 text-center">
                       <span
-                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-sm text-[10px] font-extrabold uppercase tracking-wider border ${
+                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-sm text-[11px] font-extrabold uppercase tracking-wider border ${
                           emp.role === 'coordinator'
                             ? 'bg-[#8E0E75]/10 text-[#8E0E75] border-[#8E0E75]/30'
                             : 'bg-slate-100 text-[#4A4A4A] border-slate-200'
@@ -320,12 +327,12 @@ export function UserManagement({
                     </td>
                     <td className="px-6 py-3.5 text-center font-mono tabular-nums font-extrabold text-sm text-[#8E0E75]">
                       {formatMinutes(totalMinutes)}
-                      <span className="block text-[10px] text-[#4A4A4A] font-normal tabular-nums">
+                      <span className="block text-[11px] text-[#4A4A4A] font-normal tabular-nums">
                         {empEntries.length} tareas
                       </span>
                     </td>
                     <td className="px-6 py-3.5 text-center">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-sm bg-[#3BB54A]/10 text-[#3BB54A] border border-[#3BB54A]/30 text-[10px] font-extrabold uppercase tracking-wider">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-sm bg-[#3BB54A]/10 text-[#3BB54A] border border-[#3BB54A]/30 text-[11px] font-extrabold uppercase tracking-wider">
                         Activo
                       </span>
                     </td>
@@ -334,11 +341,16 @@ export function UserManagement({
                         {emp.role !== 'coordinator' && (
                           <button
                             type="button"
-                            onClick={() => {
-                              if (confirm(`¿Dar de baja a ${emp.full_name}?`)) {
-                                onDeleteUser(emp.id);
-                              }
+                            onClick={async () => {
+                              const ok = await confirmDialog({
+                                title: `¿Dar de baja a ${emp.full_name}?`,
+                                message: 'Perderá el acceso a todas las herramientas del Hub.',
+                                confirmLabel: 'Dar de baja',
+                                danger: true,
+                              });
+                              if (ok) onDeleteUser(emp.id);
                             }}
+                            aria-label={`Dar de baja a ${emp.full_name}`}
                             className="p-1.5 rounded-sm border border-rose-200 bg-white text-rose-500 hover:bg-rose-50 transition-colors cursor-pointer"
                             title="Dar de baja usuario"
                           >

@@ -6,6 +6,7 @@ import { MonthlyReports } from '@/components/coordinator/monthly-reports';
 import { CompanyCrud } from '@/components/coordinator/company-crud';
 import { UserManagement } from '@/components/coordinator/user-management';
 import { useAuth } from '@/context/auth-context';
+import { notify, flagAccessDenied } from '@/lib/feedback';
 import { createClient } from '@/lib/supabase/client';
 import { 
   MOCK_COMPANIES, 
@@ -30,7 +31,7 @@ export default function CoordinatorDashboardPage() {
   
   const [activeTab, setActiveTab] = useState<'reports' | 'companies' | 'users' | 'permissions' | 'customizer'>('reports');
   const tabsContainerRef = useRef<HTMLDivElement>(null);
-  const [pillStyle, setPillStyle] = useState<{ left: number; width: number; opacity: number }>({ left: 0, width: 0, opacity: 0 });
+  const [pillStyle, setPillStyle] = useState<{ left: number; top: number; width: number; height: number; opacity: number }>({ left: 0, top: 0, width: 0, height: 0, opacity: 0 });
   const [hoveredTab, setHoveredTab] = useState<string | null>(null);
 
   const targetTab = hoveredTab || activeTab;
@@ -40,9 +41,12 @@ export default function CoordinatorDashboardPage() {
       if (!tabsContainerRef.current) return;
       const targetEl = tabsContainerRef.current.querySelector(`[data-tab-id="${targetTab}"]`) as HTMLElement;
       if (targetEl) {
+        // top/height para que la pastilla siga a la pestaña aunque la barra salte de línea
         setPillStyle({
           left: targetEl.offsetLeft,
+          top: targetEl.offsetTop,
           width: targetEl.offsetWidth,
+          height: targetEl.offsetHeight,
           opacity: 1,
         });
       }
@@ -50,7 +54,8 @@ export default function CoordinatorDashboardPage() {
     updatePill();
     window.addEventListener('resize', updatePill);
     return () => window.removeEventListener('resize', updatePill);
-  }, [targetTab, activeTab]);
+    // user/authLoading: la barra no existe durante la pantalla de carga; hay que medir al aparecer
+  }, [targetTab, activeTab, user, authLoading]);
 
   const [companies, setCompanies] = useState<Company[]>([]);
   const [employees, setEmployees] = useState<Profile[]>([]);
@@ -65,6 +70,7 @@ export default function CoordinatorDashboardPage() {
       } else if (user.role === 'admin') {
         router.replace('/dashboard/admin');
       } else if (user.role !== 'coordinator') {
+        flagAccessDenied('El panel de Coordinación es solo para coordinadoras. Te hemos llevado a tu registro de horas.');
         router.replace('/dashboard/employee');
       }
     }
@@ -289,7 +295,7 @@ export default function CoordinatorDashboardPage() {
   const handleDeleteCompany = async (id: string) => {
     const hasEntries = allEntries.some((e) => e.company_id === id);
     if (hasEntries) {
-      alert('No se puede eliminar una empresa que tiene horas imputadas. Puedes archivarla en su lugar.');
+      notify('No se puede eliminar una empresa que tiene horas imputadas. Puedes archivarla en su lugar.', { type: 'warning', duration: 6000 });
       return;
     }
 
@@ -324,11 +330,11 @@ export default function CoordinatorDashboardPage() {
         {/* Cabecera del Panel Líquida con Identidad Brain Up */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-[#EAE4F5]">
           <div>
-            <h1 className="text-xl sm:text-2xl font-extrabold uppercase tracking-tight text-[#292929] flex items-center gap-2.5">
+            <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#292929] flex items-center gap-2.5">
               <BarChart3 className="h-6 w-6 text-[#8E0E75] shrink-0" />
-              <span>PANEL GLOBAL <span className="text-[#8E0E75]">DE COORDINACIÓN</span></span>
+              <span>Panel de <span className="text-[#8E0E75]">Coordinación</span></span>
             </h1>
-            <p className="text-xs text-[#4A4A4A] font-light mt-0.5">
+            <p className="text-sm text-[#4A4A4A] mt-0.5">
               Control de cuotas al milímetro, estadísticas profesionales, gestión de clientes y altas de usuarios
             </p>
           </div>
@@ -337,7 +343,7 @@ export default function CoordinatorDashboardPage() {
           <div 
             ref={tabsContainerRef}
             onMouseLeave={() => setHoveredTab(null)}
-            className="relative flex flex-wrap items-center rounded-lg bg-[#F8F6FC] p-1.5 border-2 border-[#D8CFF0] text-xs font-bold shrink-0 gap-1.5 shadow-2xs select-none"
+            className="relative flex flex-wrap items-center rounded-lg bg-[#F8F6FC] p-1.5 border-2 border-[#D8CFF0] text-xs font-bold min-w-0 gap-1.5 shadow-2xs select-none"
           >
             {/* Pastilla morada que se desliza con física fluida */}
             <div
@@ -345,8 +351,8 @@ export default function CoordinatorDashboardPage() {
               style={{
                 left: `${pillStyle.left}px`,
                 width: `${pillStyle.width}px`,
-                top: '6px',
-                bottom: '6px',
+                top: `${pillStyle.top}px`,
+                height: `${pillStyle.height}px`,
                 opacity: pillStyle.opacity,
               }}
             />

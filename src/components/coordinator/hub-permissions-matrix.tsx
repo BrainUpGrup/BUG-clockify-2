@@ -20,6 +20,7 @@ import {
   MessageSquare
 } from 'lucide-react';
 import { Profile } from '@/types/database';
+import { notify } from '@/lib/feedback';
 import { 
   BRAIN_UP_HUB_APPS, 
   HubApp, 
@@ -83,7 +84,7 @@ export function HubPermissionsMatrix({ employees }: HubPermissionsMatrixProps) {
 
     // No permitir dejar al usuario con 0 aplicaciones (mínimo 1)
     if (updated.length === 0) {
-      alert('Cada trabajador debe tener al menos una aplicación asignada en el Hub.');
+      notify('Cada trabajador debe tener al menos una aplicación asignada en el Hub.', { type: 'warning' });
       return;
     }
 
@@ -207,7 +208,7 @@ export function HubPermissionsMatrix({ employees }: HubPermissionsMatrixProps) {
                       <span className="font-extrabold text-[#292929] leading-tight block truncate max-w-[120px]">
                         {app.name.replace('Brain Up ', '')}
                       </span>
-                      <span className="text-[9px] font-bold text-slate-400 capitalize">
+                      <span className="text-[11px] font-bold text-slate-400 capitalize">
                         {app.badge}
                       </span>
                     </div>
@@ -259,7 +260,7 @@ export function HubPermissionsMatrix({ employees }: HubPermissionsMatrixProps) {
                             <span className="font-bold text-[#292929] block truncate">
                               {emp.full_name}
                             </span>
-                            <span className="text-[10px] text-[#4A4A4A] block truncate font-mono">
+                            <span className="text-[11px] text-[#4A4A4A] block truncate font-mono">
                               {emp.department || 'Operaciones'} • {emp.role === 'coordinator' ? 'Coordinador' : 'Empleado'}
                             </span>
                           </div>
@@ -269,7 +270,7 @@ export function HubPermissionsMatrix({ employees }: HubPermissionsMatrixProps) {
                       {/* Columna 2: Contador de Herramientas */}
                       <td className="py-3.5 px-3 text-center border-r border-[#EAE4F5]">
                         <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[10px] font-extrabold uppercase tracking-wider border ${
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-extrabold uppercase tracking-wider border ${
                             allowedApps.length === BRAIN_UP_HUB_APPS.length
                               ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
                               : allowedApps.length >= 3
@@ -309,7 +310,7 @@ export function HubPermissionsMatrix({ employees }: HubPermissionsMatrixProps) {
                           <button
                             type="button"
                             onClick={() => handleSelectAll(emp.id)}
-                            className="px-2 py-1 rounded-sm border border-[#D8CFF0] bg-[#F8F6FC] hover:bg-white text-[10px] font-bold text-[#8E0E75] uppercase tracking-wider transition-colors cursor-pointer"
+                            className="px-2 py-1 rounded-sm border border-[#D8CFF0] bg-[#F8F6FC] hover:bg-white text-[11px] font-bold text-[#8E0E75] uppercase tracking-wider transition-colors cursor-pointer"
                             title={`Dar acceso a las ${BRAIN_UP_HUB_APPS.length} herramientas`}
                           >
                             Todas ({BRAIN_UP_HUB_APPS.length})
@@ -317,7 +318,7 @@ export function HubPermissionsMatrix({ employees }: HubPermissionsMatrixProps) {
                           <button
                             type="button"
                             onClick={() => handleSelectBasicOnly(emp.id)}
-                            className="px-2 py-1 rounded-sm border border-[#D8CFF0] bg-white hover:bg-[#F8F6FC] text-[10px] font-bold text-[#4A4A4A] uppercase tracking-wider transition-colors cursor-pointer"
+                            className="px-2 py-1 rounded-sm border border-[#D8CFF0] bg-white hover:bg-[#F8F6FC] text-[11px] font-bold text-[#4A4A4A] uppercase tracking-wider transition-colors cursor-pointer"
                             title={`Asignar solo las básicas (${DEFAULT_EMPLOYEE_APPS.join(', ')})`}
                           >
                             Básicas ({DEFAULT_EMPLOYEE_APPS.length})

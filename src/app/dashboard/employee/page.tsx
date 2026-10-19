@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { CompanyHeroBanner } from '@/components/employee/company-hero-banner';
 import { TimeTrackerBar } from '@/components/employee/time-tracker-bar';
 import { EmployeeStats } from '@/components/employee/employee-stats';
@@ -12,6 +13,8 @@ import { MOCK_COMPANIES, MOCK_TIME_ENTRIES } from '@/lib/mock-data';
 import { Company, TimeEntry } from '@/types/database';
 import { Clock, ShieldCheck } from 'lucide-react';
 import { useTimer } from '@/context/timer-context';
+import { notify, friendlyError, removeWithUndo } from '@/lib/feedback';
+import { formatMinutes } from '@/lib/utils';
 
 export default function EmployeeDashboardPage() {
   const router = useRouter();
@@ -162,7 +165,8 @@ export default function EmployeeDashboardPage() {
         .single();
 
       if (error) {
-        alert('Error al guardar el registro en Supabase: ' + error.message);
+        console.error(error);
+        notify(friendlyError('guardar el registro'), { type: 'error' });
         return;
       }
       if (data) {
@@ -197,7 +201,8 @@ export default function EmployeeDashboardPage() {
         .eq('id', id);
 
       if (error) {
-        alert('Error actualizando registro: ' + error.message);
+        console.error(error);
+        notify(friendlyError('actualizar el registro'), { type: 'error' });
         return;
       }
     }
@@ -218,8 +223,11 @@ export default function EmployeeDashboardPage() {
     );
   };
 
-  // Handler para eliminar registro horario (solicitado: papelera a la derecha)
+  // Handler para eliminar registro horario: se borra al instante y se ofrece "Deshacer"
   const handleDeleteEntry = async (id: string) => {
+    const removed = entries.find((entry) => entry.id === id);
+    if (!removed) return;
+
     if (isSupabaseConnected) {
       const supabase = createClient();
       const { error } = await supabase
@@ -228,12 +236,20 @@ export default function EmployeeDashboardPage() {
         .eq('id', id);
 
       if (error) {
-        alert('Error eliminando registro: ' + error.message);
+        console.error(error);
+        notify(friendlyError('eliminar el registro'), { type: 'error' });
         return;
       }
     }
 
-    setEntries((prev) => prev.filter((entry) => entry.id !== id));
+    removeWithUndo(
+      `Registro eliminado (${removed.company?.name || 'Cliente'} · ${formatMinutes(removed.duration_minutes)})`,
+      () => setEntries((prev) => prev.filter((entry) => entry.id !== id)),
+      () => {
+        const { company_id, work_date, start_time, end_time, duration_minutes, description, compute_type } = removed;
+        handleAddEntry({ company_id, work_date, start_time, end_time, duration_minutes, description, compute_type });
+      }
+    );
   };
 
   if (authLoading || !user) {
@@ -257,21 +273,26 @@ export default function EmployeeDashboardPage() {
         {/* Cabecera Ampliada: HORAS POR CLIENTE */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b-2 border-[#EAE4F5] gap-3">
           <div>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black uppercase tracking-tight text-[#292929] flex items-center gap-3">
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#292929] flex items-center gap-3">
               <Clock className="h-7 w-7 sm:h-8 sm:w-8 text-[#8E0E75] shrink-0" />
-              <span>HORAS POR <span className="text-[#8E0E75]">CLIENTE</span></span>
+              <span>Horas por <span className="text-[#8E0E75]">cliente</span></span>
             </h1>
             <p className="text-sm sm:text-base text-[#4A4A4A] font-light mt-1">
               Control rápido de jornada y tiempo imputado por cliente
             </p>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-[#F8F6FC] border-2 border-[#D8CFF0] text-xs sm:text-sm font-extrabold uppercase tracking-tight text-[#8E0E75] shadow-2xs">
-              <ShieldCheck className="h-4 w-4 text-[#8E0E75]" />
-              Supervisión de Agencia
-            </span>
-          </div>
+          {user.role === 'coordinator' && (
+            <div className="flex items-center gap-2 shrink-0">
+              <Link
+                href="/dashboard/coordinator"
+                className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-[#F8F6FC] border-2 border-[#D8CFF0] text-xs sm:text-sm font-bold text-[#8E0E75] shadow-2xs hover:border-[#8E0E75]"
+              >
+                <ShieldCheck className="h-4 w-4 text-[#8E0E75]" />
+                Ir a Coordinación
+              </Link>
+            </div>
+          )}
         </div>
 
         {/* 1. Empresa actual fijada (Compacta, con hueco para logo, sin CIF ni Responsable) */}
@@ -299,15 +320,15 @@ export default function EmployeeDashboardPage() {
         <section aria-label="Historial de registros" className="w-full pt-2">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 mb-4 border-b border-[#EAE4F5] gap-3">
             <div>
-              <h2 className="text-xl sm:text-2xl lg:text-3xl font-black uppercase tracking-tight text-[#292929]">
-                REGISTROS RECIENTES <span className="text-[#8E0E75]">POR CLIENTE</span>
+              <h2 className="text-xl sm:text-2xl font-black tracking-tight text-[#292929]">
+                Registros <span className="text-[#8E0E75]">recientes</span>
               </h2>
               <p className="text-sm sm:text-base text-[#4A4A4A] font-light mt-0.5">
                 Haz clic en cualquier día para plegar o desplegar • Pulsa &quot;Repetir&quot; para reanudar una tarea
               </p>
             </div>
             <div className="text-xs sm:text-sm text-[#191654] font-bold bg-[#F8F6FC] px-4 py-2 rounded-xl border-2 border-[#D8CFF0] tabular-nums shadow-2xs self-start sm:self-auto">
-              Total tareas registradas: <span className="font-black text-[#8E0E75] text-sm sm:text-base">{entries.length}</span>
+              Registros totales: <span className="font-black text-[#8E0E75] text-sm sm:text-base">{entries.length}</span>
             </div>
           </div>
 

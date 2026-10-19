@@ -77,6 +77,23 @@ export function MonthlyReports({
     return MONTHS.find((m) => m.value === selectedMonth)?.name || `Mes ${selectedMonth}`;
   }, [selectedMonth]);
 
+  // Ritmo esperado de consumo de cuota: % de días laborables (L-V) del mes ya transcurridos
+  const { isMonthInProgress, expectedPercent } = useMemo(() => {
+    const today = new Date();
+    const inProgress = today.getFullYear() === selectedYear && today.getMonth() + 1 === selectedMonth;
+    if (!inProgress) return { isMonthInProgress: false, expectedPercent: 100 };
+    const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
+    let total = 0;
+    let elapsed = 0;
+    for (let d = 1; d <= daysInMonth; d++) {
+      const wd = new Date(selectedYear, selectedMonth - 1, d).getDay();
+      if (wd === 0 || wd === 6) continue;
+      total++;
+      if (d <= today.getDate()) elapsed++;
+    }
+    return { isMonthInProgress: true, expectedPercent: total ? (elapsed / total) * 100 : 100 };
+  }, [selectedMonth, selectedYear]);
+
   // Entradas de tiempo filtradas por el mes y año seleccionados
   const monthEntries = useMemo(() => {
     const monthPrefix = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
@@ -110,9 +127,12 @@ export function MonthlyReports({
       const targetMin = (company.monthly_hours_quota || 0) * 60;
       const deltaMin = compCuotaMin - targetMin;
 
-      if (deltaMin < 0) faltanCount++;
+      const percentDone = targetMin > 0 ? (compCuotaMin / targetMin) * 100 : 0;
+      const onPace = isMonthInProgress && percentDone >= expectedPercent - 10;
+
+      if (deltaMin < 0 && !onPace) faltanCount++;
       else if (deltaMin > 0) sobranCount++;
-      else exactoCount++;
+      else if (deltaMin === 0) exactoCount++;
 
       return {
         company,
@@ -134,7 +154,7 @@ export function MonthlyReports({
       exactoCount,
       quotasBreakdown,
     };
-  }, [monthEntries, companies]);
+  }, [monthEntries, companies, isMonthInProgress, expectedPercent]);
 
   // Empresa seleccionada actualmente
   const currentCompany = useMemo(() => {
@@ -509,7 +529,7 @@ export function MonthlyReports({
                 <span className="text-xs text-[#10B981] font-bold">al milímetro</span>
               </div>
               <p className="text-[11px] text-[#4A4A4A] mt-0.5">
-                <span className="text-red-600 font-extrabold">{generalStats.faltanCount} con faltantes</span> |{' '}
+                <span className="text-red-600 font-extrabold">{generalStats.faltanCount} {isMonthInProgress ? 'retrasadas' : 'con faltantes'}</span> |{' '}
                 <span className="text-[#8E0E75] font-bold">{generalStats.sobranCount} con sobrantes</span>
               </p>
             </div>
@@ -536,12 +556,18 @@ export function MonthlyReports({
                 </div>
                 <div className="flex items-center gap-1.5">
                   <div className="h-3 w-3 rounded-xs bg-red-500" />
-                  <span className="font-bold text-red-700">Horas Faltantes (Déficit)</span>
+                  <span className="font-bold text-red-700">Retrasada</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <div className="h-3 w-3 rounded-xs bg-amber-400" />
-                  <span className="font-bold text-amber-700">En Proceso</span>
+                  <span className="font-bold text-amber-700">En ritmo</span>
                 </div>
+                {isMonthInProgress && (
+                  <div className="flex items-center gap-1.5">
+                    <div className="h-3 w-0.5 bg-[#191654]" />
+                    <span>Ritmo esperado hoy ({expectedPercent.toFixed(0)}%)</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-1.5">
                   <div className="h-3 w-3 rounded-xs bg-[#10B981]" />
                   <span className="font-bold text-emerald-700">Al Milímetro (100%)</span>
@@ -562,9 +588,11 @@ export function MonthlyReports({
               ) : (
                 generalStats.quotasBreakdown.map((item) => {
                 const targetHours = item.company.monthly_hours_quota || 0;
-                const isFaltan = item.deltaMin < 0;
                 const isSobran = item.deltaMin > 0;
                 const isExacto = item.deltaMin === 0;
+                // Con el mes en curso, un déficit solo es preocupante si va por detrás del ritmo esperado
+                const isOnPace = isMonthInProgress && item.deltaMin < 0 && item.percent >= expectedPercent - 10;
+                const isFaltan = item.deltaMin < 0 && !isOnPace;
 
                 return (
                   <div
@@ -589,9 +617,17 @@ export function MonthlyReports({
                       {/* Badge Destacado: Rojo para faltantes, Verde para exacto, Lila para sobrantes */}
                       <div className="shrink-0">
                         {isFaltan && (
-                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-sm bg-red-50 border border-red-300 text-red-700 text-xs font-bold uppercase tracking-tight badge-pop">
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-sm bg-red-50 border border-red-300 text-red-700 text-xs font-bold badge-pop">
                             <AlertTriangle className="h-3.5 w-3.5 text-red-600" />
-                            <span>Horas faltantes: {formatMinutes(Math.abs(item.deltaMin))}</span>
+                            <span>
+                              {isMonthInProgress ? 'Retrasada' : 'Cuota no cumplida'} · faltan {formatMinutes(Math.abs(item.deltaMin))}
+                            </span>
+                          </div>
+                        )}
+                        {isOnPace && (
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-sm bg-amber-50 border border-amber-300 text-amber-800 text-xs font-bold badge-pop">
+                            <Clock className="h-3.5 w-3.5 text-amber-600" />
+                            <span>En ritmo · faltan {formatMinutes(Math.abs(item.deltaMin))}</span>
                           </div>
                         )}
                         {isSobran && (
@@ -612,16 +648,24 @@ export function MonthlyReports({
                     {/* Barra de Progreso Visual con Semáforo Semántico */}
                     <div className="space-y-1">
                       <div className="w-full h-3 rounded-full bg-slate-200 overflow-hidden relative flex">
+                        {/* Marca del ritmo esperado a fecha de hoy (solo mes en curso) */}
+                        {isMonthInProgress && (
+                          <div
+                            className="absolute top-0 bottom-0 w-0.5 bg-[#191654] z-10"
+                            style={{ left: `${expectedPercent}%` }}
+                            title={`Ritmo esperado hoy: ${expectedPercent.toFixed(0)}%`}
+                          />
+                        )}
                         {/* Segmento de cuota consumida */}
                         <div
                           className={`h-full transition-all duration-500 ${
                             isExacto
                               ? 'bg-gradient-to-r from-emerald-600 to-[#10B981]'
-                              : item.percent < 40
+                              : isSobran
+                              ? 'bg-gradient-to-r from-[#191654] to-[#8E0E75]'
+                              : isFaltan
                               ? 'bg-red-500'
-                              : item.percent < 80
-                              ? 'bg-amber-400'
-                              : 'bg-gradient-to-r from-[#191654] to-[#8E0E75]'
+                              : 'bg-amber-400'
                           }`}
                           style={{
                             width: `${Math.min(item.percent, 100)}%`,
@@ -645,7 +689,10 @@ export function MonthlyReports({
                             {formatMinutes(item.cuotaMin)} ({item.percent.toFixed(1)}%)
                           </strong>
                         </span>
-                        <span className="font-bold">Objetivo: {targetHours}h 00m</span>
+                        <span className="font-bold">
+                          {isMonthInProgress && `Esperado hoy: ${formatMinutes(Math.round((item.targetMin * expectedPercent) / 100))} · `}
+                          Objetivo: {targetHours}h 00m
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -708,7 +755,7 @@ export function MonthlyReports({
                         </td>
                         <td className="px-6 py-3.5 text-center">
                           <span
-                            className={`px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-tight border ${
+                            className={`px-2 py-0.5 rounded-sm text-[11px] font-bold uppercase tracking-tight border ${
                               c.client_type === 'cuota'
                                 ? 'bg-[#8E0E75]/10 text-[#8E0E75] border-[#8E0E75]/30'
                                 : 'bg-[#191654]/10 text-[#191654] border-[#191654]/30'
@@ -738,19 +785,19 @@ export function MonthlyReports({
                               const diff = cuotaMin - targetM;
                               if (diff < 0) {
                                 return (
-                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-sm bg-red-50 text-red-700 border border-red-300 font-extrabold text-[10px]">
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-sm bg-red-50 text-red-700 border border-red-300 font-extrabold text-[11px]">
                                     Faltan {formatMinutes(Math.abs(diff))}
                                   </span>
                                 );
                               } else if (diff > 0) {
                                 return (
-                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-sm bg-[#8E0E75]/10 text-[#8E0E75] border border-[#8E0E75]/40 font-extrabold text-[10px]">
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-sm bg-[#8E0E75]/10 text-[#8E0E75] border border-[#8E0E75]/40 font-extrabold text-[11px]">
                                     Sobran {formatMinutes(diff)}
                                   </span>
                                 );
                               } else {
                                 return (
-                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-sm bg-emerald-50 text-emerald-800 border border-emerald-300 font-extrabold text-[10px]">
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-sm bg-emerald-50 text-emerald-800 border border-emerald-300 font-extrabold text-[11px]">
                                     Al milímetro
                                   </span>
                                 );
@@ -788,7 +835,7 @@ export function MonthlyReports({
                   </h3>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span
-                      className={`px-2 py-0.5 rounded-sm text-[10px] font-extrabold uppercase tracking-wider border ${
+                      className={`px-2 py-0.5 rounded-sm text-[11px] font-extrabold uppercase tracking-wider border ${
                         currentCompany.client_type === 'cuota'
                           ? 'bg-[#8E0E75]/10 text-[#8E0E75] border-[#8E0E75]/30'
                           : 'bg-[#191654]/10 text-[#191654] border-[#191654]/30'
@@ -806,17 +853,25 @@ export function MonthlyReports({
               {/* Banner de Estado de Cuota con Horas Faltantes (Rojo) o Al Milímetro (Verde) */}
               {currentCompany.client_type === 'cuota' && (
                 <div className="shrink-0">
-                  {currentCompanyStats.deltaMin < 0 && (
-                    <div className="p-3 rounded-sm bg-red-50 border border-red-300 text-red-800 animate-in fade-in duration-200">
-                      <div className="flex items-center gap-2 font-extrabold text-sm uppercase tracking-wider text-red-700">
-                        <AlertTriangle className="h-4 w-4 text-red-600" />
-                        <span>HORAS FALTANTES: {formatMinutes(Math.abs(currentCompanyStats.deltaMin))}</span>
+                  {currentCompanyStats.deltaMin < 0 && (() => {
+                    const targetMin = (currentCompany.monthly_hours_quota || 0) * 60;
+                    const done = targetMin + currentCompanyStats.deltaMin;
+                    const onPace = isMonthInProgress && targetMin > 0 && (done / targetMin) * 100 >= expectedPercent - 10;
+                    return (
+                      <div className={`p-3 rounded-sm border animate-in fade-in duration-200 ${onPace ? 'bg-amber-50 border-amber-300 text-amber-900' : 'bg-red-50 border-red-300 text-red-800'}`}>
+                        <div className={`flex items-center gap-2 font-bold text-sm ${onPace ? 'text-amber-800' : 'text-red-700'}`}>
+                          {onPace ? <Clock className="h-4 w-4 text-amber-600" /> : <AlertTriangle className="h-4 w-4 text-red-600" />}
+                          <span>
+                            {onPace ? 'En ritmo' : isMonthInProgress ? 'Retrasada' : 'Cuota no cumplida'} · faltan {formatMinutes(Math.abs(currentCompanyStats.deltaMin))}
+                          </span>
+                        </div>
+                        <p className={`text-xs mt-0.5 ${onPace ? 'text-amber-800' : 'text-red-600'}`}>
+                          Quedan {formatMinutes(Math.abs(currentCompanyStats.deltaMin))} por imputar para cumplir las {currentCompany.monthly_hours_quota}h del mes
+                          {isMonthInProgress && ` (lo esperado a hoy es ${formatMinutes(Math.round((targetMin * expectedPercent) / 100))})`}.
+                        </p>
                       </div>
-                      <p className="text-[11px] text-red-600 mt-0.5 font-light">
-                        Quedan {formatMinutes(Math.abs(currentCompanyStats.deltaMin))} por imputar para cumplir las {currentCompany.monthly_hours_quota}h del mes.
-                      </p>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   {currentCompanyStats.deltaMin > 0 && (
                     <div className="p-3 rounded-sm bg-[#8E0E75]/10 border border-[#8E0E75]/40 text-[#8E0E75] animate-in fade-in duration-200">
@@ -921,7 +976,7 @@ export function MonthlyReports({
                       </div>
                       <div>
                         <p className="text-xs font-bold text-[#292929]">{w.employee.full_name}</p>
-                        <p className="text-[10px] text-[#4A4A4A] font-light">
+                        <p className="text-[11px] text-[#4A4A4A] font-light">
                           Cuota: {formatMinutes(w.cuotaMin)} | Puntual: {formatMinutes(w.puntualMin)}
                         </p>
                       </div>
@@ -975,7 +1030,7 @@ export function MonthlyReports({
                         </td>
                         <td className="px-6 py-3.5 text-center whitespace-nowrap">
                           <span
-                            className={`px-2 py-0.5 rounded-sm text-[10px] font-extrabold uppercase tracking-wider border ${
+                            className={`px-2 py-0.5 rounded-sm text-[11px] font-extrabold uppercase tracking-wider border ${
                               e.compute_type === 'cuota'
                                 ? 'bg-[#8E0E75]/10 text-[#8E0E75] border-[#8E0E75]/30'
                                 : 'bg-[#191654]/10 text-[#191654] border-[#191654]/30'
@@ -1096,7 +1151,7 @@ export function MonthlyReports({
                         <div className="flex items-center gap-2">
                           <Building2 className="h-3.5 w-3.5 text-[#8E0E75]" />
                           <span className="font-bold text-[#292929]">{item.companyName}</span>
-                          <span className="text-[10px] text-[#4A4A4A]">({item.isCuota ? 'Cliente Cuota' : 'Puntual'})</span>
+                          <span className="text-[11px] text-[#4A4A4A]">({item.isCuota ? 'Cliente Cuota' : 'Puntual'})</span>
                         </div>
                         <span className="font-mono font-bold text-[#8E0E75]">
                           {formatMinutes(item.minutes)} ({percent.toFixed(1)}%)
@@ -1155,7 +1210,7 @@ export function MonthlyReports({
                         </td>
                         <td className="px-6 py-3.5 text-center whitespace-nowrap">
                           <span
-                            className={`px-2 py-0.5 rounded-sm text-[10px] font-extrabold uppercase tracking-wider border ${
+                            className={`px-2 py-0.5 rounded-sm text-[11px] font-extrabold uppercase tracking-wider border ${
                               e.compute_type === 'cuota'
                                 ? 'bg-[#8E0E75]/10 text-[#8E0E75] border-[#8E0E75]/30'
                                 : 'bg-[#191654]/10 text-[#191654] border-[#191654]/30'

@@ -14,6 +14,7 @@ import {
   FileSpreadsheet
 } from 'lucide-react';
 import { Company, TimeEntry, ClientType } from '@/types/database';
+import { confirmDialog } from '@/lib/feedback';
 
 interface CompanyCrudProps {
   companies: Company[];
@@ -182,7 +183,7 @@ export function CompanyCrud({
           {showAdvanced && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 rounded-sm bg-[#F8F6FC] border border-[#D8CFF0]">
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#4A4A4A] mb-1">
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#4A4A4A] mb-1">
                   NIF / CIF
                 </label>
                 <input
@@ -194,7 +195,7 @@ export function CompanyCrud({
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#4A4A4A] mb-1">
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#4A4A4A] mb-1">
                   Persona de Contacto
                 </label>
                 <input
@@ -206,7 +207,7 @@ export function CompanyCrud({
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#4A4A4A] mb-1">
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#4A4A4A] mb-1">
                   Email de Contacto
                 </label>
                 <input
@@ -277,14 +278,14 @@ export function CompanyCrud({
                           <div>
                             <span className="font-bold text-sm text-[#292929] block">{company.name}</span>
                             {company.cif && (
-                              <span className="text-[10px] text-[#4A4A4A] font-mono block">CIF: {company.cif}</span>
+                              <span className="text-[11px] text-[#4A4A4A] font-mono block">CIF: {company.cif}</span>
                             )}
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-3.5 text-center">
                         <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-sm text-[10px] font-extrabold uppercase tracking-wider border ${
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-sm text-[11px] font-extrabold uppercase tracking-wider border ${
                             company.client_type === 'cuota'
                               ? 'bg-[#8E0E75]/10 text-[#8E0E75] border-[#8E0E75]/30'
                               : 'bg-[#191654]/10 text-[#191654] border-[#191654]/30'
@@ -313,7 +314,7 @@ export function CompanyCrud({
                           <div>
                             <span className="font-medium text-[#292929] block">{company.contact_name}</span>
                             {company.contact_email && (
-                              <span className="text-[10px] text-slate-500 font-mono block">{company.contact_email}</span>
+                              <span className="text-[11px] text-slate-500 font-mono block">{company.contact_email}</span>
                             )}
                           </div>
                         ) : (
@@ -322,7 +323,7 @@ export function CompanyCrud({
                       </td>
                       <td className="px-6 py-3.5 text-center">
                         <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-sm text-[10px] font-extrabold uppercase tracking-wider border ${
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-sm text-[11px] font-extrabold uppercase tracking-wider border ${
                             company.is_active
                               ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
                               : 'bg-red-50 text-red-700 border-red-300'
@@ -346,11 +347,16 @@ export function CompanyCrud({
                           </button>
                           <button
                             type="button"
-                            onClick={() => {
-                              if (confirm(`¿Eliminar la empresa "${company.name}"? Esta acción solo es posible si no tiene horas registradas.`)) {
-                                onDeleteCompany(company.id);
-                              }
+                            onClick={async () => {
+                              const ok = await confirmDialog({
+                                title: `¿Eliminar la empresa "${company.name}"?`,
+                                message: 'Solo es posible si no tiene horas registradas. Si las tiene, archívala.',
+                                confirmLabel: 'Eliminar',
+                                danger: true,
+                              });
+                              if (ok) onDeleteCompany(company.id);
                             }}
+                            aria-label={`Eliminar empresa ${company.name}`}
                             className="p-1.5 rounded-sm border border-rose-200 bg-white text-rose-500 hover:bg-rose-50 hover:text-rose-700 transition-colors cursor-pointer"
                             title="Eliminar Empresa"
                           >

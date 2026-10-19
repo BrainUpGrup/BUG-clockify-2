@@ -410,20 +410,20 @@ export function NativeCalendar({
           <button
             type="button"
             onClick={() => downloadAllEventsIcs(items, `BrainUp_Calendario_${viewType}_${year}.ics`)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md border-2 border-[#D8CFF0] bg-white hover:border-[#8E0E75] hover:text-[#8E0E75] text-[#292929] text-xs font-black uppercase tracking-wider shadow-2xs hover:shadow-xs transition-all cursor-pointer hover:scale-105 active:scale-95"
-            title="Descargar eventos en archivo .ics compatible con Google Calendar / Outlook"
+            className="inline-flex items-center gap-1.5 p-2 rounded-md border-2 border-[#D8CFF0] bg-white hover:border-[#8E0E75] text-[#292929] shadow-2xs transition-all cursor-pointer"
+            title="Exportar a .ics (Google Calendar / Outlook)"
+            aria-label="Exportar calendario a archivo .ics"
           >
             <Download className="h-4 w-4 text-[#8E0E75]" />
-            <span className="hidden md:inline">Exportar .ics</span>
           </button>
 
           <button
             type="button"
             onClick={() => onOpenCreateModal(selectedDate)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-[#8E0E75] hover:bg-[#700B5C] text-white text-xs sm:text-sm font-black uppercase tracking-wider shadow-md hover:shadow-lg hover:shadow-[#8E0E75]/30 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#8E0E75] hover:bg-[#700B5C] text-white text-sm font-bold shadow-md transition-all cursor-pointer"
           >
             <Plus className="h-4 w-4" />
-            <span>Agregar Tarea</span>
+            <span>Agregar tarea</span>
           </button>
         </div>
       </div>
@@ -514,7 +514,7 @@ export function NativeCalendar({
                   <h3 className="text-xs font-black uppercase tracking-tight text-[#292929]">
                     ACTIVIDADES DEL DÍA: <span className="text-[#8E0E75]">{selectedDate.split('-').reverse().join('/')}</span>
                   </h3>
-                  <p className="text-[10px] text-[#4A4A4A]">
+                  <p className="text-[11px] text-[#4A4A4A]">
                     {selectedDayItems.length} actividad(es) agendada(s)
                   </p>
                 </div>
@@ -527,7 +527,7 @@ export function NativeCalendar({
                     setActivePopup('none');
                     onOpenCreateModal(selectedDate);
                   }}
-                  className="px-2.5 py-1 rounded-sm bg-[#8E0E75] hover:bg-[#700B5C] text-white text-[10px] font-extrabold uppercase tracking-wider cursor-pointer"
+                  className="px-2.5 py-1 rounded-sm bg-[#8E0E75] hover:bg-[#700B5C] text-white text-[11px] font-extrabold uppercase tracking-wider cursor-pointer"
                 >
                   <Plus className="h-3 w-3 inline mr-1" />
                   Añadir aquí
@@ -590,7 +590,7 @@ export function NativeCalendar({
                   <h3 className="text-xs font-black uppercase tracking-tight text-amber-900">
                     TAREAS PENDIENTES DEL MES
                   </h3>
-                  <p className="text-[10px] text-amber-700">
+                  <p className="text-[11px] text-amber-700">
                     {monthPending.length} actividad(es) pendientes por completar
                   </p>
                 </div>
@@ -642,7 +642,7 @@ export function NativeCalendar({
                   <h3 className="text-xs font-black uppercase tracking-tight text-emerald-900">
                     TAREAS COMPLETADAS
                   </h3>
-                  <p className="text-[10px] text-emerald-700">
+                  <p className="text-[11px] text-emerald-700">
                     {monthDone.length} entregable(s) finalizado(s) con éxito
                   </p>
                 </div>
@@ -694,7 +694,7 @@ export function NativeCalendar({
                   <h3 className="text-xs font-black uppercase tracking-tight text-blue-900">
                     REUNIONES Y CITAS DE EQUIPO
                   </h3>
-                  <p className="text-[10px] text-blue-700">
+                  <p className="text-[11px] text-blue-700">
                     {monthMeetings.length} reunión(es) agendada(s)
                   </p>
                 </div>
@@ -780,7 +780,7 @@ function ColorStripItem({
       style={customStyles.style}
       title={`${item.title} • Arrastra para mover de día`}
       className={`group relative rounded-[4px] border transition-all cursor-grab active:cursor-grabbing select-none shadow-2xs hover:shadow-xs hover:brightness-95 flex items-center justify-between gap-1.5 ${
-        compact ? 'px-1.5 py-1 text-[10px]' : 'px-2 py-1.5 text-[11px]'
+        compact ? 'px-1.5 py-1 text-[11px]' : 'px-2 py-1.5 text-xs'
       } ${
         isDone ? 'opacity-65' : ''
       } ${isDragging ? 'opacity-30 scale-95 ring-2 ring-[#8E0E75]' : ''}`}
@@ -807,7 +807,7 @@ function ColorStripItem({
       {/* Contenido / Título / Empresa en el centro */}
       <div className="flex-1 min-w-0 pr-1 flex items-center gap-1.5">
         <div 
-          className={`truncate font-bold leading-snug tracking-tight ${isDone ? 'line-through opacity-75' : ''}`}
+          className={`${compact ? 'truncate' : 'line-clamp-2 break-words'} font-bold leading-snug tracking-tight ${isDone ? 'line-through opacity-75' : ''}`}
           style={{ color: customStyles.textColor }}
         >
           {item.title}
@@ -824,7 +824,7 @@ function ColorStripItem({
         {/* Badge de Horario visible por defecto */}
         {item.startTime && (
           <span 
-            className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-xs shrink-0 group-hover:hidden"
+            className="text-[11px] font-mono font-bold px-1.5 py-0.5 rounded-xs shrink-0 group-hover:hidden"
             style={{ 
               backgroundColor: 'rgba(0, 0, 0, 0.08)',
               color: customStyles.textColor 
@@ -1048,7 +1048,7 @@ function WeekView({
               >
                 {/* Indicador visual al arrastrar encima */}
                 {isTarget && (
-                  <div className="py-2 px-1 text-center bg-white/95 border-2 border-dashed border-[#8E0E75] rounded-xs text-[10px] font-black uppercase text-[#8E0E75] animate-pulse shadow-sm">
+                  <div className="py-2 px-1 text-center bg-white/95 border-2 border-dashed border-[#8E0E75] rounded-xs text-[11px] font-black uppercase text-[#8E0E75] animate-pulse shadow-sm">
                     Soltar para mover a {day.dayName} {day.dayNumber}
                   </div>
                 )}
@@ -1059,7 +1059,7 @@ function WeekView({
                     className="flex-1 rounded-sm border border-dashed border-slate-200 hover:border-[#8E0E75]/50 hover:bg-[#F8F6FC]/60 p-3 flex flex-col items-center justify-center text-center cursor-pointer transition-all group"
                   >
                     <Plus className="h-4 w-4 text-slate-300 group-hover:text-[#8E0E75] transition-colors" />
-                    <span className="text-[10px] text-slate-400 group-hover:text-[#8E0E75] font-semibold mt-1">
+                    <span className="text-[11px] text-slate-400 group-hover:text-[#8E0E75] font-semibold mt-1">
                       Añadir Tarea
                     </span>
                   </div>
@@ -1204,7 +1204,7 @@ function DayView({
                 </div>
                 <div className="flex-1 flex flex-wrap gap-1.5 items-center">
                   {hourItems.length === 0 ? (
-                    <span className="text-[10px] text-slate-300 group-hover:text-[#8E0E75] italic flex items-center gap-1">
+                    <span className="text-[11px] text-slate-300 group-hover:text-[#8E0E75] italic flex items-center gap-1">
                       <Plus className="h-2.5 w-2.5" />
                       <span>Clic para programar en este horario</span>
                     </span>
@@ -1275,7 +1275,7 @@ function MonthView({
         {DAY_NAMES.map((name, idx) => (
           <div
             key={name}
-            className={`py-1.5 text-[10px] font-extrabold uppercase tracking-wider ${
+            className={`py-1.5 text-[11px] font-extrabold uppercase tracking-wider ${
               idx >= 5 ? 'text-slate-400' : 'text-[#292929]'
             }`}
           >
@@ -1326,7 +1326,7 @@ function MonthView({
               title={`Ver actividades del ${cell.dateStr} • Arrastra para mover aquí`}
             >
               {isTarget && (
-                <div className="text-[9px] font-black uppercase text-[#8E0E75] bg-white/95 px-1 py-0.5 rounded-xs border border-dashed border-[#8E0E75] text-center mb-1 animate-pulse">
+                <div className="text-[11px] font-black uppercase text-[#8E0E75] bg-white/95 px-1 py-0.5 rounded-xs border border-dashed border-[#8E0E75] text-center mb-1 animate-pulse">
                   Mover al {cell.dayNumber}
                 </div>
               )}
@@ -1376,7 +1376,7 @@ function MonthView({
                 ))}
 
                 {dayItems.length > 3 && (
-                  <div className="text-[9px] font-extrabold text-[#8E0E75] leading-none px-0.5">
+                  <div className="text-[11px] font-extrabold text-[#8E0E75] leading-none px-0.5">
                     +{dayItems.length - 3} más
                   </div>
                 )}
@@ -1428,20 +1428,20 @@ function YearView({
                 >
                   {mName}
                 </button>
-                <span className="text-[10px] font-bold text-slate-400">
+                <span className="text-[11px] font-bold text-slate-400">
                   {items.filter(it => it.date.startsWith(`${year}-${String(mIdx + 1).padStart(2, '0')}`)).length} tareas
                 </span>
               </div>
 
               {/* Cabecera L M X J V S D */}
-              <div className="grid grid-cols-7 text-center text-[9px] font-bold text-slate-400">
+              <div className="grid grid-cols-7 text-center text-[11px] font-bold text-slate-400">
                 {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((d, i) => (
                   <span key={i}>{d}</span>
                 ))}
               </div>
 
               {/* Matriz de Días del Mini Mes */}
-              <div className="grid grid-cols-7 gap-1 text-center text-[10px]">
+              <div className="grid grid-cols-7 gap-1 text-center text-[11px]">
                 {/* Días vacíos de inicio */}
                 {Array.from({ length: startDay }).map((_, i) => (
                   <span key={`empty_${i}`} className="h-5" />
@@ -1461,7 +1461,7 @@ function YearView({
                       key={dayNum}
                       type="button"
                       onClick={() => onSelectDate(dateStr)}
-                      className={`h-5 w-5 mx-auto rounded-full flex items-center justify-center font-bold text-[10px] transition-all cursor-pointer relative ${
+                      className={`h-5 w-5 mx-auto rounded-full flex items-center justify-center font-bold text-[11px] transition-all cursor-pointer relative ${
                         isToday
                           ? 'bg-[#1A73E8] text-white shadow-xs'
                           : hasTasks

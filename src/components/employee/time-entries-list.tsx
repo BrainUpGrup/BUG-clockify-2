@@ -16,6 +16,7 @@ import {
 import { TimeEntry, Company } from '@/types/database';
 import { formatMinutes, formatDateSpanish, parseDurationToMinutes } from '@/lib/utils';
 import { AppSelect } from '@/components/ui/app-select';
+import { DurationPreview } from '@/components/ui/duration-preview';
 import { useTimer } from '@/context/timer-context';
 
 interface TimeEntriesListProps {
@@ -150,12 +151,12 @@ export function TimeEntriesList({
         const isCollapsed = collapsedDays[dateStr] ?? !isToday;
 
         return (
-          <div key={dateStr} className="w-full rounded-2xl border-2 border-[#D8CFF0] bg-white overflow-hidden shadow-sm transition-all hover:border-[#8E0E75]/50">
+          <div key={dateStr} className="w-full rounded-2xl border-2 border-[#D8CFF0] bg-white shadow-sm transition-all hover:border-[#8E0E75]/50">
             
             {/* Cabecera del día DESPLEGABLE / CLICABLE */}
             <div 
               onClick={() => toggleDayCollapse(dateStr)}
-              className="flex items-center justify-between px-5 sm:px-7 py-3.5 sm:py-4.5 bg-[#F8F6FC] border-b-2 border-[#EAE4F5] cursor-pointer hover:bg-[#F1EAF8] select-none transition-colors"
+              className={`flex items-center justify-between px-5 sm:px-7 py-3.5 sm:py-4.5 bg-[#F8F6FC] ${isCollapsed ? 'rounded-[14px]' : 'rounded-t-[14px]'} border-b-2 border-[#EAE4F5] cursor-pointer hover:bg-[#F1EAF8] select-none transition-colors`}
               title={isCollapsed ? 'Haz clic para desplegar este día' : 'Haz clic para plegar este día'}
             >
               <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
@@ -331,8 +332,10 @@ export function TimeEntriesList({
                                   if (e.key === 'Escape') setEditingDurationId(null);
                                 }}
                                 placeholder="ej. 330 o 3"
+                                aria-describedby={`dur-preview-${entry.id}`}
                                 className="w-28 px-3 py-2 text-center font-mono tabular-nums text-sm sm:text-base font-black text-[#8E0E75] bg-white border-2 border-[#8E0E75] rounded-xl shadow-md outline-none"
                               />
+                              <DurationPreview id={`dur-preview-${entry.id}`} value={durationInputValue} align="right" />
                             </div>
                             <button
                               type="button"
@@ -362,13 +365,10 @@ export function TimeEntriesList({
                         {onDeleteEntry && (
                           <button
                             type="button"
-                            onClick={() => {
-                              if (confirm(`¿Deseas eliminar este registro de tiempo de ${companyName} (${formatMinutes(entry.duration_minutes)})?`)) {
-                                onDeleteEntry(entry.id);
-                              }
-                            }}
+                            onClick={() => onDeleteEntry(entry.id)}
                             className="p-2.5 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                             title="Eliminar este registro horario"
+                            aria-label={`Eliminar registro de ${companyName} (${formatMinutes(entry.duration_minutes)})`}
                           >
                             <Trash2 className="h-5 w-5" />
                           </button>

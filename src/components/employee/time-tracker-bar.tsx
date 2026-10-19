@@ -22,6 +22,8 @@ import { Company, TimeEntry, EntryComputeType } from '@/types/database';
 import { formatSecondsToTimer, parseDurationToMinutes, formatMinutes } from '@/lib/utils';
 import { AppCalendar } from '@/components/ui/app-calendar';
 import { useTimer } from '@/context/timer-context';
+import { notify } from '@/lib/feedback';
+import { DurationPreview } from '@/components/ui/duration-preview';
 
 interface TimeTrackerBarProps {
   companies: Company[];
@@ -218,10 +220,36 @@ export function TimeTrackerBar({
     })
     .filter((item) => item.minutes > 0);
 
+  // Sugerencias de descripción: tareas abiertas de TaskFlow para el cliente activo (M7)
+  const [taskSuggestions, setTaskSuggestions] = useState<string[]>([]);
+  useEffect(() => {
+    if (!selectedCompany) {
+      setTaskSuggestions([]);
+      return;
+    }
+    try {
+      const raw = localStorage.getItem('bug_taskflow_items_v2');
+      const items: Array<{ title?: string; companyId?: string; companyName?: string; status?: string; date?: string }> = raw ? JSON.parse(raw) : [];
+      const titles = items
+        .filter((it) =>
+          it.status !== 'done' &&
+          (it.companyId === selectedCompany.id || it.companyName?.toLowerCase() === selectedCompany.name.toLowerCase()) &&
+          (!it.date || it.date <= todayStr)
+        )
+        .map((it) => it.title || '')
+        .filter(Boolean);
+      setTaskSuggestions(Array.from(new Set(titles)).slice(0, 4));
+    } catch {
+      setTaskSuggestions([]);
+    }
+  }, [selectedCompany, todayStr]);
+
+  const [descriptionMissing, setDescriptionMissing] = useState(false);
+
   // Iniciar temporizador
   const handleStartTimer = () => {
     if (!selectedCompanyId) {
-      alert('Por favor selecciona una empresa antes de iniciar el temporizador.');
+      notify('Selecciona un cliente antes de iniciar el temporizador.', { type: 'warning' });
       return;
     }
     setActiveDescription(description);
@@ -245,10 +273,13 @@ export function TimeTrackerBar({
         start_time: result.startTimeIso,
         end_time: result.endTimeIso,
         duration_minutes: minutes,
-        description: description.trim() || `Trabajo para ${selectedCompany?.name || 'la empresa'}`,
+        description: description.trim() || 'Sin descripción',
         compute_type: actualComputeType,
       });
 
+      if (!description.trim()) {
+        notify('Registro guardado sin descripción. Haz clic sobre él en el historial para describirlo.', { type: 'warning', duration: 6000 });
+      }
       setDescription('');
       setActiveDescription('');
     } catch (err) {
@@ -262,13 +293,18 @@ export function TimeTrackerBar({
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCompanyId) {
-      alert('Por favor selecciona una empresa.');
+      notify('Selecciona un cliente.', { type: 'warning' });
       return;
     }
 
     const minutes = parseDurationToMinutes(manualDurationInput);
     if (minutes <= 0) {
-      alert('Por favor introduce una duración válida (ej. 3 para 3h, 330 para 3h 30m, o 2.5).');
+      notify('Introduce una duración válida (ej. 3 para 3h, 330 para 3h 30m, 2h 15m).', { type: 'warning' });
+      return;
+    }
+
+    if (!description.trim()) {
+      setDescriptionMissing(true);
       return;
     }
 
@@ -282,10 +318,11 @@ export function TimeTrackerBar({
         start_time: null,
         end_time: null,
         duration_minutes: minutes,
-        description: description.trim() || `Trabajo para ${selectedCompany?.name || 'la empresa'}`,
+        description: description.trim(),
         compute_type: actualComputeType,
       });
 
+      notify(`Añadido ${formatMinutes(minutes)} a ${selectedCompany?.name || 'el cliente'}`, { type: 'success' });
       setDescription('');
       setActiveDescription('');
       setManualDurationInput('1h 00m');
@@ -304,8 +341,8 @@ export function TimeTrackerBar({
       {/* Cabecera del control de horas: Modos, tipo de cuota y BOTONES POP-UPS DE HORAS */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-4 border-b-2 border-[#EAE4F5] gap-3">
         <div className="flex items-center gap-3.5 flex-wrap relative">
-          <span className="text-base sm:text-lg lg:text-xl font-black uppercase tracking-tight text-[#292929]">
-            CONTROL <span className="text-[#8E0E75]">DE HORAS</span>
+          <span className="text-base sm:text-lg font-black tracking-tight text-[#292929]">
+            Control <span className="text-[#8E0E75]">de horas</span>
           </span>
 
           {/* Selector de Tipo de Horas para Clientes Cuota con Pastilla Morada Deslizante */}
@@ -458,8 +495,7 @@ export function TimeTrackerBar({
             >
               <Building2 className={`h-4 w-4 ${showCompanyStatsPop ? 'text-white' : 'text-[#8E0E75]'}`} />
               <span>
-                {selectedCompany?.name ? `${selectedCompany.name.slice(0, 14)}...` : 'Cliente'}: 
-                <strong> {formatMinutes(monthCompanyMinutes)}</strong>
+                Este cliente (mes): <strong>{formatMinutes(monthCompanyMinutes)}</strong>
               </span>
               <ChevronDown className={`h-4 w-4 transition-transform ${showCompanyStatsPop ? 'rotate-180' : ''}`} />
             </button>
@@ -508,7 +544,7 @@ export function TimeTrackerBar({
 
                     {isCuotaClient && (
                       <div className="mt-2">
-                        <div className="flex justify-between text-[10px] font-bold text-[#4A4A4A] mb-1">
+                        <div className="flex justify-between text-[11px] font-bold text-[#4A4A4A] mb-1">
                           <span>Progreso de cuota:</span>
                           <span className={quotaPercent >= 100 ? 'text-emerald-700 font-black' : 'text-[#8E0E75] font-bold'}>
                             {quotaPercent}%
@@ -520,7 +556,7 @@ export function TimeTrackerBar({
                             style={{ width: `${Math.min(100, quotaPercent)}%` }} 
                           />
                         </div>
-                        <p className="text-[10px] text-[#4A4A4A] mt-1">
+                        <p className="text-[11px] text-[#4A4A4A] mt-1">
                           {quotaPercent >= 100 ? (
                             <span className="text-emerald-700 font-extrabold">✓ Cuota completada</span>
                           ) : (
@@ -593,10 +629,20 @@ export function TimeTrackerBar({
             <input
               type="text"
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e) => {
+                setDescription(e.target.value);
+                if (e.target.value.trim()) setDescriptionMissing(false);
+              }}
+              aria-label="Descripción de la tarea"
+              aria-invalid={descriptionMissing}
               placeholder={`¿En qué estás trabajando para ${selectedCompany?.name || 'este cliente'}?`}
-              className="w-full px-5 py-3.5 sm:py-4 rounded-xl border-2 border-[#D8CFF0] bg-white text-base sm:text-lg text-[#292929] placeholder:text-slate-400 focus:border-[#8E0E75] focus:ring-2 focus:ring-[#8E0E75]/15 outline-none transition-all font-semibold shadow-xs"
+              className={`w-full px-5 py-3.5 sm:py-4 rounded-xl border-2 bg-white text-base sm:text-lg text-[#292929] placeholder:text-slate-400 focus:ring-2 focus:ring-[#8E0E75]/15 outline-none transition-all font-semibold shadow-xs ${
+                descriptionMissing ? 'border-red-400 focus:border-red-500' : 'border-[#D8CFF0] focus:border-[#8E0E75]'
+              }`}
             />
+            {descriptionMissing && (
+              <p className="text-sm text-red-600 mt-1.5">Describe la tarea para que el informe del cliente sea útil.</p>
+            )}
           </div>
 
           {/* Zona de Duración / Reloj */}
@@ -617,9 +663,12 @@ export function TimeTrackerBar({
                     }
                   }}
                   placeholder="ej. 330 o 3 o 2.5"
+                  aria-label="Duración"
+                  aria-describedby="manual-duration-preview"
                   className="w-full px-4 py-3 sm:py-3.5 rounded-xl border-2 border-[#D8CFF0] bg-white text-xl sm:text-2xl font-black text-[#292929] tabular-nums text-center focus:border-[#8E0E75] focus:ring-2 focus:ring-[#8E0E75]/15 outline-none transition-all shadow-inner"
                   title="Escribe '330' para 3h 30m, '3' para 3 horas, o '2.5'"
                 />
+                <DurationPreview id="manual-duration-preview" value={manualDurationInput} />
               </div>
             )}
           </div>
@@ -631,35 +680,56 @@ export function TimeTrackerBar({
                 <button
                   type="button"
                   onClick={handleStartTimer}
-                  className="w-full h-13 sm:h-15 flex items-center justify-center gap-2.5 px-6 py-3 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-black text-base sm:text-lg uppercase tracking-tight active:scale-[0.98] shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/40 hover:scale-[1.02] transition-all cursor-pointer"
+                  className="w-full h-13 sm:h-15 flex items-center justify-center gap-2.5 px-6 py-3 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-bold text-base sm:text-lg active:scale-[0.98] shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/40 hover:scale-[1.02] transition-all cursor-pointer"
                 >
                   <Play className="h-5 w-5 sm:h-6 sm:w-6 fill-current" />
-                  <span>INICIAR</span>
+                  <span>Iniciar</span>
                 </button>
               ) : (
                 <button
                   type="button"
                   onClick={handleStopTimer}
                   disabled={isSubmitting}
-                  className="w-full h-13 sm:h-15 flex items-center justify-center gap-2.5 px-6 py-3 rounded-xl bg-[#DC2626] hover:bg-[#B91C1C] text-white font-black text-base sm:text-lg uppercase tracking-tight active:scale-[0.98] shadow-lg shadow-red-500/30 hover:shadow-xl hover:shadow-red-500/40 hover:scale-[1.02] transition-all cursor-pointer animate-pulse"
+                  className="w-full h-13 sm:h-15 flex items-center justify-center gap-2.5 px-6 py-3 rounded-xl bg-[#DC2626] hover:bg-[#B91C1C] text-white font-bold text-base sm:text-lg active:scale-[0.98] shadow-lg shadow-red-500/30 hover:shadow-xl hover:shadow-red-500/40 hover:scale-[1.02] transition-all cursor-pointer animate-pulse"
                 >
                   <Square className="h-5 w-5 sm:h-6 sm:w-6 fill-current" />
-                  <span>{isSubmitting ? '...' : 'PARAR'}</span>
+                  <span>{isSubmitting ? '...' : 'Parar'}</span>
                 </button>
               )
             ) : (
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full h-13 sm:h-15 flex items-center justify-center gap-2.5 px-6 py-3 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-black text-base sm:text-lg uppercase tracking-tight active:scale-[0.98] shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/40 hover:scale-[1.02] transition-all disabled:opacity-50 cursor-pointer"
+                className="w-full h-13 sm:h-15 flex items-center justify-center gap-2.5 px-6 py-3 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-bold text-base sm:text-lg active:scale-[0.98] shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/40 hover:scale-[1.02] transition-all disabled:opacity-50 cursor-pointer"
               >
                 <Plus className="h-5 w-5 sm:h-6 sm:w-6" />
-                <span>{isSubmitting ? '...' : 'AÑADIR'}</span>
+                <span>{isSubmitting ? '...' : 'Añadir'}</span>
               </button>
             )}
           </div>
 
         </div>
+
+        {/* Sugerencias desde TaskFlow para rellenar la descripción con un clic */}
+        {!description.trim() && taskSuggestions.length > 0 && (
+          <div className="mt-3 flex items-center gap-2 flex-wrap">
+            <span className="text-sm text-[#4A4A4A] font-semibold">Tareas abiertas en TaskFlow:</span>
+            {taskSuggestions.map((title) => (
+              <button
+                key={title}
+                type="button"
+                onClick={() => {
+                  setDescription(title);
+                  setDescriptionMissing(false);
+                }}
+                className="px-3 py-1 rounded-lg bg-[#F8F6FC] border border-[#D8CFF0] text-sm text-[#191654] hover:border-[#8E0E75] hover:text-[#8E0E75] cursor-pointer max-w-[320px] truncate"
+                title={title}
+              >
+                {title}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Fila Ampliada de Horas Trabajadas Hoy por Empresa */}
         <div className="mt-4 pt-3.5 border-t-2 border-dashed border-[#EAE4F5] flex items-center justify-between flex-wrap gap-3">

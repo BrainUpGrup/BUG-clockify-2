@@ -54,7 +54,7 @@ export function SummaryDashboard({
       <div className="rounded-sm bg-gradient-to-r from-[#191654]/5 via-[#8E0E75]/5 to-transparent border border-[#D8CFF0] p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded-xs bg-[#8E0E75] text-white text-[10px] font-black uppercase tracking-wider">
+            <span className="px-2 py-0.5 rounded-xs bg-[#8E0E75] text-white text-[11px] font-black uppercase tracking-wider">
               Panel Anti-Ruido
             </span>
             <span className="text-xs font-bold text-[#8E0E75]">
@@ -78,7 +78,7 @@ export function SummaryDashboard({
             <div className="text-lg font-black text-[#292929] leading-none">
               {pendingTasks.length}
             </div>
-            <div className="text-[10px] font-black uppercase tracking-wider text-[#8E0E75] mt-0.5">
+            <div className="text-[11px] font-black uppercase tracking-wider text-[#8E0E75] mt-0.5">
               Por Revisar
             </div>
           </div>
@@ -130,12 +130,12 @@ export function SummaryDashboard({
                         <span className="text-xs font-black uppercase tracking-wider text-[#8E0E75] truncate">
                           {task.company_name || task.channel_name || 'Cliente'}
                         </span>
-                        <span className="text-[10px] text-slate-400 font-bold">
+                        <span className="text-[11px] text-slate-400 font-bold">
                           #{task.channel_name}
                         </span>
                       </div>
                       {isUrgent && (
-                        <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-2xs bg-red-100 text-red-700 tracking-wider">
+                        <span className="text-[11px] font-black uppercase px-1.5 py-0.5 rounded-2xs bg-red-100 text-red-700 tracking-wider">
                           Urgente
                         </span>
                       )}
@@ -147,7 +147,7 @@ export function SummaryDashboard({
                     </p>
 
                     {/* Autor y fecha */}
-                    <div className="flex items-center gap-2 text-[10px] text-[#4A4A4A]">
+                    <div className="flex items-center gap-2 text-[11px] text-[#4A4A4A]">
                       <span className="font-bold text-[#191654]">
                         Asignado por: {task.sender_name || 'Compañero'}
                       </span>
@@ -230,7 +230,7 @@ export function SummaryDashboard({
                         #{channel.name}
                       </span>
                       {hasUnread && (
-                        <span className="h-4 min-w-4 px-1 rounded-full bg-[#8E0E75] text-white text-[9px] font-black flex items-center justify-center">
+                        <span className="h-4 min-w-4 px-1 rounded-full bg-[#8E0E75] text-white text-[11px] font-black flex items-center justify-center">
                           {channel.unread_count} nuevos
                         </span>
                       )}
@@ -278,10 +278,10 @@ export function SummaryDashboard({
                   </div>
                   <div className="space-y-1 min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-[#8E0E75]">
+                      <span className="text-[11px] font-black uppercase tracking-wider text-[#8E0E75]">
                         #{msg.channel_name || 'Canal'}
                       </span>
-                      <span className="text-[10px] text-slate-400">
+                      <span className="text-[11px] text-slate-400">
                         {new Date(msg.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
                       </span>
                     </div>

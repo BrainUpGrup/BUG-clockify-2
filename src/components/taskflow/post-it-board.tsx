@@ -23,6 +23,7 @@ import {
   PRESET_REMINDERS 
 } from '@/types/postit';
 import { useNotifications } from '@/context/notifications-context';
+import { removeWithUndo } from '@/lib/feedback';
 
 interface PostItBoardProps {
   postIts: PostItItem[];
@@ -189,9 +190,12 @@ export function PostItBoard({
 
   // Eliminar Post-it
   const handleDelete = (id: string) => {
-    if (!confirm('¿Eliminar este post-it y sus recordatorios asociados?')) return;
-    const updated = postIts.filter((p) => p.id !== id);
-    onSavePostIts(updated);
+    const previous = postIts;
+    removeWithUndo(
+      'Post-it eliminado junto con sus recordatorios.',
+      () => onSavePostIts(postIts.filter((p) => p.id !== id)),
+      () => onSavePostIts(previous)
+    );
   };
 
   // Fijar / Desfijar
@@ -242,7 +246,7 @@ export function PostItBoard({
           <div>
             <h2 className="text-xs font-black uppercase tracking-wider text-[#292929] flex items-center gap-2">
               <span>Mural de Post-its y Recordatorios Rápidos</span>
-              <span className="px-2 py-0.5 rounded-full bg-[#8E0E75] text-white text-[10px] font-bold">
+              <span className="px-2 py-0.5 rounded-full bg-[#8E0E75] text-white text-[11px] font-bold">
                 {postIts.length}
               </span>
             </h2>
@@ -259,7 +263,7 @@ export function PostItBoard({
             <button
               type="button"
               onClick={() => setSelectedColorFilter('all')}
-              className={`px-2 py-0.5 rounded-xs text-[10px] font-extrabold uppercase transition-all cursor-pointer ${
+              className={`px-2 py-0.5 rounded-xs text-[11px] font-extrabold uppercase transition-all cursor-pointer ${
                 selectedColorFilter === 'all'
                   ? 'bg-[#8E0E75] text-white'
                   : 'text-slate-600 hover:bg-white'
@@ -348,7 +352,7 @@ export function PostItBoard({
                       </button>
 
                       {/* Badge con tiempo restante */}
-                      <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-xs ${cfg.badge}`}>
+                      <span className={`text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded-xs ${cfg.badge}`}>
                         {daysRemaining}
                       </span>
                     </div>
@@ -368,7 +372,7 @@ export function PostItBoard({
                   <div className="mt-3 pt-2 border-t border-black/10 space-y-2">
                     
                     {/* Fecha y hora objetivo */}
-                    <div className="flex items-center justify-between text-[10px] font-semibold opacity-75">
+                    <div className="flex items-center justify-between text-[11px] font-semibold opacity-75">
                       <div className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
                         <span>{item.targetDate.split('-').reverse().join('/')}</span>
@@ -387,7 +391,7 @@ export function PostItBoard({
                         {item.reminders.map((rem) => (
                           <span
                             key={rem.id}
-                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-xs bg-white/80 border border-black/10 text-[9px] font-bold text-[#292929]"
+                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-xs bg-white/80 border border-black/10 text-[11px] font-bold text-[#292929]"
                             title="Alerta automática en panel de notificaciones"
                           >
                             <Bell className="h-2.5 w-2.5 text-[#8E0E75]" />
@@ -402,7 +406,7 @@ export function PostItBoard({
                       <button
                         type="button"
                         onClick={() => handleToggleComplete(item.id)}
-                        className={`inline-flex items-center gap-1 text-[10px] font-extrabold uppercase transition-colors cursor-pointer ${
+                        className={`inline-flex items-center gap-1 text-[11px] font-extrabold uppercase transition-colors cursor-pointer ${
                           item.isCompleted
                             ? 'text-emerald-700 hover:text-emerald-900'
                             : 'text-slate-600 hover:text-[#8E0E75]'
@@ -507,7 +511,7 @@ export function PostItBoard({
                         key={cKey}
                         type="button"
                         onClick={() => setColor(cKey)}
-                        className={`flex-1 py-1 px-1.5 rounded-xs border text-[10px] font-bold text-center cursor-pointer transition-all ${cfg.bg} ${cfg.border} ${
+                        className={`flex-1 py-1 px-1.5 rounded-xs border text-[11px] font-bold text-center cursor-pointer transition-all ${cfg.bg} ${cfg.border} ${
                           color === cKey ? 'ring-2 ring-[#8E0E75] scale-105 shadow-xs' : 'opacity-70 hover:opacity-100'
                         }`}
                       >
@@ -552,11 +556,11 @@ export function PostItBoard({
                     <Bell className="h-3.5 w-3.5 text-[#8E0E75]" />
                     <span>Notificaciones Automáticas Programadas</span>
                   </label>
-                  <span className="text-[10px] text-[#8E0E75] font-bold">
+                  <span className="text-[11px] text-[#8E0E75] font-bold">
                     {selectedReminders.length} seleccionada(s)
                   </span>
                 </div>
-                <p className="text-[10px] text-[#4A4A4A] mb-2">
+                <p className="text-[11px] text-[#4A4A4A] mb-2">
                   Selecciona cuándo quieres que te lleguen las notificaciones en el panel lateral antes de la fecha límite:
                 </p>
 
@@ -569,7 +573,7 @@ export function PostItBoard({
                         key={preset.offsetMinutes}
                         type="button"
                         onClick={() => togglePresetReminder(preset)}
-                        className={`px-2 py-1.5 rounded-xs border text-[10px] font-bold text-left flex items-center justify-between transition-all cursor-pointer ${
+                        className={`px-2 py-1.5 rounded-xs border text-[11px] font-bold text-left flex items-center justify-between transition-all cursor-pointer ${
                           isChecked
                             ? 'bg-[#8E0E75] text-white border-[#8E0E75]'
                             : 'bg-[#F8F6FC] text-[#292929] border-[#D8CFF0] hover:border-[#8E0E75]'
@@ -596,7 +600,7 @@ export function PostItBoard({
                   <button
                     type="button"
                     onClick={handleAddCustomReminder}
-                    className="px-2.5 py-1 rounded-xs bg-[#F8F6FC] hover:bg-[#8E0E75] hover:text-white border border-[#D8CFF0] text-[10px] font-extrabold uppercase transition-all cursor-pointer"
+                    className="px-2.5 py-1 rounded-xs bg-[#F8F6FC] hover:bg-[#8E0E75] hover:text-white border border-[#D8CFF0] text-[11px] font-extrabold uppercase transition-all cursor-pointer"
                   >
                     + Añadir
                   </button>

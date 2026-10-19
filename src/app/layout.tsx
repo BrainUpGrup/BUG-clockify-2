@@ -23,6 +23,7 @@ export const metadata: Metadata = {
 import { NotificationProvider } from '@/context/notifications-context';
 import { FloatingTimerCompanion } from '@/components/timer/floating-timer-companion';
 import { AppShell } from '@/components/layout/app-shell';
+import { FeedbackProvider } from '@/components/ui/feedback-provider';
 
 export default function RootLayout({
   children,
@@ -44,6 +45,7 @@ export default function RootLayout({
                   {children}
                 </AppShell>
                 <FloatingTimerCompanion />
+                <FeedbackProvider />
               </NotificationProvider>
             </TimerProvider>
           </ThemeLayersProvider>

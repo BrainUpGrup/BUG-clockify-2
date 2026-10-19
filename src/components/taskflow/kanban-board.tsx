@@ -128,7 +128,7 @@ export function KanbanBoard({
                   {col.title}
                 </span>
               </div>
-              <span className={`px-2 py-0.5 rounded-sm text-[10px] font-extrabold font-mono ${col.countStyle}`}>
+              <span className={`px-2 py-0.5 rounded-sm text-[11px] font-extrabold font-mono ${col.countStyle}`}>
                 {columnItems.length}
               </span>
             </div>
@@ -136,7 +136,7 @@ export function KanbanBoard({
             {/* Tarjetas de la Columna */}
             <div className="p-3 space-y-3 flex-1 overflow-y-auto max-h-[700px]">
               {isTarget && (
-                <div className="py-2.5 px-2 text-center bg-white border-2 border-dashed border-[#8E0E75] rounded-xs text-[10px] font-black uppercase text-[#8E0E75] animate-pulse">
+                <div className="py-2.5 px-2 text-center bg-white border-2 border-dashed border-[#8E0E75] rounded-xs text-[11px] font-black uppercase text-[#8E0E75] animate-pulse">
                   Soltar aquí para cambiar a {col.title}
                 </div>
               )}
@@ -167,7 +167,7 @@ export function KanbanBoard({
                       }`}
                     >
                       {/* Fila 1: Tipo, Prioridad y Fecha */}
-                      <div className="flex items-center justify-between gap-1 text-[10px]">
+                      <div className="flex items-center justify-between gap-1 text-[11px]">
                         <div className="flex items-center gap-1">
                           <span
                             className={`px-1.5 py-0.5 rounded-sm font-extrabold uppercase tracking-wider border flex items-center gap-1 ${
@@ -193,7 +193,7 @@ export function KanbanBoard({
                           </span>
                         </div>
 
-                        <span className="font-mono text-slate-400 text-[10px]">
+                        <span className="font-mono text-slate-400 text-[11px]">
                           {item.date ? item.date.split('-').reverse().slice(0, 2).join('/') : ''}
                         </span>
                       </div>
@@ -217,18 +217,18 @@ export function KanbanBoard({
                           </span>
 
                           {isMeeting && item.startTime ? (
-                            <span className="text-[10px] text-slate-500 font-mono">
+                            <span className="text-[11px] text-slate-500 font-mono">
                               {item.startTime}
                             </span>
                           ) : (
-                            <span className="text-[10px] text-slate-500 font-mono">
+                            <span className="text-[11px] text-slate-500 font-mono">
                               ~{item.estimatedHours || 1}h
                             </span>
                           )}
                         </div>
 
                         {/* Asignados y Compartición */}
-                        <div className="flex items-center justify-between text-[10px] text-slate-500">
+                        <div className="flex items-center justify-between text-[11px] text-slate-500">
                           <span className="flex items-center gap-1 truncate">
                             {item.isShared ? (
                               <Users className="h-3 w-3 text-[#8E0E75] shrink-0" />
@@ -243,7 +243,7 @@ export function KanbanBoard({
                       </div>
 
                       {/* Fila 3: Acciones de Conexión (Google Cal, .ics, Clockify) */}
-                      <div className="pt-2 border-t border-[#F8F6FC] flex items-center justify-between gap-1 text-[10px]">
+                      <div className="pt-2 border-t border-[#F8F6FC] flex items-center justify-between gap-1 text-[11px]">
                         <div className="flex items-center gap-1">
                           <button
                             type="button"
@@ -316,14 +316,14 @@ export function KanbanBoard({
                             <button
                               type="button"
                               onClick={() => onChangeStatus(item.id, getNextStatus(col.id))}
-                              className="px-2 py-0.5 rounded-sm bg-[#8E0E75] text-white text-[10px] font-extrabold uppercase tracking-wider hover:bg-[#700B5C] transition-all cursor-pointer flex items-center gap-1"
+                              className="px-2 py-0.5 rounded-sm bg-[#8E0E75] text-white text-[11px] font-extrabold uppercase tracking-wider hover:bg-[#700B5C] transition-all cursor-pointer flex items-center gap-1"
                               title="Avanzar etapa"
                             >
                               <span>Avanzar</span>
                               <MoveRight className="h-3 w-3" />
                             </button>
                           ) : (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-sm border border-emerald-200">
+                            <span className="inline-flex items-center gap-1 text-[11px] font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-sm border border-emerald-200">
                               <CheckCircle2 className="h-3 w-3" />
                               <span>Completada</span>
                             </span>

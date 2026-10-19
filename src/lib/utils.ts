@@ -119,6 +119,29 @@ export function parseDurationToMinutes(input: string): number {
 }
 
 /**
+ * Interpreta la entrada de duración para mostrar una vista previa en vivo y
+ * avisar cuando el formato admite dos lecturas (ej. "2.50" = 2h 50m, no 2h 30m).
+ */
+export function describeDurationInput(input: string): { minutes: number; hint: string | null } {
+  const minutes = parseDurationToMinutes(input);
+  const clean = (input || '').trim().toLowerCase();
+  let hint: string | null = null;
+
+  const decMatch = clean.match(/^(\d+)[.,](\d{2})$/);
+  if (decMatch && parseInt(decMatch[2], 10) < 60) {
+    const asDecimal = Math.round(parseFloat(`${decMatch[1]}.${decMatch[2]}`) * 60);
+    if (asDecimal !== minutes) {
+      hint = `Se lee como horas:minutos. Si querías ${decMatch[1]},${decMatch[2]} horas, escribe ${formatMinutes(asDecimal)}`;
+    }
+  } else if (/^\d+$/.test(clean)) {
+    const n = parseInt(clean, 10);
+    if (n > 8 && n <= 59) hint = `Se lee como ${n} minutos. Para horas escribe ${n}h`;
+  }
+
+  return { minutes, hint };
+}
+
+/**
  * Formatea una fecha ISO o YYYY-MM-DD a formato amigable en español
  */
 export function formatDateSpanish(dateStr: string): string {

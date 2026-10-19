@@ -104,13 +104,13 @@ export function ChatView({
                 #{channel.name}
               </h2>
               {channel.company && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-2xs bg-[#8E0E75]/10 text-[#8E0E75] border border-[#8E0E75]/20 truncate">
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-2xs bg-[#8E0E75]/10 text-[#8E0E75] border border-[#8E0E75]/20 truncate">
                   {channel.company.name}
                 </span>
               )}
             </div>
             {channel.description && (
-              <p className="text-[10px] text-[#4A4A4A] truncate max-w-md">
+              <p className="text-[11px] text-[#4A4A4A] truncate max-w-md">
                 {channel.description}
               </p>
             )}
@@ -202,14 +202,14 @@ export function ChatView({
                     <span className="text-xs font-extrabold text-[#292929]">
                       {msg.sender_name || 'Compañero Brain Up'}
                     </span>
-                    <span className="text-[10px] text-slate-400">
+                    <span className="text-[11px] text-slate-400">
                       {new Date(msg.created_at).toLocaleTimeString('es-ES', {
                         hour: '2-digit',
                         minute: '2-digit',
                       })}
                     </span>
                     {msg.is_pinned && (
-                      <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.2 rounded-2xs bg-amber-50 text-amber-800 border border-amber-200">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.2 rounded-2xs bg-amber-50 text-amber-800 border border-amber-200">
                         <Pin className="h-2.5 w-2.5" />
                         <span>Fijado</span>
                       </span>
@@ -222,11 +222,11 @@ export function ChatView({
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-1.5">
                           <CheckCircle2 className="h-3.5 w-3.5 text-[#8E0E75]" />
-                          <span className="text-[10px] font-black uppercase tracking-wider text-[#8E0E75]">
+                          <span className="text-[11px] font-black uppercase tracking-wider text-[#8E0E75]">
                             Tarea para: {msg.assigned_name || (isAssignedToMe ? 'Ti' : 'Equipo')}
                           </span>
                         </div>
-                        <span className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-2xs ${
+                        <span className={`text-[11px] font-extrabold uppercase px-1.5 py-0.5 rounded-2xs ${
                           msg.is_completed
                             ? 'bg-emerald-100 text-emerald-800'
                             : 'bg-amber-100 text-amber-800'
@@ -239,11 +239,11 @@ export function ChatView({
                         {msg.content}
                       </p>
 
-                      <div className="flex items-center justify-between pt-1 text-[10px]">
+                      <div className="flex items-center justify-between pt-1 text-[11px]">
                         <button
                           type="button"
                           onClick={() => onToggleCompleteActionItem(msg.id, msg.is_completed)}
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-xs font-extrabold uppercase text-[10px] transition-all cursor-pointer ${
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-xs font-extrabold uppercase text-[11px] transition-all cursor-pointer ${
                             msg.is_completed
                               ? 'bg-emerald-600 text-white'
                               : 'bg-white border border-[#3BB54A] text-[#3BB54A] hover:bg-emerald-50'
@@ -254,7 +254,7 @@ export function ChatView({
                         </button>
 
                         {msg.priority === 'urgent' && (
-                          <span className="text-red-600 font-extrabold uppercase text-[9px] tracking-wider">
+                          <span className="text-red-600 font-extrabold uppercase text-[11px] tracking-wider">
                             Prioridad Urgente
                           </span>
                         )}
@@ -296,7 +296,7 @@ export function ChatView({
                 {showAssignModal === msg.id && (
                   <div className="absolute right-2 top-10 bg-white border border-[#8E0E75] p-3 rounded-sm shadow-xl z-20 w-64 space-y-2 animate-in fade-in duration-150">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-black uppercase text-[#8E0E75]">
+                      <span className="text-[11px] font-black uppercase text-[#8E0E75]">
                         Asignar Tarea A:
                       </span>
                       <button
@@ -379,10 +379,10 @@ export function ChatView({
                     className="p-2.5 rounded-sm bg-white border border-[#D8CFF0] space-y-1.5 shadow-2xs"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold text-[#8E0E75]">
+                      <span className="text-[11px] font-bold text-[#8E0E75]">
                         @{task.assigned_name || 'Equipo'}
                       </span>
-                      <span className={`text-[8px] font-bold uppercase px-1 py-0.2 rounded-2xs ${
+                      <span className={`text-[11px] font-bold uppercase px-1 py-0.2 rounded-2xs ${
                         task.is_completed ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
                       }`}>
                         {task.is_completed ? 'Hecho' : 'Pendiente'}
@@ -394,7 +394,7 @@ export function ChatView({
                     <button
                       type="button"
                       onClick={() => onToggleCompleteActionItem(task.id, task.is_completed)}
-                      className="text-[10px] font-bold text-[#3BB54A] hover:underline cursor-pointer"
+                      className="text-[11px] font-bold text-[#3BB54A] hover:underline cursor-pointer"
                     >
                       {task.is_completed ? 'Desmarcar' : 'Completar ahora'}
                     </button>
@@ -435,7 +435,7 @@ export function ChatView({
                     key={msg.id}
                     className="p-2.5 rounded-sm bg-white border border-[#D8CFF0] space-y-1 shadow-2xs"
                   >
-                    <div className="flex items-center justify-between text-[10px] text-slate-400">
+                    <div className="flex items-center justify-between text-[11px] text-slate-400">
                       <span className="font-bold text-[#191654]">{msg.sender_name}</span>
                       <span>{new Date(msg.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</span>
                     </div>
@@ -445,7 +445,7 @@ export function ChatView({
                     <button
                       type="button"
                       onClick={() => onTogglePinMessage(msg.id, true)}
-                      className="text-[10px] font-bold text-slate-400 hover:text-red-600 transition-colors cursor-pointer"
+                      className="text-[11px] font-bold text-slate-400 hover:text-red-600 transition-colors cursor-pointer"
                     >
                       Desfijar
                     </button>
@@ -466,7 +466,7 @@ export function ChatView({
           {isActionItem && (
             <div className="p-2 bg-[#F8F6FC] border-b border-[#D8CFF0] flex flex-wrap items-center justify-between gap-2 text-xs">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black uppercase text-[#8E0E75] flex items-center gap-1">
+                <span className="text-[11px] font-black uppercase text-[#8E0E75] flex items-center gap-1">
                   <CheckCircle2 className="h-3 w-3" />
                   <span>Crear como Tarea para:</span>
                 </span>
@@ -486,7 +486,7 @@ export function ChatView({
                 <button
                   type="button"
                   onClick={() => setTaskPriority(taskPriority === 'urgent' ? 'normal' : 'urgent')}
-                  className={`px-2 py-0.5 rounded-xs text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer border ${
+                  className={`px-2 py-0.5 rounded-xs text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer border ${
                     taskPriority === 'urgent'
                       ? 'bg-red-600 text-white border-red-600'
                       : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'
