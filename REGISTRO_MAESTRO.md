@@ -827,3 +827,15 @@
   - Verificación estricta de compilación con `npx tsc --noEmit`: **0 errores**.
   - Peticiones HTTP 200 OK verificadas en `/hub`, `/dashboard/coordinator`, `/dashboard/employee`, `/apps/taskflow` y `/apps/chat`.
   - Integridad verificada de `Estudio_Usabilidad_Brain_Up_Grup.pdf` (exactamente 1,684,483 bytes, intacto).
+
+### [v2.9.0] - 2026-10-19 - Diseño de la Integración con Slack (sustituto del Chat Propio) y Esqueleto de API
+- **Solicitud del Usuario:** Tras el estudio de usabilidad, dejar de desarrollar el chat desde cero y conectar Slack por API para que su funcionalidad se refleje en el Hub, en especial en "Mi Resumen" (tareas asignadas, novedades por canal de cliente y mensajes fijados).
+- **Decisión Técnica:**
+  - **Documento de arquitectura:** `docs/INTEGRACION_SLACK.md` (Slack App interna con OAuth v2, scopes mínimos de bot, Events API + backfill por Web API en lugar de polling o Socket Mode, token del bot cifrado AES-256-GCM en Supabase accesible solo por service role, mapeo canal - empresa con convención `cli-<empresa>` (DM-04), tarea creada desde un atajo de mensaje de Slack y completada desde el Hub con aviso en el hilo).
+  - **Esquema:** `schema_slack.sql` con `slack_installations`, `slack_channel_links`, `slack_user_links`, `slack_messages`, `slack_tasks`, `slack_channel_reads`, RLS y Realtime.
+  - **Rutas API (`src/app/api/slack/*`):** `oauth/install`, `oauth/callback`, `events`, `interactivity`, `sync`, `summary`, `tasks/[id]`, `channels/[id]/seen`. Librerías en `src/lib/slack/*` y cliente `src/lib/supabase/admin.ts`. Sin dependencias nuevas (Web API vía `fetch`).
+  - **Variables:** `.env.example` amplía `SUPABASE_SERVICE_ROLE_KEY`, `SLACK_CLIENT_ID`, `SLACK_CLIENT_SECRET`, `SLACK_SIGNING_SECRET`, `SLACK_REDIRECT_BASE_URL`, `SLACK_TOKEN_ENCRYPTION_KEY`, `SLACK_SYNC_CRON_SECRET` (sin credenciales reales).
+  - **Chat actual intacto:** no se ha borrado nada. La lista de piezas a reutilizar (`summary-dashboard.tsx`, `types/chat.ts`, ruta `/apps/chat`) y a eliminar (`chat-view`, `channels-sidebar`, `rail-sidebar`, `create-channel-modal`, `chat-service.ts`, `schema_chat.sql`) queda en el documento, pendiente de confirmación del usuario.
+- **Validación y Pruebas:**
+  - Verificación estricta de compilación con `npx tsc --noEmit`: **0 errores**.
+  - Sin probar contra un workspace real de Slack (requiere crear la Slack App y ejecutar `schema_slack.sql`).
