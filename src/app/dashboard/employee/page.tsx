@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/navbar';
+import { CompanyHeroBanner } from '@/components/employee/company-hero-banner';
 import { TimeTrackerBar } from '@/components/employee/time-tracker-bar';
 import { EmployeeStats } from '@/components/employee/employee-stats';
 import { TimeEntriesList } from '@/components/employee/time-entries-list';
@@ -11,14 +12,18 @@ import { createClient } from '@/lib/supabase/client';
 import { MOCK_COMPANIES, MOCK_TIME_ENTRIES } from '@/lib/mock-data';
 import { Company, TimeEntry } from '@/types/database';
 import { Clock, ShieldCheck } from 'lucide-react';
+import { useTimer } from '@/context/timer-context';
 
 export default function EmployeeDashboardPage() {
   const router = useRouter();
   const { user, isLoading: authLoading, isSupabaseConnected } = useAuth();
+  const { setActiveCompany, activeCompanyId, setActiveCompanyId, startTimerWithEntry } = useTimer();
 
   const [companies, setCompanies] = useState<Company[]>([]);
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
 
   // Redirigir a login si no hay sesión o a admin si es super admin
   useEffect(() => {
@@ -89,9 +94,56 @@ export default function EmployeeDashboardPage() {
     fetchData();
   }, [user, isSupabaseConnected]);
 
+  // Seleccionar automáticamente la empresa y sincronizar con la cabecera
+  useEffect(() => {
+    if (companies.length > 0 && !selectedCompanyId) {
+      try {
+        const preferredId = activeCompanyId || localStorage.getItem('bug_clockify_last_company_id');
+        const found = preferredId && companies.find((c) => c.id === preferredId && c.is_active);
+        if (found) {
+          setSelectedCompanyId(found.id);
+          setActiveCompany(found);
+          return;
+        }
+      } catch (e) {
+        console.warn('Local storage error:', e);
+      }
+      const firstActive = companies.find((c) => c.is_active) || companies[0];
+      if (firstActive) {
+        setSelectedCompanyId(firstActive.id);
+        setActiveCompany(firstActive);
+      }
+    }
+  }, [companies, selectedCompanyId, activeCompanyId, setActiveCompany]);
+
+  const handleSelectCompany = (companyId: string) => {
+    setSelectedCompanyId(companyId);
+    setActiveCompanyId(companyId);
+    const comp = companies.find((c) => c.id === companyId) || null;
+    setActiveCompany(comp);
+  };
+
+  const selectedCompany = companies.find((c) => c.id === selectedCompanyId);
+
+  // Sincronizar activeCompany en TimerContext cuando cambia selectedCompany
+  useEffect(() => {
+    if (selectedCompany) {
+      setActiveCompany(selectedCompany);
+    }
+  }, [selectedCompany, setActiveCompany]);
+
+  // Handler para iniciar temporizador repitiendo una tarea previa
+  const handleRepeatEntry = (entry: TimeEntry) => {
+    setSelectedCompanyId(entry.company_id);
+    setActiveCompanyId(entry.company_id);
+    const comp = companies.find((c) => c.id === entry.company_id) || null;
+    setActiveCompany(comp);
+    startTimerWithEntry(entry.company_id, entry.description || '');
+  };
+
   // Handler para agregar nuevo registro
   const handleAddEntry = async (newEntryData: Omit<TimeEntry, 'id' | 'created_at' | 'user_id'>) => {
-    const selectedCompany = companies.find((c) => c.id === newEntryData.company_id);
+    const targetCompany = companies.find((c) => c.id === newEntryData.company_id);
 
     if (isSupabaseConnected && user) {
       const supabase = createClient();
@@ -105,7 +157,7 @@ export default function EmployeeDashboardPage() {
           end_time: newEntryData.end_time,
           duration_minutes: newEntryData.duration_minutes,
           description: newEntryData.description,
-          compute_type: newEntryData.compute_type || (selectedCompany?.client_type === 'cuota' ? 'cuota' : 'puntual'),
+          compute_type: newEntryData.compute_type || (targetCompany?.client_type === 'cuota' ? 'cuota' : 'puntual'),
         })
         .select('*, company:companies(*), profile:profiles(*)')
         .single();
@@ -127,9 +179,9 @@ export default function EmployeeDashboardPage() {
         end_time: newEntryData.end_time,
         duration_minutes: newEntryData.duration_minutes,
         description: newEntryData.description,
-        compute_type: newEntryData.compute_type || (selectedCompany?.client_type === 'cuota' ? 'cuota' : 'puntual'),
+        compute_type: newEntryData.compute_type || (targetCompany?.client_type === 'cuota' ? 'cuota' : 'puntual'),
         created_at: new Date().toISOString(),
-        company: selectedCompany,
+        company: targetCompany,
         profile: user || undefined,
       };
       setEntries((prev) => [mockEntry, ...prev]);
@@ -167,6 +219,24 @@ export default function EmployeeDashboardPage() {
     );
   };
 
+  // Handler para eliminar registro horario (solicitado: papelera a la derecha)
+  const handleDeleteEntry = async (id: string) => {
+    if (isSupabaseConnected) {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('time_entries')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        alert('Error eliminando registro: ' + error.message);
+        return;
+      }
+    }
+
+    setEntries((prev) => prev.filter((entry) => entry.id !== id));
+  };
+
   if (authLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#FFFFFF]">
@@ -184,57 +254,68 @@ export default function EmployeeDashboardPage() {
     <div className="min-h-screen bg-[#FFFFFF] flex flex-col w-full">
       <Navbar />
 
-      {/* Contenedor Líquido a pantalla completa con animación de entrada suave */}
-      <main className="page-transition flex-1 w-full px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {/* Cabecera Limpia y Perfectamente Alineada */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#EAE4F5] gap-3">
+      {/* Contenedor Compacto de Pantalla Única (Casi sin scroll) */}
+      <main className="page-transition flex-1 w-full px-4 sm:px-6 lg:px-8 py-3.5 space-y-3.5">
+        
+        {/* Cabecera compacta: HORAS POR CLIENTE */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-2 border-b border-[#EAE4F5] gap-2">
           <div>
-            <h1 className="text-xl sm:text-2xl font-extrabold uppercase tracking-tight text-[#292929] flex items-center gap-2.5">
-              <Clock className="h-6 w-6 text-[#8E0E75] shrink-0" />
-              <span>MI REGISTRO <span className="text-[#8E0E75]">HORARIO</span></span>
+            <h1 className="text-lg sm:text-xl font-black uppercase tracking-tight text-[#292929] flex items-center gap-2">
+              <Clock className="h-5 w-5 text-[#8E0E75] shrink-0" />
+              <span>HORAS POR <span className="text-[#8E0E75]">CLIENTE</span></span>
             </h1>
-            <p className="text-xs text-[#4A4A4A] font-light mt-0.5">
-              Control de jornada y tiempo imputado directamente por cliente
+            <p className="text-[11px] text-[#4A4A4A] font-light">
+              Control rápido de jornada y tiempo imputado por cliente
             </p>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-[#F8F6FC] border border-[#D8CFF0] text-[11px] font-extrabold uppercase tracking-wider text-[#8E0E75]">
-              <ShieldCheck className="h-3.5 w-3.5 text-[#8E0E75]" />
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-sm bg-[#F8F6FC] border border-[#D8CFF0] text-[10px] font-extrabold uppercase tracking-wider text-[#8E0E75]">
+              <ShieldCheck className="h-3 w-3 text-[#8E0E75]" />
               Supervisión de Agencia
             </span>
           </div>
         </div>
 
-        {/* Barra superior de registro por empresa */}
-        <section aria-label="Barra de entrada de horas" className="w-full">
-          <TimeTrackerBar
+        {/* 1. Empresa actual fijada (Compacta, con hueco para logo, sin CIF ni Responsable) */}
+        <section aria-label="Cliente en curso de trabajo" className="w-full">
+          <CompanyHeroBanner
             companies={companies}
-            onAddEntry={handleAddEntry}
+            selectedCompanyId={selectedCompanyId}
+            onSelectCompany={handleSelectCompany}
+            disabled={isTimerRunning}
           />
         </section>
 
-        {/* Resumen de horas en tarjetas fluidas */}
-        <section aria-label="Resumen de horas" className="w-full">
-          <EmployeeStats entries={entries} />
+        {/* 2. Barra de control de horas (con pop-ups de horas integrados y ticker de horas por empresa) */}
+        <section aria-label="Barra de control de horas" className="w-full">
+          <TimeTrackerBar
+            companies={companies}
+            selectedCompanyId={selectedCompanyId}
+            entries={entries}
+            onAddEntry={handleAddEntry}
+            onTimerRunningChange={setIsTimerRunning}
+          />
         </section>
 
-        {/* Historial de registros agrupados */}
-        <section aria-label="Historial de registros" className="w-full pt-2">
-          <div className="flex items-center justify-between mb-4">
+        {/* 3. Historial de registros agrupados con días desplegables y botón Repetir */}
+        <section aria-label="Historial de registros" className="w-full pt-1">
+          <div className="flex items-center justify-between mb-2.5">
             <div>
-              <h2 className="text-base sm:text-lg font-extrabold uppercase tracking-tight text-[#292929]">
+              <h2 className="text-sm sm:text-base font-black uppercase tracking-tight text-[#292929]">
                 REGISTROS RECIENTES <span className="text-[#8E0E75]">POR CLIENTE</span>
               </h2>
-              <p className="text-xs text-[#4A4A4A] font-light">Haz clic sobre cualquier hora o descripción para editarlo al instante</p>
+              <p className="text-[11px] text-[#4A4A4A] font-light">
+                Haz clic en cualquier día para plegar o desplegar • Pulsa "Repetir" para reanudar una tarea
+              </p>
             </div>
-            <div className="text-xs text-[#4A4A4A] font-medium tabular-nums">
-              Total de registros: <span className="font-extrabold text-[#8E0E75]">{entries.length}</span>
+            <div className="text-[11px] text-[#4A4A4A] font-medium tabular-nums">
+              Total tareas: <span className="font-extrabold text-[#8E0E75]">{entries.length}</span>
             </div>
           </div>
 
           {isLoading ? (
-            <div className="w-full p-12 text-center text-sm text-[#4A4A4A] bg-white rounded-sm border border-[#D8CFF0]">
+            <div className="w-full p-8 text-center text-xs text-[#4A4A4A] bg-white rounded-sm border border-[#D8CFF0]">
               Cargando registros de tiempo...
             </div>
           ) : (
@@ -242,6 +323,8 @@ export default function EmployeeDashboardPage() {
               entries={entries}
               companies={companies}
               onUpdateEntry={handleUpdateEntry}
+              onDeleteEntry={handleDeleteEntry}
+              onRepeatEntry={handleRepeatEntry}
             />
           )}
         </section>

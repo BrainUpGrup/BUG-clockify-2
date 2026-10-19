@@ -24,6 +24,7 @@ import {
   Receipt, 
   BookOpen, 
   Share2, 
+  MessageSquare,
   ArrowRight, 
   ShieldCheck, 
   Palette, 
@@ -109,6 +110,8 @@ export default function BrainUpHubPage() {
         return <BookOpen className={className} />;
       case 'Share2':
         return <Share2 className={className} />;
+      case 'MessageSquare':
+        return <MessageSquare className={className} />;
       default:
         return <CheckSquare className={className} />;
     }

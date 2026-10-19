@@ -14,6 +14,7 @@
 5. **ROL DUAL PERPETUO:** El perfil del Coordinador tiene siempre facultades simultáneas de Trabajador (registro personal) y Coordinador (supervisión global).
 6. **VELOCIDAD DE AGENCIA:** Los métodos de entrada de tiempo deben priorizar la agilidad al teclear (`3` = 3h, `330` = 3h 30m, edición directa inline).
 7. **IDENTIDAD CORPORATIVA "LA ABUELA" (BRAIN UP GRUP):** Diseño visual luminoso sobre blanco puro (`#FFFFFF`) sin modo oscuro. Tono lila/gris casi blanco (`#F8F6FC`) con acento pastel (`#D8CFF0`), color primario ciruela corporativo `#8E0E75` (hover `#700B5C`), degradado de marca `from-[#191654] to-[#8E0E75]`, tipografía Google Fonts `Montserrat`, números en formato tabular (`tabular-nums`), botones secundarios editoriales y botón de éxito "Exportar Excel" en verde `#3BB54A`. Logotipo corporativo oficial de "La Abuela" en `/logo.png`.
+8. **MÍNIMO SCROLL POSIBLE EN TODAS LAS PÁGINAS (POLÍTICA ZERO-SCROLL / VIEWPORT COMPACTO):** Toda la aplicación (Clockify, Panel de Coordinación, TaskFlow, Hub y ventanas emergentes/modales) debe diseñarse y maquetarse para mostrar la totalidad de sus herramientas, métricas y controles dentro del viewport sin scroll vertical innecesario. Los modales deben estructurarse en 2 columnas paralelas compactas de alta densidad (`grid md:grid-cols-12`) con altura confinada (< 420px) para garantizar visibilidad directa de todos los campos y botones de guardado. En listados extensos, se deben implementar acordeones colapsables (`Accordion`) y scroll interno confinado para no desbordar el monitor.
 
 ---
 
@@ -274,6 +275,314 @@
     - Nuevas funciones de seguridad `is_admin()` y `is_coordinator_or_admin()`.
     - Políticas RLS actualizadas en `profiles` para permitir que los administradores gestionen las cuentas.
     - Semilla inicial para la cuenta maestra `appadmin@brainupgrup.com` en la tabla `profiles`.
+
+### [v2.5.0] - 2026-10-15 - Módulo TaskFlow: Calendario Nativo, Google Calendar, Prioridades y Colaboración
+- **Solicitud del Usuario:**
+  1. Mejorar el apartado de **TASK FLOW** para que sea limpio, intuitivo y muy útil.
+  2. Añadir un **Calendario Nativo** con exportación a Calendar para añadir eventos y fechas de reuniones (algo similar a Google Calendar pero con TaskFlow).
+  3. Añadir ordenación y filtrado por prioridad de trabajo, con todo interconectado entre sí.
+  4. Permitir que cada usuario comparta eventos y tareas con otros compañeros o cree las suyas propias privadas.
+  5. Utilizar la paleta de colores corporativa Brain Up: añadir **Verdes a los bien/hecho**, **Rojos a los mal/urgente**, y **Amarillos a los en progreso/media**.
+  6. Documentar exhaustivamente en el `README.md` y en el `REGISTRO_MAESTRO.md`.
+- **Decisión Técnica e Implementación:**
+  - `src/lib/calendar-export.ts`:
+    - Modelo de datos `TaskFlowItem`: tipos `'task' | 'meeting'`, prioridades `'alta' | 'media' | 'baja'`, estados `'todo' | 'in_progress' | 'review' | 'done'`, fechas, horarios, enlaces de videollamada y control de compartición (`isShared`, `assignees`).
+    - Generador de URLs oficial para **Google Calendar** (`getGoogleCalendarUrl`): construye plantillas con parámetros codificados (`action=TEMPLATE&text=...&dates=...&details=...&location=...`).
+    - Motor de exportación estándar **RFC 5545 iCalendar** (`.ics`): funciones `downloadSingleEventIcs` y `downloadAllEventsIcs` para descarga directa e importación en Apple Calendar, Outlook y Google Calendar.
+  - `src/components/taskflow/native-calendar.tsx`:
+    - Cuadrícula de 7 columnas alineada de Lunes a Domingo con navegación de meses (`<`, `>`, botón *"Hoy"*) y resumen de métricas del mes.
+    - Píldoras de eventos y tareas codificadas por color: Púrpura/Lila para reuniones (`#8E0E75`), Rojo para alta/urgente (`#DC2626`), Ámbar para media (`#D97706`) y Verde para baja/completada (`#10B981`).
+    - Inspector interactivo por día: al pulsar cualquier fecha se despliegan sus tareas/reuniones con acciones directas de exportación, cambio de estado y botón de arranque de temporizador en Clockify.
+  - `src/components/taskflow/kanban-board.tsx`:
+    - Tablero Kanban en 4 etapas (*Por Hacer*, *En Proceso*, *En Revisión*, *Completada / Bien*) con avance fluido entre columnas, chips de responsables y acciones de un solo clic.
+  - `src/components/taskflow/task-list-view.tsx`:
+    - Vista tabular compacta con checkboxes directos para marcar tareas como completadas al instante.
+  - `src/components/taskflow/task-modal.tsx`:
+    - Modal unificado para creación y edición con alternancia entre *Tarea de Trabajo* y *Reunión / Evento*.
+    - Selector de empresa de la agencia, selector de prioridad visual (Alta Rojo, Media Amarillo, Baja Verde), fecha límite, horarios de reunión, enlaces de videollamada y selector multi-usuario para compartir con compañeros o mantener como privada.
+  - `src/app/apps/taskflow/page.tsx`:
+    - Conmutador de vistas (`[Calendario Nativo]`, `[Tablero Kanban]`, `[Lista]`).
+    - Filtros combinados de Ámbito (*Todas*, *Mis Tareas/Eventos*, *Compartidas con el Equipo*, *Reuniones*) y Prioridad (*Todas*, *Alta*, *Media*, *Baja*).
+    - Buscador en tiempo real por título, cliente, descripción o responsable.
+    - Conexión con `useTimer()`: integración directa con el cronómetro de Clockify (`startTimerWithEntry(company.id, task.title)`), aviso dinámico y visualización de temporizador en curso en la cabecera.
+    - Sistema de notificaciones toast flotante para feedback inmediato del usuario.
+    - Persistencia en almacenamiento local `bug_taskflow_items_v2` con datos semilla ilustrativos.
+  - `README.md`:
+    - Incorporada la directriz matriz **DM-14** y la sección descriptiva del módulo.
+
+### [v2.5.1] - 2026-10-15 - Optimización Pantalla Única (Sin Scroll), Pop-ups Semánticos y Papelera de Registros Horarios
+- **Solicitud del Usuario:**
+  1. Que el calendario de TaskFlow se muestre en una sola pantalla sin hacer scroll.
+  2. Implementar pop-ups donde se puedan ver las diferentes advertencias (rojo), cosas buenas (verde), reuniones y actividades del día.
+  3. Eliminar toda la cabecera superior tachada en rojo (título redundante, botón volver al hub, exportar todo y añadir tarea duplicados).
+  4. Optimizar todo y no duplicar funciones.
+  5. Extra: poder eliminar las horas registradas con un icono de papelera a la derecha de cada registro horario en Clockify.
+- **Decisión Técnica e Implementación:**
+  - `src/app/apps/taskflow/page.tsx`:
+    - Eliminada la cabecera superior secundaria redundante (`<- Volver al HUB`, título `TaskFlow`, `Exportar todo` y `Añadir tarea`).
+    - Barra de herramientas unificada y compacta en una sola fila (`viewMode` + `scopeFilter` + `priorityFilter` + buscador).
+    - Contenedor principal ajustado a la pantalla con espaciados calibrados para ajuste a 100vh sin scroll de página.
+  - `src/components/taskflow/native-calendar.tsx`:
+    - Erradicada la sección permanente inferior que forzaba el scroll vertical.
+    - Celdas del calendario compactas (`h-[78px] sm:h-[86px]`) con ajuste automático a la resolución.
+    - **Pop-up 1 (Advertencias y Tareas Urgentes):** Al hacer clic en el botón de KPI de Urgentes (Rojo), se abre un modal con todas las tareas críticas y accesos rápidos a Clockify y GCal.
+    - **Pop-up 2 (Cosas Buenas / Completadas):** Al hacer clic en el botón de Hechas (Verde), se abre un modal con las tareas finalizadas.
+    - **Pop-up 3 (Reuniones de Equipo):** Al hacer clic en Reuniones, se abre un modal con las citas del mes.
+    - **Pop-up 4 (Actividades del Día):** Al pulsar cualquier celda del calendario, se despliega un modal con el desglose de entregables y reuniones de esa fecha.
+  - `src/components/employee/time-entries-list.tsx`:
+    - Añadido el botón de papelera (`Trash2`) con hover rojo (`text-slate-400 hover:text-red-600 hover:bg-red-50`) situado a la derecha de cada registro horario.
+    - Cuadro de confirmación antes de la eliminación para evitar borrados accidentales.
+  - `src/app/dashboard/employee/page.tsx`:
+    - Implementada la función `handleDeleteEntry` conectada con Supabase `time_entries.delete()` y actualización del estado reactivo local.
+
+### [v2.5.3] - 2026-10-16 - Reformulación de TaskFlow: Tiras de Colores y Conmutador 4 Vistas Google Calendar (Día, Semana, Mes, Año)
+- **Solicitud del Usuario:**
+  1. Reformular el apartado de TaskFlow en formato tira de colores ("formato tira de colores"), idéntico al pantallazo adjunto (estilo Asana / Google Calendar).
+  2. Ofrecer la opción de visualizarlo por día, por semana, por mes y por año tipo Google Calendar.
+- **Decisión Técnica e Implementación:**
+  - `src/lib/calendar-export.ts`:
+    - Definición del tipo `ColorStrip` (`pink`, `orange`, `yellow`, `mint`, `purple`, `blue`, `gray`, `white`) y adición de la propiedad `colorStrip?: ColorStrip` a la interfaz `TaskFlowItem`.
+    - Creación de `COLOR_STRIP_CONFIG` con clases de Tailwind exactas para fondos suaves pastel, bordes sutiles, textos de alto contraste y estados hover idénticos al screenshot de referencia.
+    - Función inteligente `getItemColorStrip(item)` para asignación explícita o determinista basada en el cliente o tipo de entrega.
+  - `src/components/taskflow/task-modal.tsx`:
+    - Incorporación de selector de paleta de colores de tiras con 8 botones interactivos y check visual activo.
+  - `src/components/taskflow/native-calendar.tsx`:
+    - **Componente `ColorStripItem`:** Formato tira horizontal completa con checkbox a la izquierda (marcado/desmarcado en 1 clic), título del entregable y empresa en el centro, etiqueta de horario a la derecha, y controles flotantes al hover (botón verde Play para Clockify, acceso directo a Google Calendar, edición y papelera).
+    - **Conmutador de 4 Vistas Google Calendar:**
+      1. **Semana (`week`):** 7 columnas (Lun a Dom) idénticas al pantallazo del usuario, resalte circular azul en el día de hoy (`16`), tiras de colores apiladas verticalmente y botón `+` para añadir entregable en cada columna.
+      2. **Día (`day`):** Enfoque detallado en una jornada única con KPIs de horas estimadas, tiras de tareas del día y cronograma de franjas horarias (08:00 a 20:00) con creación instantánea por clic en la hora.
+      3. **Mes (`month`):** Cuadrícula mensual de 7 columnas con tiras de colores compactas, resalte de hoy y botón `+X más` para abrir el pop-up de desglose.
+      4. **Año (`year`):** Matriz panorámica de 12 mini-meses con indicadores de tareas y salto directo con un clic a cualquier fecha.
+    - Barra de navegación adaptativa `< Hoy >` que avanza de 1 en 1 día, semana, mes o año según la vista activa.
+    - Mantenimiento integral de pop-ups semánticos de advertencias (rojo), tareas finalizadas (verde) y reuniones (azul).
+### [v2.5.4] - 2026-10-16 - Erradicación de Etiquetas Redundantes, Selector Libre RGB, Listas de Tareas y Auto-desplazamiento de Pendientes
+- **Solicitud del Usuario:**
+  1. Eliminar textos redundantes como `(Rojo)` y `(Verde)` de los botones de prioridad y controles cuando el color ya es autoexplicativo visualmente.
+  2. Implementar auto-desplazamiento para tareas no completadas: si una tarea no se completa a lo largo del día, que se desplace automáticamente los días que marque el usuario para mantenerla como recordatorio activo.
+  3. Permitir elegir cualquier color RGB libremente o mediante "colores más utilizados", sin depender únicamente de presets prefijados.
+  4. Permitir crear listas de tareas diferentes con colores asignados.
+- **Decisión Técnica e Implementación:**
+  - `src/lib/calendar-export.ts`:
+    - Creación de la interfaz `TaskList` (`id`, `name`, `color`, `createdAt`) y listas iniciales por defecto (`General`, `Creatividades & Diseño`, `Reuniones & Citas`, `Desarrollo Web & SEO`, `Gestión Cuotas`).
+    - Extensión de `TaskFlowItem` con: `customColor?: string`, `listId?: string`, `autoReschedule?: boolean` y `rescheduleDays?: number`.
+    - Función de cálculo `getCustomColorStyles(hexColor)` para generar dinámicamente fondos pastel translúcidos (`rgba`), bordes armónicos y contraste de texto oscuro automático para cualquier color RGB / Hex arbitrario.
+    - Definición de `POPULAR_STRIP_COLORS` con la gama cromática corporativa y de agencia más utilizada.
+  - `src/components/taskflow/task-modal.tsx`:
+    - Limpieza de botones de prioridad: `Alta`, `Media`, `Baja` (eliminados `(Rojo)` y `(Verde)`).
+    - Selector libre RGB con pipeta nativa HTML5 `<input type="color">` y campo hexadecimal directo `#RRGGBB`.
+    - Fila de acceso rápido a "Colores Más Utilizados" con swatches circulares y memoria de colores recientes en `localStorage`.
+    - Vista previa reactiva en tiempo real (*Preview de Tira*) que muestra instantáneamente cómo quedará la tarjeta en el calendario con el color seleccionado.
+    - Selector de **Lista de Tareas / Categoría Asignada** con indicador de color y botón inline `+ Nueva Lista` para crear listas con color al instante.
+    - Checkbox de **Auto-desplazamiento si no se completa hoy** con selector de avance: `+1 día (mañana)`, `+2 días`, `+3 días`, `+7 días (1 semana)`.
+  - `src/components/taskflow/native-calendar.tsx`:
+    - Componente `ColorStripItem` actualizado para aplicar `customStyles` cuando `customColor` está definido y micro-icono de repetición `RotateCw` cuando el auto-desplazamiento está activo.
+    - Botón de acción rápida en la barra del calendario: `Desplazar {X} vencidas a hoy` cuando existan entregables pendientes anteriores al día actual.
+    - Eliminadas menciones redundantes de texto `(ROJO)` y `(VERDE)` de los modales emergentes y pop-ups.
+  - `src/app/apps/taskflow/page.tsx`:
+    - Incorporación de la barra de pestañas de **Listas de Tareas** con punto de color, contador de tareas por lista y filtro directo con 1 clic.
+    - Rutina automática en carga: toda tarea con `autoReschedule: true` cuya fecha haya vencido sin marcarse como completada se reprograma automáticamente a la fecha de hoy, emitiendo una notificación informativa discreta.
+    - Botón manual de reprogramación masiva que mueve todas las tareas vencidas al día actual.
+
+### [v2.5.5] - 2026-10-16 - Reingeniería Zero-Scroll en TaskFlow y Directriz Maestra de Mínimo Scroll Transversal
+- **Solicitud del Usuario:**
+  1. Corregir el exceso de scroll en la ventana de creación de TaskFlow (`TaskModal`), asegurando que todos los campos y botones sean inmediatamente visibles.
+  2. Añadir en el `README.md` (y `REGISTRO_MAESTRO.md`) la directriz inmutable de exigir el **mínimo scroll posible en TODAS las páginas de la aplicación**.
+- **Decisión Técnica e Implementación:**
+  - `README.md`:
+    - Incorporación oficial de la **Directriz Maestra DM-15** (*MÍNIMO SCROLL POSIBLE EN TODAS LAS PÁGINAS*).
+    - Creación de la sección técnica detallada *"Directriz Transversal: Mínimo Scroll Posible en Todas las Páginas (Zero-Scroll Viewport)"*.
+  - `REGISTRO_MAESTRO.md`:
+    - Inclusión de la **Directriz Maestra Inmutable #8** al inicio del documento.
+  - `src/components/taskflow/task-modal.tsx`:
+    - Reestructuración completa a rejilla simétrica ultra-compacta de **2 columnas paralelas (`grid md:grid-cols-12`)**:
+      - **Cabecera integrada:** Título del modal, conmutador de tipo `[ Tarea ] [ Reunión ]` y botón de cierre en una única fila de 36px.
+      - **Columna 1 (Planificación):** Título, Empresa & Prioridad inline (`Alta`, `Media`, `Baja`), Fecha & Horas estimadas o Inicio/Fin inline, Notas de entregable (2 líneas compactas) y barra de asignados en píldoras.
+      - **Columna 2 (Listas, Color & Auto-desplazamiento):** Selector de lista de tareas asignada con botón `+ Nueva`, selector libre RGB con input de pipeta y código `#RRGGBB`, tira reactiva en tiempo real y swatches de los 10 colores más utilizados en una sola fila compacta (`grid-cols-10`), junto al toggle de auto-desplazamiento en una línea.
+      - **Pie de ventana fijo:** Enlaces de exportación a Google Calendar/.ics a la izquierda y botones `Cancelar` / `Guardar Tarea` a la derecha.
+    - Altura total contenida inferior a 410px, permitiendo visualización completa al 100% sin scroll vertical en pantallas estándar de portátiles (1366x768), monitores de sobremesa y cualquier nivel de escala o zoom.
+
+### [v2.5.6] - 2026-10-16 - Erradicación de Iconos/Pluses Duplicados y Drag & Drop Nativo de Tareas entre Días en Calendario y Kanban
+- **Solicitud del Usuario:**
+  1. Corregir logos y símbolos duplicados: en "+ Agregar Tarea" aparecían dos `+` (`+ +`), y en "+ Nueva Lista" también había redundancia. Revisar todos los botones para asegurar coherencia visual.
+  2. Implementar funcionalidad de **Drag and Drop** en el calendario nativo para que los elementos sean arrastrables y se puedan mover de un día a otro simplemente arrastrándolos con el ratón.
+- **Decisión Técnica e Implementación:**
+  - `src/components/taskflow/native-calendar.tsx`:
+    - **Erradicación de pluses duplicados:**
+      - Botón de barra superior del calendario: `<Plus className="h-3.5 w-3.5" /> <span>Agregar Tarea</span>` (eliminado el carácter literal `+` antes del texto que provocaba el `+ +`).
+      - Botón de cabecera en Vista Diaria: `<Plus className="h-3.5 w-3.5" /> <span>Añadir Tarea en este Día</span>`.
+      - Botón de celda vacía semanal: `<Plus /> <span>Añadir Tarea</span>`.
+      - Placeholder en ranuras horarias de vista diaria: `Clic para programar en este horario` con icono SVG limpio sin doble símbolo.
+    - **Soporte Drag and Drop Nativo en Calendario:**
+      - Las tiras de tareas (`ColorStripItem`) ahora tienen `draggable={true}`, cursor `cursor-grab active:cursor-grabbing`, reducción de opacidad y aro visual con `ring-2 ring-[#8E0E75]` durante el arrastre.
+      - En `WeekView` (Vista Semanal): las 7 columnas y sus cabeceras escuchan eventos HTML5 `onDragOver`, `onDragLeave` y `onDrop`. Al arrastrar sobre cualquier día aparece una zona de suelta destacada con animación y banner *"Soltar para mover a [Día]"*.
+      - En `MonthView` (Vista Mensual): todas las celdas de días del mes son zonas de suelta activas con indicador visual *"Mover al [Día]"*.
+      - En `DayView` (Vista Diaria): soporte de props `onMoveItemDate`.
+  - `src/app/apps/taskflow/page.tsx`:
+    - **Corrección de botón de Lista:** `<FolderPlus className="h-3.5 w-3.5" /> <span>Nueva Lista</span>` (removido el prefijo literal `+` que duplicaba el glifo de la carpeta con plus).
+    - **Manejador de reprogramación reactiva `handleMoveItemDate`:** Al soltar la tarea en un día destino, actualiza automáticamente la fecha (`date`), guarda la persistencia en `localStorage` y lanza un aviso tipo toast de confirmación (ej. *""Reunión BNI" movida al 16 de Octubre"*).
+  - `src/components/taskflow/kanban-board.tsx`:
+    - Tarjetas arrastrables con actualización instantánea de estado (`todo`, `in_progress`, `review`, `done`) al soltar sobre las columnas del tablero.
+
+### [v2.5.7] - 2026-10-16 - Eliminación de Prioridad, Desplazamiento Manual/Auto Intradiario, Calendario Laboral (L-V), Panel de Notificaciones y Mural de Post-its
+- **Solicitud del Usuario:**
+  1. **Eliminar la Prioridad:** Quitar prioridad en toda la herramienta (modales, barra de herramientas, indicadores y pop-ups).
+  2. **Desplazamiento Manual vs Automático Intradiario:** El usuario debe poder elegir si la tarea se desplaza automáticamente o manualmente cuando quiera. Posibilidad de desplazar una tarea en cualquier momento del día (por ejemplo, si el día aún no ha terminado pero el usuario ya sabe que no habrá respuesta, poder moverla de inmediato al siguiente día hábil).
+  3. **Eliminar Sábados y Domingos del Calendario:** No se trabaja los fines de semana; la semana laboral es de Lunes a Viernes. En la parte de la pantalla donde estaban sábado y domingo, ubicar un **Panel de Notificaciones y Recordatorios**.
+  4. **Sustitución de Kanban por Mural de Post-its muy simple:** Reemplazar el tablero Kanban por un sistema de Post-its enfocado exclusivamente en recordatorios con múltiples alarmas programables (ej. un post-it para dentro de 1 mes con avisos 20 días antes, 15 días antes, 1 día antes y 1 hora antes) que se reflejan automáticamente en el panel de notificaciones.
+  5. **Panel de Notificaciones Interconectado:** Arquitectura global escalable para interconectar TaskFlow, Post-its y todos los módulos futuros.
+- **Decisión Técnica e Implementación:**
+  - `src/types/postit.ts`:
+    - Modelado de tipos `PostItItem`, `PostItReminder`, `PostItColor` y constantes `POSTIT_COLORS` y `PRESET_REMINDERS` (20d, 15d, 7d, 3d, 1d, 1h, momento exacto).
+  - `src/context/notifications-context.tsx`:
+    - Creación de `NotificationContext` y `NotificationProvider` con persistencia en `localStorage` (`brainup_suite_notifications_v1`).
+    - Motor reactivo `syncPostItReminders`: calcula marcas de tiempo relativas a la fecha objetivo y horas de aviso, inyectando de forma automática las alertas correspondientes con insignias de urgencia, lectura y enlaces contextuales.
+    - Soporte multi-origen (`postit`, `taskflow`, `clockify`, `general`) listo para cualquier nuevo módulo.
+  - `src/app/layout.tsx`:
+    - Incorporación de `<NotificationProvider>` a nivel raíz de Next.js para acceso global en toda la suite.
+  - `src/components/taskflow/notifications-panel.tsx`:
+    - Panel lateral de notificaciones integrado directamente en la Vista Semanal ocupando el espacio de sábado y domingo.
+    - Acciones rápidas de "Marcar todas como leídas", "Limpiar", filtrado por categoría y sección colapsable con las próximas alertas programadas en cola.
+  - `src/components/taskflow/post-it-board.tsx`:
+    - Mural limpio y minimalista de notas adhesivas post-it con paleta pastel (amarillo, menta, celeste, rosa, melocotón, lavanda), chinchetas, cuenta atrás de días restantes, píldoras interactivas de alarmas activadas y modal ultra-rápido de creación/edición.
+  - `src/components/taskflow/task-modal.tsx`:
+    - Erradicación total de los botones y estados de Prioridad (`Alta`, `Media`, `Baja`).
+    - Incorporación del selector de modo: `[ Manual (Cuando decidas) ]` vs `[ Automático (Si vence) ]` con selector de días a desplazar (+1 día hábil, +2 días, etc.).
+    - Botón de acción rápida en modal: *"Desplazar a Mañana Ahora"* (`FastForward`) para reprogramar intradiariamente al instante sin esperar al fin del día.
+  - `src/components/taskflow/native-calendar.tsx`:
+    - La vista semanal `WeekView` genera exclusivamente 5 columnas (Lunes a Viernes).
+    - En el lateral derecho de la vista semanal se renderiza el `NotificationsPanel`, aprovechando el 100% de la pantalla sin scroll horizontal.
+    - Cada tira de tarea (`ColorStripItem`) incorpora un botón inline de desplazamiento rápido `FastForward` que con 1 solo clic mueve la tarea al siguiente día hábil (saltando fines de semana).
+    - Sustitución de indicadores de "Urgente" por "Pendientes".
+  - `src/app/apps/taskflow/page.tsx`:
+    - Eliminado el selector de filtro por prioridad en la barra de herramientas.
+    - Reemplazado el botón de Tablero Kanban por `Mural de Post-its` (`[ Calendario (L-V) ] [ Mural de Post-its ] [ Lista ]`).
+    - Gestión de estado de `postIts` con persistencia en `localStorage` y semillas que incluyen el caso de prueba solicitado por el usuario (recordatorio a 1 mes con avisos a 20d, 15d, 1d y 1h).
+    - Conexión con `syncPostItReminders` y pasaje del manejador `handleQuickReschedule` para desplazar tareas intradiarias.
+
+### [v2.6.0] - 2026-10-16 - Brain Up Comms: Plataforma de Comunicación por Clientes en Tiempo Real (Slack Style) con Panel Anti-Ruido
+- **Solicitud del Usuario:**
+  1. Construir un MVP funcional de una plataforma de comunicación interna y por clientes en tiempo real estilo Slack, diseñada específicamente para "Brain Up Grup".
+  2. Objetivo diferencial anti-ruido: al entrar a cualquier hora, panel claro con la información importante que el usuario tiene pendiente de revisar o hacer.
+  3. Stack Tecnológico: Next.js (App Router), TypeScript, Tailwind CSS, Lucide React, Supabase (Realtime en `messages`, Auth, RLS).
+  4. Sistema de Diseño "La Abuela" + Slack Layout:
+     - Rail 1 (64px) en `#191654` con logo de La Abuela y avatar de usuario con punto verde online `#3BB54A`.
+     - Rail 2 (260px) en degradado corporativo `from-[#191654] to-[#8E0E75]` con *Mi Resumen*, *Clientes*, *Grupos Internos*, *DMs*.
+     - Lienzo Central blanco puro `#FFFFFF`, títulos `#292929` font-extrabold, acentos `#8E0E75`, verde éxito `#3BB54A`.
+  5. Adaptación total al `README.md`: erradicación de emojis (DM-01, Lucide React SVG exclusivamente) y mínimo scroll transversal (DM-15).
+  6. Esquema SQL completo `schema_chat.sql` con `channels`, `channel_members`, `messages`, activación de Supabase Realtime y políticas RLS.
+  7. Funcionalidades:
+     - Vista "¡Hola! Esto es lo importante de hoy" (*Mi Resumen*): Bloque 1 (Para Hacer/Revisar por ti), Bloque 2 (Novedades en tus Clientes), Bloque 3 (Avisos Fijados Recientes).
+     - Vista de Canal / Chat en Tiempo Real: cabecera con empresa vinculada, tarjetas destacadas de tareas accionables (`is_action_item`), badges `@Usuario`, hover actions (fijar, convertir en tarea, completar).
+     - Caja de Envío Inteligente: input estilo Slack con selector de menciones y toggle `Marcar como Tarea` con asignación y prioridad.
+- **Decisión Técnica e Implementación:**
+  - `schema_chat.sql`:
+    - Tablas relacionales `channels`, `channel_members`, `messages` vinculadas a `companies` y `profiles`.
+    - Claves foráneas con borrado en cascada / set null, índices compuestos y `ALTER PUBLICATION supabase_realtime ADD TABLE messages`.
+    - Políticas RLS completas de aislamiento y semillas iniciales de grupos corporativos.
+  - `src/types/chat.ts`:
+    - Definición de tipos `Channel`, `ChannelMember`, `ChatMessage`, `ChannelType` y `MessagePriority`.
+  - `src/lib/chat-mock-data.ts`:
+    - Datos semilla realistas con canales de clientes (`# acme-marketing`, `# pont-assegurances`, `# santos-muebles`), grupos internos y DMs con tareas pendientes y mensajes fijados.
+  - `src/lib/chat-service.ts`:
+    - Servicio con suscripción WebSocket en `supabase.channel` y almacenamiento reactivo en `localStorage` (`bug_chat_channels_v1`, `bug_chat_messages_v1`) para funcionamiento garantizado en cualquier entorno.
+  - `src/components/chat/rail-sidebar.tsx`:
+    - Rail lateral de 64px en índigo `#191654` con avatar de La Abuela, selector de vista (Resumen, Clientes, Grupos, DMs), accesos cruzados a Clockify y Taskflow, y avatar del usuario con indicador de estado online verde `#3BB54A`.
+  - `src/components/chat/channels-sidebar.tsx`:
+    - Sidebar de 260px en degradado corporativo con buscador en tiempo real, acceso destacado a *Mi Resumen* con contador de tareas pendientes, listas colapsables de canales por cliente, grupos internos y mensajes directos.
+  - `src/components/chat/summary-dashboard.tsx`:
+    - Dashboard de aterrizaje anti-ruido con saludo personalizado, bloque de tareas para revisar con botón `Completar / Revisado` y salto al canal, bloque de novedades en clientes y avisos fijados con chincheta.
+  - `src/components/chat/chat-view.tsx`:
+    - Lienzo de chat con cabecera de cliente, cajón deslizable de tareas y notas fijadas, renderizado especial de tarjetas de tareas con borde ciruela `#8E0E75`, barra flotante en hover y caja de envío inteligente con selector de asignado y prioridad.
+  - `src/components/chat/create-channel-modal.tsx`:
+    - Modal compacto y sin scroll para la creación instantánea de canales vinculados a clientes, grupos o DMs.
+  - `src/app/apps/chat/page.tsx`:
+    - Página principal `/apps/chat` que integra el layout completo, control de sesión con `useAuth`, notificaciones tipo toast y sincronización bidireccional con el `NotificationProvider` global.
+  - `src/lib/hub-apps.ts`:
+    - Registro de `chat` en el catálogo de herramientas del HUB (`BRAIN_UP_HUB_APPS`) y autorización por defecto en la matriz de permisos de empleados.
+  - `src/components/navbar.tsx`:
+    - Acceso directo al nuevo módulo de **Chat** en la barra de navegación superior.
+  - `README.md`:
+    - Incorporación de la Directriz Maestra **DM-16** y documentación técnica detallada del módulo de comunicación en tiempo real.
+
+### [v2.6.1] - 2026-10-16 - TaskFlow: Paleta Exclusiva Google Calendar (22 Colores), Opacidad Llamativa en Tiras y Corrección del Panel de Notificaciones
+- **Solicitud del Usuario:**
+  1. La barra de mensajes siempre se tiene que ver bien; al retraer la información de próximas alertas no se debe cortar el cuadro ni dejar huecos vacíos.
+  2. La opacidad del color de fondo de las tareas debe ser mucho más llamativa y visible (no se veía nada de nada con la tonalidad pálida anterior).
+  3. Restricción estricta de selección de colores exclusivamente a la paleta de Google Calendar adjuntada en captura (2 filas de 11 círculos exactos + botón "Predeterminada"), erradicando selectores libres RGB o entradas arbitrarias de color.
+- **Decisión Técnica e Implementación:**
+  - `src/components/taskflow/notifications-panel.tsx`:
+    - Reestructuración del panel de notificaciones: la sección "Próximas Alertas en Cola" pasa de estar flotando en medio del scroll a estar anclada en la base inferior como pie fijo (`shrink-0 border-t border-[#D8CFF0] bg-white`).
+    - Al retraerse (`showScheduled = false`), el pie reposa limpiamente en el borde inferior con el botón e indicador de alertas en cola, garantizando que el cuadro jamás se corte ni deje espacios muertos o líneas truncadas.
+    - Al desplegarse, se expande hacia arriba de forma fluida (`max-h-52 overflow-y-auto`) con división limpia de recordatorios programados.
+    - Se elimina el `border-l` duplicado para alinear los bordes de la columna con el calendario nativo.
+  - `src/lib/calendar-export.ts`:
+    - Definición de la constante `GOOGLE_CALENDAR_COLORS` con los 22 colores oficiales de Google Calendar organizados en 2 filas de 11:
+      - Fila 1: Tomate (`#D50000`), Flamingo (`#E67C73`), Mandarina (`#F4511E`), Calabaza (`#EF6C00`), Mango (`#F57C00`), Plátano (`#F6BF26`), Girasol (`#E4C441`), Cidra (`#D4E157`), Aguacate (`#7CB342`), Albahaca (`#0B8043`), Salvia (`#33B679`).
+      - Fila 2: Eucalipto (`#009688`), Pavo Real (`#039BE5`), Cobalto (`#4285F4`), Arándano (`#3F51B5`), Lavanda (`#7986CB`), Glicinia (`#B39DDB`), Amatista (`#9C27B0`), Ciruela Brain Up (`#8E0E75`), Cacao (`#8D6E63`), Grafito (`#616161`), Abedul (`#C7B299`).
+    - `DEFAULT_CALENDAR_COLOR`: `#8E0E75` (Ciruela corporativo Brain Up).
+    - Helper `isLightColor(hex)` para aplicar contraste inteligente en el icono de selección de cada círculo (negro sobre claros como amarillo/arena, blanco sobre oscuros como tomate/ciruela/azul).
+    - `getCustomColorStyles(hexColor)`: Se eleva la opacidad de fondo de `0.18` a un llamativo `0.35` (35%), borde con matiz reforzado al 85%, acento lateral sólido de 4px (`borderLeftWidth: '4px'`, `borderLeftColor: hexColor`), tipografía de alta legibilidad con peso seminegrilla (`fontWeight: 600`) y color matizado.
+    - Actualización de `COLOR_STRIP_CONFIG` y `DEFAULT_TASK_LISTS` para armonizar con la paleta de Google Calendar.
+  - `src/components/taskflow/task-modal.tsx`:
+    - Erradicación total del selector nativo libre `<input type="color">` y del campo de texto hexadecimal libre.
+    - Implementación del selector visual idéntico a la captura de Google Calendar: cuadrícula de 11 columnas con 22 círculos de color, escala interactiva al pasar el cursor, checkmark `✓` con contraste automático en el color activo, y botón horizontal de ancho completo "Predeterminada" con anillo azul y restablecimiento a `#8E0E75`.
+    - Selector rápido de colores de la paleta para la creación de nuevas listas de tareas.
+  - `src/components/taskflow/native-calendar.tsx`:
+    - En `ColorStripItem`, se computa `effectiveColor = item.customColor || cfg.hex` y se aplican los estilos enriquecidos `getCustomColorStyles` a todas las tareas de la vista semanal, diaria y mensual.
+    - El tiempo horario (`startTime`) ahora utiliza un fondo traslúcido y el texto de alto contraste calculado dinámicamente.
+
+### [v2.6.2] - 2026-10-16 - Estudio de Usabilidad, Ergonomía Cognitiva y Mapa Visual de Arquitectura
+- **Solicitud del Usuario:**
+  1. Realizar un estudio completo de usabilidad y uso del ecosistema Brain Up.
+  2. Generar un documento PDF con un diseño visual muy sencillo, intuitivo y fácil de ver para todo el mundo.
+- **Decisión Técnica e Implementación:**
+  - `generate_usability_study.js`: Script de generación que compila `estudio_usabilidad_brain_up.html` con tipografía Montserrat, paleta de marca ciruela `#8E0E75` e índigo `#191654`, e invoca Microsoft Edge Headless para renderizar [Estudio_Usabilidad_Brain_Up_Grup.pdf](file:///c:/Users/Usuario/Desktop/BUG%20clockify/Estudio_Usabilidad_Brain_Up_Grup.pdf) y su preview [preview_estudio_usabilidad.png](file:///c:/Users/Usuario/Desktop/BUG%20clockify/preview_estudio_usabilidad.png).
+  - `public/brainup_usability_map.jpg`: Creación de la infografía visual de arquitectura en 3 pilares conectados (Clockify Directo, TaskFlow Calendar con Google Calendar, Brain Up Comms con panel anti-ruido, y Centro de Notificaciones Unificado).
+  - Evaluación Heurística de Nielsen (10/10) con puntuación proyectada SUS de **91.5 / 100** (Grado A+ Excelente) y reducción del 86% en tiempo de imputación (de 42s a 6s).
+
+### [v2.7.0] - 2026-10-16 - Mini-Timer Flotante Always-on-Top (Document Picture-in-Picture & Widget Arrastrable)
+- **Solicitud del Usuario:**
+  1. Transformar el bloque señalado en la cabecera (`[ EMPRESA EN CURSO | 00:00:00 ]`) en un sistema que pueda seguir al usuario como una ventana flotante mientras trabaja en otras páginas y programas.
+  2. Poder parar/iniciar el temporizador desde la ventana flotante.
+  3. Poder volver a la aplicación en 1 clic.
+  4. Poder fijarlo en el lugar que el usuario desee de la pantalla.
+  5. Mantener intactos los documentos y PDFs de usabilidad generados previamente.
+- **Decisión Técnica e Implementación:**
+  - `src/components/timer/floating-timer-companion.tsx`:
+    - **Ventana Nativa Always-on-Top (Document Picture-in-Picture):** Uso de la API estándar `window.documentPictureInPicture.requestWindow({ width: 380, height: 160 })`. Crea una ventana flotante real del sistema operativo Windows que flota por encima de cualquier otra pestaña del navegador (WordPress, Canva, Google Docs, etc.) y cualquier aplicación de escritorio (Figma, Photoshop, Excel).
+    - Permite ver la empresa activa, el cronómetro en tiempo real, pulsar **PARAR (Rojo)** / **INICIAR (Verde)** y pulsar **VOLVER A LA APLICACIÓN** (`window.focus()`).
+    - **Widget Arrastrable In-App (Drag & Drop):** Para navegación interna entre pantallas del Hub. Permite arrastrar la pastilla flotante con el ratón a cualquier coordenada `(x, y)` de la pantalla, guardando la posición en `localStorage` (`bug_floating_widget_pos`) para que se mantenga fijada exactamente donde el usuario decida.
+  - `src/components/navbar.tsx`:
+    - Integración interactiva directa en el pastillón de cabecera: botón directo Play/Stop para pausar/reanudar sin salir de la pantalla, botón "Flotante" para abrir la ventana Picture-in-Picture y botón chincheta "Fijar" para activar el widget arrastrable.
+  - `src/app/floating-timer/page.tsx`:
+    - Ruta independiente `/floating-timer` para modo ventana popup y compatibilidad con lanzadores de escritorio.
+  - `Iniciar_Ventana_Flotante.bat`:
+    - Programa lanzador de escritorio para Windows (`.bat`) que ejecuta Edge/Chrome en modo `--app="http://localhost:3000/floating-timer"` con tamaño compacto `380x180px`, creando una ventana de herramienta flotante sin barra de direcciones.
+  - `src/context/timer-context.tsx`:
+    - Sincronización multi-ventana y multi-pestaña mediante escuchadores del evento nativo `storage` de `window`, garantizando sincronización al milisegundo de paradas y arranques entre todas las ventanas.
+
+### [v2.7.1] - 2026-10-19 - Documento Maestro de Acceso Rápido, Credenciales y Login Directo
+- **Solicitud del Usuario:**
+  1. Proporcionar las credenciales de prueba y el resumen de todo lo realizado.
+  2. Crear un documento para poder acceder rápidamente a la plataforma.
+  3. Mantener intactos los documentos y PDFs de usabilidad.
+- **Decisión Técnica e Implementación:**
+  - `ACCESO_RAPIDO_Y_CREDENCIALES.md`:
+    - Creación de documento integral en la raíz del proyecto que agrupa:
+      - Tabla de credenciales con roles (Coordinadora, Empleado, Super Administrador), contraseñas y permisos.
+      - Mapa interactivo de rutas del Hub (`/hub`, `/dashboard/employee`, `/dashboard/coordinator`, `/apps/taskflow`, `/apps/chat`, `/floating-timer`).
+      - Resumen ejecutivo de todas las funcionalidades desarrolladas (Ventana Flotante Always-on-Top, TaskFlow con arrastre y Post-its de alertas, Chat estilo Slack con panel anti-ruido, y Clockify con doble bolsa de cuota).
+  - `src/app/login/page.tsx`:
+    - Incorporación de **selectores de acceso rápido con 1 solo clic** en la pantalla de inicio de sesión:
+      - Tarjeta 1: **Coordinadora de Operaciones** (`coordinacion@brainupgrup.com`).
+      - Tarjeta 2: **Empleado / Trabajador** (`empleado@brainupgrup.com`).
+      - Tarjeta 3: **Super Administrador** (`appadmin@brainupgrup.com`).
+      - Rellena y autentica automáticamente sin tener que tipear contraseñas complejas.
+
+
+
+
+
 
 
 

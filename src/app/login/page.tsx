@@ -45,6 +45,25 @@ export default function LoginPage() {
     }
   };
 
+  const handleQuickLogin = async (quickEmail: string, quickPass: string) => {
+    setEmail(quickEmail);
+    setPassword(quickPass);
+    setErrorMessage('');
+    setIsSubmitting(true);
+    try {
+      const result = await login(quickEmail, quickPass);
+      if (result.error) {
+        setErrorMessage(result.error);
+        return;
+      }
+      if (result.user) {
+        router.push('/hub');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#F8F6FC] flex flex-col justify-center items-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md bg-white border border-[#D8CFF0] rounded-sm shadow-xl p-8 space-y-6">
@@ -125,6 +144,93 @@ export default function LoginPage() {
             <span>{isSubmitting ? 'Iniciando Sesión...' : 'Entrar a mi Cuenta'}</span>
           </button>
         </form>
+
+        {/* Acceso Rápido con Cuentas de Demostración (1 Clic) */}
+        <div className="pt-4 border-t border-[#D8CFF0] space-y-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-wider text-[#8E0E75]">
+              Acceso Rápido (1 Clic)
+            </span>
+            <span className="text-[9px] text-slate-400 font-bold uppercase">Cuentas de Prueba</span>
+          </div>
+
+          <div className="grid grid-cols-1 gap-2">
+            {/* Coordinadora */}
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={() => handleQuickLogin('coordinacion@brainupgrup.com', 'BrainUp2026!')}
+              className="w-full flex items-center justify-between p-2 rounded-xs border border-[#D8CFF0] bg-[#F8F6FC] hover:bg-[#8E0E75] hover:text-white group transition-all text-left cursor-pointer disabled:opacity-50"
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="h-7 w-7 rounded-full bg-white group-hover:bg-white/20 border border-[#D8CFF0] flex items-center justify-center text-sm shrink-0">
+                  👩‍💼
+                </span>
+                <div>
+                  <div className="text-[11px] font-extrabold uppercase leading-none text-[#191654] group-hover:text-white">
+                    Coordinadora de Operaciones
+                  </div>
+                  <div className="text-[9px] text-[#8E0E75] group-hover:text-white/80 font-mono mt-0.5">
+                    coordinacion@brainupgrup.com
+                  </div>
+                </div>
+              </div>
+              <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-2xs bg-white group-hover:bg-white/20 text-[#8E0E75] group-hover:text-white border border-[#D8CFF0] group-hover:border-transparent shrink-0">
+                Entrar
+              </span>
+            </button>
+
+            {/* Empleado */}
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={() => handleQuickLogin('empleado@brainupgrup.com', 'BrainUp2026!')}
+              className="w-full flex items-center justify-between p-2 rounded-xs border border-[#D8CFF0] bg-[#F8F6FC] hover:bg-[#10B981] hover:text-white group transition-all text-left cursor-pointer disabled:opacity-50"
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="h-7 w-7 rounded-full bg-white group-hover:bg-white/20 border border-[#D8CFF0] flex items-center justify-center text-sm shrink-0">
+                  👨‍💻
+                </span>
+                <div>
+                  <div className="text-[11px] font-extrabold uppercase leading-none text-[#191654] group-hover:text-white">
+                    Empleado / Trabajador
+                  </div>
+                  <div className="text-[9px] text-emerald-700 group-hover:text-white/80 font-mono mt-0.5">
+                    empleado@brainupgrup.com
+                  </div>
+                </div>
+              </div>
+              <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-2xs bg-white group-hover:bg-white/20 text-emerald-700 group-hover:text-white border border-[#D8CFF0] group-hover:border-transparent shrink-0">
+                Entrar
+              </span>
+            </button>
+
+            {/* Super Admin */}
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={() => handleQuickLogin('appadmin@brainupgrup.com', 'fn.5loDnrTTfI2z!')}
+              className="w-full flex items-center justify-between p-2 rounded-xs border border-[#D8CFF0] bg-[#F8F6FC] hover:bg-[#191654] hover:text-white group transition-all text-left cursor-pointer disabled:opacity-50"
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="h-7 w-7 rounded-full bg-white group-hover:bg-white/20 border border-[#D8CFF0] flex items-center justify-center text-sm shrink-0">
+                  👑
+                </span>
+                <div>
+                  <div className="text-[11px] font-extrabold uppercase leading-none text-[#191654] group-hover:text-white">
+                    Super Administrador
+                  </div>
+                  <div className="text-[9px] text-slate-500 group-hover:text-white/80 font-mono mt-0.5">
+                    appadmin@brainupgrup.com
+                  </div>
+                </div>
+              </div>
+              <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-2xs bg-white group-hover:bg-white/20 text-[#191654] group-hover:text-white border border-[#D8CFF0] group-hover:border-transparent shrink-0">
+                Entrar
+              </span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

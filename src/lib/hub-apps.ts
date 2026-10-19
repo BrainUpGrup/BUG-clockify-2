@@ -7,14 +7,14 @@ export interface HubApp {
   description: string;
   category: 'operaciones' | 'gestion' | 'creatividad' | 'administracion';
   badge: string;
-  iconName: 'Clock' | 'CheckSquare' | 'Image' | 'Users' | 'Receipt' | 'BookOpen' | 'Share2';
+  iconName: 'Clock' | 'CheckSquare' | 'Image' | 'Users' | 'Receipt' | 'BookOpen' | 'Share2' | 'MessageSquare';
   route: string;
   isReady: boolean; // Si la app está totalmente implementada y operativa en el hub
   version: string;
 }
 
 /**
- * Catálogo Oficial de 7 Herramientas del HUB de Brain Up
+ * Catálogo Oficial de Herramientas del HUB de Brain Up
  */
 export const BRAIN_UP_HUB_APPS: HubApp[] = [
   {
@@ -32,12 +32,24 @@ export const BRAIN_UP_HUB_APPS: HubApp[] = [
   {
     id: 'taskflow',
     name: 'Brain Up TaskFlow',
-    tagline: 'Gestión de Proyectos & Tareas Ágiles',
-    description: 'Tableros interactivos Kanban para organizar flujos de trabajo, asignar tareas al equipo y supervisar entregables en tiempo real.',
+    tagline: 'Gestión de Proyectos, Calendario L-V & Post-its',
+    description: 'Calendario laboral de 5 días con panel de notificaciones integrado, mural de post-its con alarmas y auto-desplazamiento.',
     category: 'operaciones',
-    badge: 'App de Prueba Hub',
+    badge: 'Operativa',
     iconName: 'CheckSquare',
     route: '/apps/taskflow',
+    isReady: true,
+    version: '2.5.7',
+  },
+  {
+    id: 'chat',
+    name: 'Brain Up Comms & Clientes',
+    tagline: 'Comunicación por Clientes & Tareas Anti-Ruido',
+    description: 'Plataforma de comunicación interna estilo Slack con canales por cliente, grupos internos y panel de resumen con tareas pendientes de revisar.',
+    category: 'operaciones',
+    badge: 'Nuevo Módulo Slack',
+    iconName: 'MessageSquare',
+    route: '/apps/chat',
     isReady: true,
     version: '1.0.0',
   },
@@ -151,9 +163,9 @@ export function getAuthorizedAppsForUser(user: Profile | null): HubApp[] {
   const permissionsMap = getStoredPermissionsMap();
   const allowedIds = permissionsMap[user.id];
 
-  // Si no se han configurado aún permisos personalizados para este empleado, por defecto ve Clockify y TaskFlow
+  // Si no se han configurado aún permisos personalizados para este empleado, por defecto ve Clockify, TaskFlow y Chat
   if (!allowedIds || !Array.isArray(allowedIds)) {
-    return BRAIN_UP_HUB_APPS.filter((app) => app.id === 'clockify' || app.id === 'taskflow');
+    return BRAIN_UP_HUB_APPS.filter((app) => app.id === 'clockify' || app.id === 'taskflow' || app.id === 'chat');
   }
 
   return BRAIN_UP_HUB_APPS.filter((app) => allowedIds.includes(app.id));
@@ -170,7 +182,7 @@ export function canUserAccessHubApp(user: Profile | null, appId: string): boolea
   const allowedIds = permissionsMap[user.id];
 
   if (!allowedIds || !Array.isArray(allowedIds)) {
-    return appId === 'clockify' || appId === 'taskflow';
+    return appId === 'clockify' || appId === 'taskflow' || appId === 'chat';
   }
 
   return allowedIds.includes(appId);

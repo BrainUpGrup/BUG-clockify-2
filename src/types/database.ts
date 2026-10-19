@@ -22,6 +22,7 @@ export interface Company {
   contact_name?: string; // Persona o cargo de contacto
   contact_email?: string; // Email de contacto
   account_manager?: string; // Responsable de cuenta en Brain Up
+  logo_url?: string; // URL o Base64 del logo de la empresa
   is_active: boolean;
   created_at: string;
 }

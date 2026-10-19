@@ -3,6 +3,7 @@ import { Montserrat } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/context/auth-context';
 import { ThemeLayersProvider } from '@/context/theme-customizer-context';
+import { TimerProvider } from '@/context/timer-context';
 
 const montserrat = Montserrat({
   subsets: ['latin'],
@@ -19,6 +20,9 @@ export const metadata: Metadata = {
   },
 };
 
+import { NotificationProvider } from '@/context/notifications-context';
+import { FloatingTimerCompanion } from '@/components/timer/floating-timer-companion';
+
 export default function RootLayout({
   children,
 }: {
@@ -29,7 +33,12 @@ export default function RootLayout({
       <body className={`${montserrat.className} min-h-screen bg-[var(--hub-bg,#F8F6FC)] text-[#4A4A4A] antialiased selection:bg-[#8E0E75] selection:text-white`}>
         <AuthProvider>
           <ThemeLayersProvider>
-            {children}
+            <TimerProvider>
+              <NotificationProvider>
+                {children}
+                <FloatingTimerCompanion />
+              </NotificationProvider>
+            </TimerProvider>
           </ThemeLayersProvider>
         </AuthProvider>
       </body>
