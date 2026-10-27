@@ -11,7 +11,8 @@ import {
   ChevronDown,
   ChevronRight,
   Play,
-  Trash2
+  Trash2,
+  Sparkles
 } from 'lucide-react';
 import { TimeEntry, Company } from '@/types/database';
 import { formatMinutes, formatDateSpanish, parseDurationToMinutes } from '@/lib/utils';
@@ -143,6 +144,29 @@ export function TimeEntriesList({
 
   return (
     <div className="w-full space-y-4 sm:space-y-5">
+      {/* Microayuda y atajo visual de edición directa */}
+      <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 rounded-2xl bg-[#F8F6FC] border-2 border-[#D8CFF0] text-xs text-[#4A4A4A] shadow-2xs">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="p-1.5 rounded-lg bg-white border border-[#D8CFF0] text-[#8E0E75] shrink-0">
+            <Sparkles className="h-4 w-4" />
+          </div>
+          <span className="truncate">
+            <strong className="text-[#191654]">Truco de edición rápida:</strong> Haz clic directo sobre cualquier <u>descripción</u> o <u>duración</u> para editarla al instante. Pulsa <strong>Repetir</strong> para arrancar el cronómetro con una tarea anterior.
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('bug_open_shortcuts'));
+            }
+          }}
+          className="shrink-0 font-bold text-[#8E0E75] hover:text-[#700B5C] underline cursor-pointer text-xs"
+        >
+          Ver todos los atajos [ ? ]
+        </button>
+      </div>
+
       {sortedDates.map((dateStr) => {
         const dayEntries = groupedEntries[dateStr];
         const dayTotalMinutes = dayEntries.reduce((sum, e) => sum + e.duration_minutes, 0);
@@ -241,7 +265,10 @@ export function TimeEntriesList({
                               title="Haz clic para editar la descripción"
                             >
                               <span>{entry.description || 'Sin descripción'}</span>
-                              <Edit2 className="h-4 w-4 text-slate-300 opacity-0 group-hover/desc:opacity-100 transition-opacity" />
+                              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-400 group-hover/desc:text-[#8E0E75] bg-slate-50 group-hover/desc:bg-[#F8F6FC] px-2 py-0.5 rounded-md border border-slate-200 group-hover/desc:border-[#D8CFF0] transition-colors shrink-0">
+                                <Edit2 className="h-3 w-3" />
+                                <span className="hidden sm:inline">Editar</span>
+                              </span>
                             </div>
                           )}
                         </div>
@@ -353,11 +380,14 @@ export function TimeEntriesList({
                               setEditingDurationId(entry.id);
                               setDurationInputValue(formatMinutes(entry.duration_minutes));
                             }}
-                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#F8F6FC] hover:bg-white text-[#8E0E75] border-2 border-[#D8CFF0] hover:border-[#8E0E75] font-black font-mono tabular-nums text-sm sm:text-base transition-all shadow-xs cursor-pointer"
-                            title="Haz clic encima para editar el tiempo"
+                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#F8F6FC] hover:bg-white text-[#8E0E75] border-2 border-[#D8CFF0] hover:border-[#8E0E75] font-black font-mono tabular-nums text-sm sm:text-base transition-all shadow-xs cursor-pointer group/dur"
+                            title="Haz clic encima para editar el tiempo (Shorthands: 3 = 3h, 330 = 3h 30m)"
                           >
                             <Clock className="h-4 w-4 text-[#8E0E75]" />
                             <span>{formatMinutes(entry.duration_minutes)}</span>
+                            <span className="text-[10px] font-sans font-bold text-slate-400 group-hover/dur:text-[#8E0E75] hidden xl:inline">
+                              ✎
+                            </span>
                           </button>
                         )}
 

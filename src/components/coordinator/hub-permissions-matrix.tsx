@@ -17,7 +17,8 @@ import {
   Share2, 
   Filter,
   CheckCircle2,
-  MessageSquare
+  MessageSquare,
+  Video
 } from 'lucide-react';
 import { Profile } from '@/types/database';
 import { notify } from '@/lib/feedback';
@@ -63,6 +64,8 @@ export function HubPermissionsMatrix({ employees }: HubPermissionsMatrixProps) {
         return <BookOpen className={className} />;
       case 'Share2':
         return <Share2 className={className} />;
+      case 'Video':
+        return <Video className={className} />;
       default:
         return <CheckSquare className={className} />;
     }

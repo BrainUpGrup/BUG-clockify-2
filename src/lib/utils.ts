@@ -169,3 +169,31 @@ export function formatDateSpanish(dateStr: string): string {
     return dateStr;
   }
 }
+
+/**
+ * Almacenamiento seguro en LocalStorage con protección contra QuotaExceededError
+ * y recorte opcional de registros para no desbordar los 5 MB de cuota del navegador.
+ */
+export function safeSetLocalStorage<T>(key: string, data: T, maxItems?: number): void {
+  if (typeof window === "undefined") return;
+  try {
+    let toStore: any = data;
+    if (Array.isArray(data) && maxItems && data.length > maxItems) {
+      toStore = data.slice(0, maxItems);
+    }
+    localStorage.setItem(key, JSON.stringify(toStore));
+  } catch (e) {
+    console.warn(`[SafeStorage] Fallo o cuota excedida al guardar ${key}:`, e);
+  }
+}
+
+export function safeGetLocalStorage<T>(key: string, fallback: T): T {
+  if (typeof window === "undefined") return fallback;
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}

@@ -16,14 +16,25 @@ import {
   CalendarCheck,
   CheckCircle2,
   AlertCircle,
-  X
+  X,
+  Keyboard,
+  Sparkles
 } from 'lucide-react';
 import { Company, TimeEntry, EntryComputeType } from '@/types/database';
 import { formatSecondsToTimer, parseDurationToMinutes, formatMinutes } from '@/lib/utils';
 import { AppCalendar } from '@/components/ui/app-calendar';
-import { useTimer } from '@/context/timer-context';
+import { useTimer, useTimerSeconds } from '@/context/timer-context';
 import { notify } from '@/lib/feedback';
 import { DurationPreview } from '@/components/ui/duration-preview';
+
+function TimeTrackerClockDisplay() {
+  const seconds = useTimerSeconds();
+  return (
+    <div className="flex items-center justify-center font-mono tabular-nums font-black text-2xl sm:text-3xl text-[#191654] bg-[#F8F6FC] px-4 py-3 sm:py-3.5 rounded-xl border-2 border-[#D8CFF0] shadow-inner">
+      {formatSecondsToTimer(seconds)}
+    </div>
+  );
+}
 
 interface TimeTrackerBarProps {
   companies: Company[];
@@ -62,7 +73,6 @@ export function TimeTrackerBar({
   // Usar el temporizador centralizado
   const { 
     isTimerRunning, 
-    timerSeconds, 
     startTimer, 
     stopTimer,
     activeDescription,
@@ -333,6 +343,24 @@ export function TimeTrackerBar({
     }
   };
 
+  // Atajo universal Ctrl + Enter / Cmd + Enter en la pantalla de control de horas
+  useEffect(() => {
+    const handleGlobalShortcuts = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        if (mode === 'timer') {
+          if (!isTimerRunning) {
+            handleStartTimer();
+          } else {
+            handleStopTimer();
+          }
+        }
+      }
+    };
+    window.addEventListener('keydown', handleGlobalShortcuts);
+    return () => window.removeEventListener('keydown', handleGlobalShortcuts);
+  }, [mode, isTimerRunning, selectedCompanyId, description]);
+
   const parsedManualMinutes = parseDurationToMinutes(manualDurationInput);
 
   return (
@@ -344,6 +372,22 @@ export function TimeTrackerBar({
           <span className="text-base sm:text-lg font-black tracking-tight text-[#292929]">
             Control <span className="text-[#8E0E75]">de horas</span>
           </span>
+
+          {/* Botón de Microayudas y Atajos in-situ */}
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('bug_open_shortcuts'));
+              }
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#F8F6FC] hover:bg-[#D8CFF0]/40 text-[#8E0E75] border-2 border-[#D8CFF0] hover:border-[#8E0E75] text-xs font-black tracking-tight transition-all cursor-pointer shadow-2xs"
+            title="Ver atajos de teclado y trucos de velocidad (Pulsa ?)"
+          >
+            <Keyboard className="h-3.5 w-3.5 text-[#8E0E75]" />
+            <span>Atajos</span>
+            <kbd className="text-[10px] font-mono font-black bg-white px-1.5 py-0.2 rounded border border-[#D8CFF0] text-[#191654]">?</kbd>
+          </button>
 
           {/* Selector de Tipo de Horas para Clientes Cuota con Pastilla Morada Deslizante */}
           {selectedCompany?.client_type === 'cuota' && (
@@ -633,9 +677,25 @@ export function TimeTrackerBar({
                 setDescription(e.target.value);
                 if (e.target.value.trim()) setDescriptionMissing(false);
               }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  if (e.ctrlKey || e.metaKey) {
+                    e.preventDefault();
+                    if (mode === 'timer') {
+                      if (!isTimerRunning) handleStartTimer();
+                      else handleStopTimer();
+                    } else if (mode === 'manual') {
+                      handleManualSubmit(e);
+                    }
+                  } else if (mode === 'timer' && !isTimerRunning) {
+                    e.preventDefault();
+                    handleStartTimer();
+                  }
+                }
+              }}
               aria-label="Descripción de la tarea"
               aria-invalid={descriptionMissing}
-              placeholder={`¿En qué estás trabajando para ${selectedCompany?.name || 'este cliente'}?`}
+              placeholder={`¿En qué estás trabajando para ${selectedCompany?.name || 'este cliente'}? (↵ para iniciar)`}
               className={`w-full px-5 py-3.5 sm:py-4 rounded-xl border-2 bg-white text-base sm:text-lg text-[#292929] placeholder:text-slate-400 focus:ring-2 focus:ring-[#8E0E75]/15 outline-none transition-all font-semibold shadow-xs ${
                 descriptionMissing ? 'border-red-400 focus:border-red-500' : 'border-[#D8CFF0] focus:border-[#8E0E75]'
               }`}
@@ -648,27 +708,47 @@ export function TimeTrackerBar({
           {/* Zona de Duración / Reloj */}
           <div className="md:col-span-3 lg:col-span-3 xl:col-span-2">
             {mode === 'timer' ? (
-              <div className="flex items-center justify-center font-mono tabular-nums font-black text-2xl sm:text-3xl text-[#191654] bg-[#F8F6FC] px-4 py-3 sm:py-3.5 rounded-xl border-2 border-[#D8CFF0] shadow-inner">
-                {formatSecondsToTimer(timerSeconds)}
-              </div>
+              <TimeTrackerClockDisplay />
             ) : (
-              <div className="relative">
-                <input
-                  type="text"
-                  value={manualDurationInput}
-                  onChange={(e) => setManualDurationInput(e.target.value)}
-                  onBlur={() => {
-                    if (parsedManualMinutes > 0) {
-                      setManualDurationInput(formatMinutes(parsedManualMinutes));
-                    }
-                  }}
-                  placeholder="ej. 330 o 3 o 2.5"
-                  aria-label="Duración"
-                  aria-describedby="manual-duration-preview"
-                  className="w-full px-4 py-3 sm:py-3.5 rounded-xl border-2 border-[#D8CFF0] bg-white text-xl sm:text-2xl font-black text-[#292929] tabular-nums text-center focus:border-[#8E0E75] focus:ring-2 focus:ring-[#8E0E75]/15 outline-none transition-all shadow-inner"
-                  title="Escribe '330' para 3h 30m, '3' para 3 horas, o '2.5'"
-                />
-                <DurationPreview id="manual-duration-preview" value={manualDurationInput} />
+              <div className="space-y-1.5">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={manualDurationInput}
+                    onChange={(e) => setManualDurationInput(e.target.value)}
+                    onBlur={() => {
+                      if (parsedManualMinutes > 0) {
+                        setManualDurationInput(formatMinutes(parsedManualMinutes));
+                      }
+                    }}
+                    placeholder="ej. 330 o 3 o 2.5"
+                    aria-label="Duración"
+                    aria-describedby="manual-duration-preview"
+                    className="w-full px-4 py-2.5 sm:py-3 rounded-xl border-2 border-[#D8CFF0] bg-white text-xl sm:text-2xl font-black text-[#292929] tabular-nums text-center focus:border-[#8E0E75] focus:ring-2 focus:ring-[#8E0E75]/15 outline-none transition-all shadow-inner"
+                    title="Escribe '330' para 3h 30m, '3' para 3 horas, o '2.5'"
+                  />
+                  <DurationPreview id="manual-duration-preview" value={manualDurationInput} />
+                </div>
+                {/* Microayuda: Chips de Duraciones Rápidas de 1 Clic */}
+                <div className="flex items-center justify-center gap-1 flex-wrap">
+                  {[
+                    { label: '+15m', val: '15m' },
+                    { label: '+30m', val: '30m' },
+                    { label: '+1h', val: '1h' },
+                    { label: '+2h', val: '2h' },
+                    { label: '330 (3.5h)', val: '330' },
+                  ].map((preset) => (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      onClick={() => setManualDurationInput(preset.val)}
+                      className="px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-mono font-bold bg-[#F8F6FC] hover:bg-[#8E0E75] text-[#191654] hover:text-white border border-[#D8CFF0] hover:border-[#8E0E75] transition-colors cursor-pointer shadow-2xs"
+                      title={`Fijar ${preset.label}`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -680,30 +760,40 @@ export function TimeTrackerBar({
                 <button
                   type="button"
                   onClick={handleStartTimer}
-                  className="w-full h-13 sm:h-15 flex items-center justify-center gap-2.5 px-6 py-3 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-bold text-base sm:text-lg active:scale-[0.98] shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/40 hover:scale-[1.02] transition-all cursor-pointer"
+                  className="w-full h-13 sm:h-15 flex items-center justify-center gap-2 px-4 sm:px-6 py-3 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-bold text-base sm:text-lg active:scale-[0.98] shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/40 hover:scale-[1.02] transition-all cursor-pointer"
                 >
                   <Play className="h-5 w-5 sm:h-6 sm:w-6 fill-current" />
                   <span>Iniciar</span>
+                  <kbd className="hidden 2xl:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-white/20 text-white border border-white/30 ml-1">
+                    Ctrl ↵
+                  </kbd>
                 </button>
               ) : (
                 <button
                   type="button"
                   onClick={handleStopTimer}
                   disabled={isSubmitting}
-                  className="w-full h-13 sm:h-15 flex items-center justify-center gap-2.5 px-6 py-3 rounded-xl bg-[#DC2626] hover:bg-[#B91C1C] text-white font-bold text-base sm:text-lg active:scale-[0.98] shadow-lg shadow-red-500/30 hover:shadow-xl hover:shadow-red-500/40 hover:scale-[1.02] transition-all cursor-pointer animate-pulse"
+                  className="w-full h-13 sm:h-15 flex items-center justify-center gap-2 px-4 sm:px-6 py-3 rounded-xl bg-[#DC2626] hover:bg-[#B91C1C] text-white font-bold text-base sm:text-lg active:scale-[0.98] shadow-lg shadow-red-500/30 hover:shadow-xl hover:shadow-red-500/40 hover:scale-[1.02] transition-all cursor-pointer animate-pulse"
                 >
                   <Square className="h-5 w-5 sm:h-6 sm:w-6 fill-current" />
                   <span>{isSubmitting ? '...' : 'Parar'}</span>
+                  <kbd className="hidden 2xl:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-white/20 text-white border border-white/30 ml-1">
+                    Ctrl ↵
+                  </kbd>
                 </button>
               )
             ) : (
               <button
                 type="submit"
+                id="btn-submit-manual-entry"
                 disabled={isSubmitting}
-                className="w-full h-13 sm:h-15 flex items-center justify-center gap-2.5 px-6 py-3 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-bold text-base sm:text-lg active:scale-[0.98] shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/40 hover:scale-[1.02] transition-all disabled:opacity-50 cursor-pointer"
+                className="w-full h-13 sm:h-15 flex items-center justify-center gap-2 px-4 sm:px-6 py-3 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-bold text-base sm:text-lg active:scale-[0.98] shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/40 hover:scale-[1.02] transition-all disabled:opacity-50 cursor-pointer"
               >
                 <Plus className="h-5 w-5 sm:h-6 sm:w-6" />
                 <span>{isSubmitting ? '...' : 'Añadir'}</span>
+                <kbd className="hidden 2xl:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-white/20 text-white border border-white/30 ml-1">
+                  Ctrl ↵
+                </kbd>
               </button>
             )}
           </div>
@@ -712,8 +802,11 @@ export function TimeTrackerBar({
 
         {/* Sugerencias desde TaskFlow para rellenar la descripción con un clic */}
         {!description.trim() && taskSuggestions.length > 0 && (
-          <div className="mt-3 flex items-center gap-2 flex-wrap">
-            <span className="text-sm text-[#4A4A4A] font-semibold">Tareas abiertas en TaskFlow:</span>
+          <div className="mt-3 flex items-center gap-2 flex-wrap p-2.5 rounded-xl bg-[#F8F6FC] border border-[#D8CFF0]">
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#8E0E75]">
+              <Sparkles className="h-3.5 w-3.5 text-[#8E0E75]" />
+              Sugerencias de TaskFlow (1 clic para rellenar):
+            </span>
             {taskSuggestions.map((title) => (
               <button
                 key={title}
@@ -722,8 +815,8 @@ export function TimeTrackerBar({
                   setDescription(title);
                   setDescriptionMissing(false);
                 }}
-                className="px-3 py-1 rounded-lg bg-[#F8F6FC] border border-[#D8CFF0] text-sm text-[#191654] hover:border-[#8E0E75] hover:text-[#8E0E75] cursor-pointer max-w-[320px] truncate"
-                title={title}
+                className="px-3 py-1 rounded-lg bg-white border border-[#D8CFF0] text-xs font-semibold text-[#191654] hover:border-[#8E0E75] hover:text-[#8E0E75] cursor-pointer max-w-[320px] truncate shadow-2xs transition-all hover:scale-[1.02]"
+                title={`Rellenar: ${title}`}
               >
                 {title}
               </button>

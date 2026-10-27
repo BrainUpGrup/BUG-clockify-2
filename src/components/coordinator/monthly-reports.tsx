@@ -19,14 +19,6 @@ import {
 } from 'lucide-react';
 import { Company, Profile, TimeEntry } from '@/types/database';
 import { formatMinutes } from '@/lib/utils';
-import { 
-  exportGeneralReportToPDF,
-  exportGeneralReportToExcel,
-  exportCompanyReportToPDF,
-  exportCompanyReportToExcel,
-  exportEmployeeReportToPDF,
-  exportEmployeeReportToExcel,
-} from '@/lib/export-reports';
 import { AppSelect } from '@/components/ui/app-select';
 
 interface MonthlyReportsProps {
@@ -57,6 +49,10 @@ export function MonthlyReports({
 }: MonthlyReportsProps) {
   // Pestaña de perspectiva estadística: 'general' | 'company' | 'employee'
   const [statsView, setStatsView] = useState<'general' | 'company' | 'employee'>('general');
+
+  // Estados de carga para Code-Splitting dinámico de exportaciones
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [isExportingExcel, setIsExportingExcel] = useState(false);
 
   // Filtros temporales
   const currentDate = new Date();
@@ -245,52 +241,78 @@ export function MonthlyReports({
     };
   }, [currentEmployee, employeeEntries, companies]);
 
-  // Handlers de exportación según la vista activa
+  // Handlers de exportación con Code-Splitting dinámico (0 KB de jsPDF/XLSX en la carga inicial)
   const handleExportPDF = async () => {
-    if (statsView === 'general') {
-      await exportGeneralReportToPDF({
-        monthName,
-        year: selectedYear,
-        companies,
-        employees,
-        entries: monthEntries,
-      });
-    } else if (statsView === 'company' && currentCompany) {
-      await exportCompanyReportToPDF(currentCompany, {
-        monthName,
-        year: selectedYear,
-        entries: monthEntries,
-      });
-    } else if (statsView === 'employee' && currentEmployee) {
-      await exportEmployeeReportToPDF(currentEmployee, {
-        monthName,
-        year: selectedYear,
-        entries: monthEntries,
-      });
+    setIsExportingPdf(true);
+    try {
+      const {
+        exportGeneralReportToPDF,
+        exportCompanyReportToPDF,
+        exportEmployeeReportToPDF,
+      } = await import('@/lib/export-reports');
+
+      if (statsView === 'general') {
+        await exportGeneralReportToPDF({
+          monthName,
+          year: selectedYear,
+          companies,
+          employees,
+          entries: monthEntries,
+        });
+      } else if (statsView === 'company' && currentCompany) {
+        await exportCompanyReportToPDF(currentCompany, {
+          monthName,
+          year: selectedYear,
+          entries: monthEntries,
+        });
+      } else if (statsView === 'employee' && currentEmployee) {
+        await exportEmployeeReportToPDF(currentEmployee, {
+          monthName,
+          year: selectedYear,
+          entries: monthEntries,
+        });
+      }
+    } catch (err) {
+      console.error('Error generando PDF:', err);
+    } finally {
+      setIsExportingPdf(false);
     }
   };
 
-  const handleExportExcel = () => {
-    if (statsView === 'general') {
-      exportGeneralReportToExcel({
-        monthName,
-        year: selectedYear,
-        companies,
-        employees,
-        entries: monthEntries,
-      });
-    } else if (statsView === 'company' && currentCompany) {
-      exportCompanyReportToExcel(currentCompany, {
-        monthName,
-        year: selectedYear,
-        entries: monthEntries,
-      });
-    } else if (statsView === 'employee' && currentEmployee) {
-      exportEmployeeReportToExcel(currentEmployee, {
-        monthName,
-        year: selectedYear,
-        entries: monthEntries,
-      });
+  const handleExportExcel = async () => {
+    setIsExportingExcel(true);
+    try {
+      const {
+        exportGeneralReportToExcel,
+        exportCompanyReportToExcel,
+        exportEmployeeReportToExcel,
+      } = await import('@/lib/export-reports');
+
+      if (statsView === 'general') {
+        exportGeneralReportToExcel({
+          monthName,
+          year: selectedYear,
+          companies,
+          employees,
+          entries: monthEntries,
+        });
+      } else if (statsView === 'company' && currentCompany) {
+        exportCompanyReportToExcel(currentCompany, {
+          monthName,
+          year: selectedYear,
+          entries: monthEntries,
+        });
+      } else if (statsView === 'employee' && currentEmployee) {
+        exportEmployeeReportToExcel(currentEmployee, {
+          monthName,
+          year: selectedYear,
+          entries: monthEntries,
+        });
+      }
+    } catch (err) {
+      console.error('Error generando Excel:', err);
+    } finally {
+      setIsExportingExcel(false);
     }
   };
 
@@ -344,23 +366,45 @@ export function MonthlyReports({
             <button
               type="button"
               onClick={handleExportPDF}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-md border-2 border-[#8E0E75] bg-white text-[#8E0E75] text-xs sm:text-sm font-extrabold uppercase tracking-tight hover:bg-[#8E0E75] hover:text-white active:scale-95 shadow-sm hover:shadow-md hover:scale-105 transition-all cursor-pointer"
+              disabled={isExportingPdf}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-md border-2 border-[#8E0E75] bg-white text-[#8E0E75] text-xs sm:text-sm font-extrabold uppercase tracking-tight hover:bg-[#8E0E75] hover:text-white active:scale-95 shadow-sm hover:shadow-md hover:scale-105 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               title="Descargar informe en plantilla PDF nativa con gráficos"
             >
-              <FileText className="h-4 w-4" />
+              {isExportingPdf ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#8E0E75] border-t-transparent" />
+              ) : (
+                <FileText className="h-4 w-4" />
+              )}
               <span>
-                {statsView === 'general' ? 'PDF General' : statsView === 'company' ? 'PDF Cliente' : 'PDF Empleado'}
+                {isExportingPdf
+                  ? 'Generando...'
+                  : statsView === 'general'
+                  ? 'PDF General'
+                  : statsView === 'company'
+                  ? 'PDF Cliente'
+                  : 'PDF Empleado'}
               </span>
             </button>
             <button
               type="button"
               onClick={handleExportExcel}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-md bg-[#3BB54A] text-white text-xs sm:text-sm font-extrabold uppercase tracking-tight hover:bg-[#32993E] active:scale-95 shadow-md shadow-[#3BB54A]/30 hover:shadow-lg hover:scale-105 transition-all cursor-pointer"
+              disabled={isExportingExcel}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-md bg-[#3BB54A] text-white text-xs sm:text-sm font-extrabold uppercase tracking-tight hover:bg-[#32993E] active:scale-95 shadow-md shadow-[#3BB54A]/30 hover:shadow-lg hover:scale-105 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               title="Descargar plantilla Excel estructurada con sentido humano"
             >
-              <FileSpreadsheet className="h-4 w-4" />
+              {isExportingExcel ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              ) : (
+                <FileSpreadsheet className="h-4 w-4" />
+              )}
               <span>
-                {statsView === 'general' ? 'Excel General' : statsView === 'company' ? 'Excel Cliente' : 'Excel Empleado'}
+                {isExportingExcel
+                  ? 'Generando...'
+                  : statsView === 'general'
+                  ? 'Excel General'
+                  : statsView === 'company'
+                  ? 'Excel Cliente'
+                  : 'Excel Empleado'}
               </span>
             </button>
           </div>

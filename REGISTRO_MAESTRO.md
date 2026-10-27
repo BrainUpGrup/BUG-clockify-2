@@ -859,6 +859,52 @@
     1. Se eliminó la restauración automática de visibilidad desde `localStorage` al montar el componente, asegurando que la web inicie siempre limpia sin el widget flotante superpuesto.
     2. Se implementó `handleCloseWidget` para que, cuando el usuario decida cerrar el widget mediante los botones de cerrar `X`, se limpie y elimine de forma efectiva la clave `bug_floating_widget_visible` del almacenamiento local en ambos modos (Modo Reducido y Modo Grande).
 - **Validación y Pruebas:**
+<<<<<<< Updated upstream
   - Compilación TypeScript con `npx tsc --noEmit`: **0 errores**.
 
 
+=======
+  - `npx tsc --noEmit`: 0 errores.
+  - Verificado en navegador: login con sesión activa, Hub y TaskFlow sin scroll horizontal a 1366 px, desplegable de listas con teclado, modal de TaskFlow (foco, Escape), vista previa "2.50 = 2h 50m" con aviso, validación de descripción, ritmo esperado en cuotas y aviso de acceso denegado al Chat.
+
+### [v2.9.1] - 2026-10-27 - Sistema Integral de Microayudas, Guía de Velocidad y Atajos Visuales
+- **Solicitud del Usuario:** Mejorar el apartado de microayudas y atajos visuales en toda la plataforma.
+- **Decisión Técnica e Implementación:**
+  1. **Guía Universal de Atajos (`KeyboardShortcutsModal`):**
+     - Nuevo componente `src/components/ui/keyboard-shortcuts-modal.tsx` montado en la raíz (`src/app/layout.tsx`).
+     - Activación universal con la tecla `?` (Shift + /), tecla `F1` o clic en el nuevo botón *"Atajos [ ? ]"*.
+     - Layout de pantalla compacta Zero-Scroll (`DM-15`), estética corporativa "La Abuela" (`#8E0E75`, `#191654`, `#F8F6FC`) y Cero Emojis (`DM-01`).
+     - Contenido estructurado en 4 pilares: *Control Horario (Clockify)*, *Shorthands de Velocidad de Agencia*, *Navegación Global entre Apps (`Alt + 1..5`)* y *TaskFlow & Modales*.
+  2. **Atajos Funcionales e In-Situ en Clockify Empleado (`TimeTrackerBar`):**
+     - Atajo `Ctrl + Enter` (o `Cmd + Enter`): Inicia o detiene y guarda el temporizador desde cualquier punto de la interfaz.
+     - Pulsar `Enter` en el input de descripción mientras se escribe arranca el temporizador automáticamente sin levantar las manos del teclado.
+     - Badges visuales de tecla `<kbd>Ctrl ↵</kbd>` visibles dentro de los botones `Iniciar`, `Parar` y `Añadir`.
+     - Chips de duración manual de un solo clic (`+15m`, `+30m`, `+1h`, `+2h`, `330 (3.5h)`) para rellenar entradas manuales al instante.
+     - Botón de acceso directo *"Atajos [ ? ]"* integrado junto al título de "Control de horas".
+     - Píldora de sugerencias de TaskFlow mejorada visualmente con icono y micro-copy explicativo.
+  3. **Descubribilidad de Edición en Historial (`TimeEntriesList`):**
+     - Banner de ayuda visual al inicio del historial explicando los trucos de edición rápida y repetición de tareas.
+     - Icono de edición permanente (`Edit2`) con badge `"Editar"` visible en las descripciones para eliminar la incertidumbre de si la tabla es editable.
+     - Indicador sutil `✎` en hover sobre el botón de tiempo para recordar que la duración admite edición directa.
+  4. **Atajos y Ayudas en TaskFlow (`apps/taskflow` & `NativeCalendar`):**
+     - Atajo de teclado `Ctrl + N` (o `Cmd + N`) para abrir inmediatamente el modal de creación de tareas.
+     - Badge `<kbd>Ctrl N</kbd>` visible dentro del botón "Agregar tarea" del calendario nativo.
+     - Botón de ayuda rápida `[ ? ]` integrado en la barra de herramientas del calendario.
+     - Micro-distinción visual de conceptos en la cabecera: *"Calendario: entregables con fecha fijada · Post-its: alertas recurrentes e ideas"*.
+  5. **Acceso Permanente desde la Barra de Navegación (`Navbar`):**
+     - Nuevo botón *"Atajos [ ? ]"* con icono SVG `HelpCircle` ubicado junto al selector de perfil para consulta instantánea desde cualquier pantalla.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: 0 errores.
+  - Respuestas HTTP 200 OK verificadas en `/dashboard/employee`, `/apps/taskflow` y `/hub`.
+
+### [v2.9.2] - 2026-10-27 - Supresión de Auto-Apertura del Temporizador Flotante al Iniciar la Web
+- **Solicitud del Usuario:** *"cuando enciendo la web siempre me sale la ventana flotnate para controlar enl tiempo, no quiero que sea asi"*.
+- **Causa Raíz:** `src/components/timer/floating-timer-companion.tsx` guardaba `bug_floating_widget_visible: 'true'` en `localStorage`, restaurándolo automáticamente en cada inicio/recarga. Además, los botones de cerrar (`X`) no eliminaban dicha clave.
+- **Decisión Técnica e Implementación:**
+  - En el montaje inicial (`useEffect`), se eliminó la restauración automática de visibilidad y se limpia cualquier residuo previo (`localStorage.removeItem('bug_floating_widget_visible')`), asegurando que la web siempre inicia con el widget completamente apagado.
+  - El widget flotante arrastrable solo se mostrará si el usuario pulsa voluntariamente el botón de fijar (`📌`) en la cabecera durante su sesión de trabajo.
+  - Se implementó `handleCloseWidget` conectado a los botones de cierre (`X`) tanto en modo súper reducido como en modo completo para garantizar que al cerrarlo no vuelva a reaparecer.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: 0 errores.
+  - Servidor verificado en `http://localhost:3000`.
+>>>>>>> Stashed changes

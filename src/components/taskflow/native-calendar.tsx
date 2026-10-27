@@ -417,13 +417,32 @@ export function NativeCalendar({
             <Download className="h-4 w-4 text-[#8E0E75]" />
           </button>
 
+          {/* Botón de Microayudas y Atajos */}
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('bug_open_shortcuts'));
+              }
+            }}
+            className="inline-flex items-center gap-1 px-2.5 py-2 rounded-md border-2 border-[#D8CFF0] bg-[#F8F6FC] hover:border-[#8E0E75] text-[#8E0E75] text-xs font-bold transition-all cursor-pointer shadow-2xs"
+            title="Ver atajos de teclado y ayudas (Pulsa ?)"
+            aria-label="Atajos de teclado"
+          >
+            <kbd className="text-[10px] font-mono font-black bg-white px-1.5 py-0.2 rounded border border-[#D8CFF0] text-[#191654]">?</kbd>
+          </button>
+
           <button
             type="button"
             onClick={() => onOpenCreateModal(selectedDate)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#8E0E75] hover:bg-[#700B5C] text-white text-sm font-bold shadow-md transition-all cursor-pointer"
+            className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-md bg-[#8E0E75] hover:bg-[#700B5C] text-white text-sm font-bold shadow-md transition-all cursor-pointer"
+            title="Agregar tarea o entregable (Atajo: Ctrl + N)"
           >
             <Plus className="h-4 w-4" />
             <span>Agregar tarea</span>
+            <kbd className="hidden md:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-white/20 text-white border border-white/30 ml-0.5">
+              Ctrl N
+            </kbd>
           </button>
         </div>
       </div>

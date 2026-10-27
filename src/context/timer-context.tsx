@@ -1,15 +1,14 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Company } from '@/types/database';
 
-interface TimerContextType {
+export interface TimerContextType {
   activeCompany: Company | null;
   activeCompanyId: string;
   setActiveCompanyId: (id: string) => void;
   setActiveCompany: (company: Company | null) => void;
   isTimerRunning: boolean;
-  timerSeconds: number;
   startTimeIso: string | null;
   activeDescription: string;
   setActiveDescription: (desc: string) => void;
@@ -17,9 +16,11 @@ interface TimerContextType {
   startTimerWithEntry: (companyId: string, description: string) => void;
   stopTimer: () => { durationSeconds: number; startTimeIso: string | null; endTimeIso: string };
   resetTimer: () => void;
+  getElapsedSeconds: () => number;
 }
 
-const TimerContext = createContext<TimerContextType | undefined>(undefined);
+const TimerStateContext = createContext<TimerContextType | undefined>(undefined);
+const TimerSecondsContext = createContext<number>(0);
 
 const TIMER_STORAGE_KEY_RUNNING = 'bug_clockify_timer_running';
 const TIMER_STORAGE_KEY_START_TS = 'bug_clockify_timer_start_ts';
@@ -259,33 +260,58 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const getElapsedSeconds = useCallback(() => {
+    if (!startTimestampRef.current) return 0;
+    return Math.max(0, Math.floor((Date.now() - startTimestampRef.current) / 1000));
+  }, []);
+
+  const stateValue = useMemo<TimerContextType>(() => ({
+    activeCompany,
+    activeCompanyId,
+    setActiveCompanyId,
+    setActiveCompany,
+    isTimerRunning,
+    startTimeIso,
+    activeDescription,
+    setActiveDescription,
+    startTimer,
+    startTimerWithEntry,
+    stopTimer,
+    resetTimer,
+    getElapsedSeconds,
+  }), [
+    activeCompany,
+    activeCompanyId,
+    setActiveCompanyId,
+    setActiveCompany,
+    isTimerRunning,
+    startTimeIso,
+    activeDescription,
+    setActiveDescription,
+    startTimer,
+    startTimerWithEntry,
+    stopTimer,
+    resetTimer,
+    getElapsedSeconds,
+  ]);
+
   return (
-    <TimerContext.Provider
-      value={{
-        activeCompany,
-        activeCompanyId,
-        setActiveCompanyId,
-        setActiveCompany,
-        isTimerRunning,
-        timerSeconds,
-        startTimeIso,
-        activeDescription,
-        setActiveDescription,
-        startTimer,
-        startTimerWithEntry,
-        stopTimer,
-        resetTimer,
-      }}
-    >
-      {children}
-    </TimerContext.Provider>
+    <TimerStateContext.Provider value={stateValue}>
+      <TimerSecondsContext.Provider value={timerSeconds}>
+        {children}
+      </TimerSecondsContext.Provider>
+    </TimerStateContext.Provider>
   );
 }
 
 export function useTimer() {
-  const context = useContext(TimerContext);
+  const context = useContext(TimerStateContext);
   if (!context) {
     throw new Error('useTimer debe ser usado dentro de un TimerProvider');
   }
   return context;
+}
+
+export function useTimerSeconds() {
+  return useContext(TimerSecondsContext);
 }

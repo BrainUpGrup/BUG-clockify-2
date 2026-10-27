@@ -7,7 +7,7 @@ export interface HubApp {
   description: string;
   category: 'operaciones' | 'gestion' | 'creatividad' | 'administracion';
   badge: string;
-  iconName: 'Clock' | 'CheckSquare' | 'Image' | 'Users' | 'Receipt' | 'BookOpen' | 'Share2' | 'MessageSquare';
+  iconName: 'Clock' | 'CheckSquare' | 'Image' | 'Users' | 'Receipt' | 'BookOpen' | 'Share2' | 'MessageSquare' | 'Video';
   route: string;
   isReady: boolean; // Si la app está totalmente implementada y operativa en el hub
   version: string;
@@ -40,6 +40,18 @@ export const BRAIN_UP_HUB_APPS: HubApp[] = [
     route: '/apps/taskflow',
     isReady: true,
     version: '2.5.7',
+  },
+  {
+    id: 'subtitulos',
+    name: 'Subtitulado de vídeos',
+    tagline: 'Pausado · Modo Mantenimiento',
+    description: 'Arquitectura completa integrada (Whisper large-v3 + Claude + ffmpeg). Pausada temporalmente para optimizar costes de API hasta contar con proyectos de subtitulado recurrente. Para consultas, utiliza el Chat.',
+    category: 'creatividad',
+    badge: 'Mantenimiento',
+    iconName: 'Video',
+    route: '/apps/subtitulos',
+    isReady: false,
+    version: '1.1.0',
   },
   {
     id: 'chat',
@@ -119,9 +131,9 @@ const STORAGE_KEY_PERMISSIONS = 'bug_hub_user_permissions';
 
 /**
  * Aplicaciones básicas por defecto para trabajadores que aún no tienen permisos personalizados configurados
- * Por defecto: Clockify + TaskFlow (2 herramientas)
+ * Por defecto: Clockify + TaskFlow + Subtítulos
  */
-export const DEFAULT_EMPLOYEE_APPS: string[] = ['clockify', 'taskflow'];
+export const DEFAULT_EMPLOYEE_APPS: string[] = ['clockify', 'taskflow', 'subtitulos'];
 
 /**
  * Obtiene el mapa de permisos guardado en localStorage

@@ -3,8 +3,12 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 // 1. Cargar Logo e Infografía Visual en Base64
-const logoPath = path.join(__dirname, 'public', 'logo.png');
-const mapImagePath = path.join(__dirname, 'public', 'brainup_usability_map.jpg');
+const logoPath = fs.existsSync(path.join(__dirname, 'public', 'logo.png'))
+  ? path.join(__dirname, 'public', 'logo.png')
+  : path.join(__dirname, '..', '..', 'public', 'logo.png');
+const mapImagePath = fs.existsSync(path.join(__dirname, 'public', 'brainup_usability_map.jpg'))
+  ? path.join(__dirname, 'public', 'brainup_usability_map.jpg')
+  : path.join(__dirname, '..', '..', 'public', 'brainup_usability_map.jpg');
 
 let logoBase64 = '';
 try {

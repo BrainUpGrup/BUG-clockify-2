@@ -23,6 +23,7 @@ import {
   Sliders
 } from 'lucide-react';
 import { HubPermissionsMatrix } from '@/components/coordinator/hub-permissions-matrix';
+import { safeSetLocalStorage, safeGetLocalStorage } from '@/lib/utils';
 import { LayerColorCustomizer } from '@/components/coordinator/layer-color-customizer';
 
 export default function CoordinatorDashboardPage() {
@@ -82,12 +83,12 @@ export default function CoordinatorDashboardPage() {
 
     // 1. Restaurar instantáneamente de caché local para 0ms de espera
     try {
-      const cachedComp = localStorage.getItem('bug_clockify_cache_companies');
-      const cachedProf = localStorage.getItem('bug_clockify_cache_profiles');
-      const cachedEntr = localStorage.getItem('bug_clockify_cache_entries');
-      if (cachedComp) setCompanies(JSON.parse(cachedComp));
-      if (cachedProf) setEmployees(JSON.parse(cachedProf));
-      if (cachedEntr) setAllEntries(JSON.parse(cachedEntr));
+      const cachedComp = safeGetLocalStorage<Company[] | null>('bug_clockify_cache_companies', null);
+      const cachedProf = safeGetLocalStorage<Profile[] | null>('bug_clockify_cache_profiles', null);
+      const cachedEntr = safeGetLocalStorage<TimeEntry[] | null>('bug_clockify_cache_entries', null);
+      if (cachedComp) setCompanies(cachedComp);
+      if (cachedProf) setEmployees(cachedProf);
+      if (cachedEntr) setAllEntries(cachedEntr);
       if (cachedComp || cachedProf) setIsLoading(false);
     } catch (e) {
       console.warn('Cache read notice:', e);
@@ -102,12 +103,16 @@ export default function CoordinatorDashboardPage() {
           const [compRes, profRes, entriesRes] = await Promise.all([
             supabase.from('companies').select('*').order('name'),
             supabase.from('profiles').select('*').order('full_name'),
-            supabase.from('time_entries').select('*, company:companies(*), profile:profiles(*)').order('work_date', { ascending: false }),
+            supabase
+              .from('time_entries')
+              .select('*, company:companies(*), profile:profiles(*)')
+              .order('work_date', { ascending: false })
+              .limit(2500),
           ]);
 
           if (compRes.data) {
             setCompanies(compRes.data as Company[]);
-            localStorage.setItem('bug_clockify_cache_companies', JSON.stringify(compRes.data));
+            safeSetLocalStorage('bug_clockify_cache_companies', compRes.data);
           }
           if (profRes.data) {
             const existingIds = new Set(profRes.data.map((p: any) => p.id));
@@ -116,11 +121,12 @@ export default function CoordinatorDashboardPage() {
               if (!existingIds.has(mockP.id)) merged.push(mockP);
             });
             setEmployees(merged as Profile[]);
-            localStorage.setItem('bug_clockify_cache_profiles', JSON.stringify(merged));
+            safeSetLocalStorage('bug_clockify_cache_profiles', merged);
           }
           if (entriesRes.data) {
             setAllEntries(entriesRes.data as unknown as TimeEntry[]);
-            localStorage.setItem('bug_clockify_cache_entries', JSON.stringify(entriesRes.data));
+            // Guardar solo los 300 más recientes en caché para respetar los 5 MB de LocalStorage
+            safeSetLocalStorage('bug_clockify_cache_entries', entriesRes.data, 300);
           }
         } catch (err) {
           console.error('Error cargando datos de Supabase, usando fallback:', err);

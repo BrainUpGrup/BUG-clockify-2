@@ -14,21 +14,42 @@ import {
   CheckSquare,
   Building2,
   MessageSquare,
+  Video,
   Play,
   Square,
   ExternalLink,
   Pin,
-  ChevronDown
+  ChevronDown,
+  HelpCircle
 } from 'lucide-react';
-import { useTimer } from '@/context/timer-context';
+import { useTimer, useTimerSeconds } from '@/context/timer-context';
 import { formatSecondsToTimer } from '@/lib/utils';
 import { canUserAccessHubApp } from '@/lib/hub-apps';
+
+function NavbarTimerDisplay({ isTimerRunning }: { isTimerRunning: boolean }) {
+  const seconds = useTimerSeconds();
+  return (
+    <div className="flex items-center gap-1.5 shrink-0">
+      {isTimerRunning ? (
+        <span className="relative flex h-2.5 w-2.5">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+        </span>
+      ) : (
+        <Clock className="h-4 w-4 text-[#8E0E75]" />
+      )}
+      <span className={`font-mono tabular-nums text-sm sm:text-base font-black ${isTimerRunning ? 'text-red-600' : 'text-[#292929]'}`}>
+        {formatSecondsToTimer(seconds)}
+      </span>
+    </div>
+  );
+}
 
 export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
-  const { activeCompany, activeCompanyId, isTimerRunning, timerSeconds, startTimer, stopTimer } = useTimer();
+  const { activeCompany, activeCompanyId, isTimerRunning, startTimer, stopTimer } = useTimer();
 
   // Escuchar cambios de permisos en tiempo real
   const [permVersion, setPermVersion] = React.useState(0);
@@ -48,6 +69,7 @@ export function Navbar() {
   const isClockifyActive = isEmployeeActive || isCoordinatorActive;
   const isTaskFlowActive = pathname.includes('/taskflow');
   const isChatActive = pathname.includes('/chat');
+  const isSubtitulosActive = pathname.includes('/subtitulos');
   const isAdminActive = pathname.includes('/admin');
   const isAdmin = user?.role === 'admin';
   const isCoordinator = user?.role === 'coordinator';
@@ -56,6 +78,7 @@ export function Navbar() {
   const canAccessClockify = isAdmin || isCoordinator || canUserAccessHubApp(user, 'clockify');
   const canAccessTaskflow = isAdmin || isCoordinator || canUserAccessHubApp(user, 'taskflow');
   const canAccessChat = isAdmin || isCoordinator || canUserAccessHubApp(user, 'chat');
+  const canAccessSubtitulos = isAdmin || isCoordinator || canUserAccessHubApp(user, 'subtitulos');
 
   const handleLogoutClick = async () => {
     await logout();
@@ -83,6 +106,7 @@ export function Navbar() {
     { href: isCoordinator ? '/dashboard/coordinator' : '/dashboard/employee', label: 'Clockify', icon: Clock, isActive: isClockifyActive, visible: canAccessClockify },
     { href: '/apps/taskflow', label: 'TaskFlow', icon: CheckSquare, isActive: isTaskFlowActive, visible: canAccessTaskflow },
     { href: '/apps/chat', label: 'Chat', icon: MessageSquare, isActive: isChatActive, visible: canAccessChat },
+    { href: '/apps/subtitulos', label: 'Subtítulos', icon: Video, isActive: isSubtitulosActive, visible: canAccessSubtitulos },
     { href: '/dashboard/admin', label: 'Admin', icon: ShieldCheck, isActive: isAdminActive, visible: isAdmin },
   ].filter((l) => l.visible);
 
@@ -237,20 +261,8 @@ export function Navbar() {
           {/* Divisor vertical */}
           <div className="h-6 w-px bg-[#D8CFF0] shrink-0" />
 
-          {/* Temporizador */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            {isTimerRunning ? (
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
-              </span>
-            ) : (
-              <Clock className="h-4 w-4 text-[#8E0E75]" />
-            )}
-            <span className={`font-mono tabular-nums text-sm sm:text-base font-black ${isTimerRunning ? 'text-red-600' : 'text-[#292929]'}`}>
-              {formatSecondsToTimer(timerSeconds)}
-            </span>
-          </div>
+          {/* Temporizador Aislado: solo este bloque se actualiza cada segundo */}
+          <NavbarTimerDisplay isTimerRunning={isTimerRunning} />
 
           {/* Divisor vertical */}
           <div className="h-6 w-px bg-[#D8CFF0] shrink-0" />
@@ -368,8 +380,25 @@ export function Navbar() {
           })}
         </nav>
 
+        {/* Botón de Microayudas y Atajos Visuales */}
+        <button
+          type="button"
+          onClick={() => {
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('bug_open_shortcuts'));
+            }
+          }}
+          className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F8F6FC] hover:bg-[#D8CFF0]/40 text-[#8E0E75] border-2 border-[#D8CFF0] hover:border-[#8E0E75] text-xs font-black tracking-tight transition-all cursor-pointer shadow-2xs ml-1"
+          title="Atajos de teclado y trucos de velocidad (Pulsa ?)"
+          aria-label="Atajos de teclado y ayuda"
+        >
+          <HelpCircle className="h-4 w-4 text-[#8E0E75]" />
+          <span className="hidden xl:inline">Atajos</span>
+          <kbd className="text-[10px] font-mono font-black bg-white px-1.5 py-0.2 rounded border border-[#D8CFF0] text-[#191654]">?</kbd>
+        </button>
+
         {/* Perfil del Usuario Compacto & Reformulado (No satura el layout) */}
-        <div ref={profileMenuRef} className="relative flex items-center gap-2 shrink-0 ml-2">
+        <div ref={profileMenuRef} className="relative flex items-center gap-2 shrink-0 ml-1">
           <button
             type="button"
             onClick={() => setShowProfileMenu(!showProfileMenu)}

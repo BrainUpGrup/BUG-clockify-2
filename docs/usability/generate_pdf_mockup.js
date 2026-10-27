@@ -2,7 +2,9 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-const logoPath = path.join(__dirname, 'public', 'logo.png');
+const logoPath = fs.existsSync(path.join(__dirname, 'public', 'logo.png'))
+  ? path.join(__dirname, 'public', 'logo.png')
+  : path.join(__dirname, '..', '..', 'public', 'logo.png');
 let logoBase64 = '';
 try {
   const logoBuffer = fs.readFileSync(logoPath);

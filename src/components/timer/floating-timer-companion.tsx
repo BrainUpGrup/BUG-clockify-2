@@ -17,7 +17,7 @@ import {
   Pin,
   Check
 } from 'lucide-react';
-import { useTimer } from '@/context/timer-context';
+import { useTimer, useTimerSeconds } from '@/context/timer-context';
 import { formatSecondsToTimer } from '@/lib/utils';
 
 export function FloatingTimerCompanion() {
@@ -27,10 +27,10 @@ export function FloatingTimerCompanion() {
     activeCompany, 
     activeCompanyId, 
     isTimerRunning, 
-    timerSeconds, 
     startTimer, 
     stopTimer 
   } = useTimer();
+  const timerSeconds = useTimerSeconds();
 
   // Estado de la ventana nativa Always-on-Top (Document Picture-in-Picture)
   const [pipWindow, setPipWindow] = useState<Window | null>(null);
@@ -58,11 +58,17 @@ export function FloatingTimerCompanion() {
             setPosition(parsed);
           }
         }
+<<<<<<< Updated upstream
 
         // Limpiar cualquier estado previo de visibilidad para que no se abra automáticamente al iniciar
         try {
           localStorage.removeItem('bug_floating_widget_visible');
         } catch {}
+=======
+        // Garantizar que NUNCA se auto-abra el widget al encender o recargar la web
+        localStorage.removeItem('bug_floating_widget_visible');
+        setIsWidgetVisible(false);
+>>>>>>> Stashed changes
 
         const savedCollapsed = localStorage.getItem('bug_floating_widget_collapsed');
         if (savedCollapsed === 'true') {
@@ -73,6 +79,14 @@ export function FloatingTimerCompanion() {
       }
     }
   }, []);
+
+  // Cerrar widget flotante y limpiar almacenamiento para que no vuelva a salir automáticamente
+  const handleCloseWidget = () => {
+    setIsWidgetVisible(false);
+    try {
+      localStorage.removeItem('bug_floating_widget_visible');
+    } catch {}
+  };
 
   // Función para abrir la ventana flotante que sigue al usuario a otras webs/aplicaciones (PiP)
   const openExternalPipWindow = useCallback(async () => {
@@ -193,9 +207,6 @@ export function FloatingTimerCompanion() {
   useEffect(() => {
     const handleOpenWidget = () => {
       setIsWidgetVisible(true);
-      try {
-        localStorage.setItem('bug_floating_widget_visible', 'true');
-      } catch {}
     };
 
     const handleOpenPip = () => {

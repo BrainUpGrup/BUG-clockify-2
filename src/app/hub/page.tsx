@@ -24,6 +24,7 @@ import {
   BookOpen, 
   Share2, 
   MessageSquare,
+  Video,
   ArrowRight, 
   ShieldCheck, 
   Palette, 
@@ -131,6 +132,8 @@ export default function BrainUpHubPage() {
         return <Share2 className={className} />;
       case 'MessageSquare':
         return <MessageSquare className={className} />;
+      case 'Video':
+        return <Video className={className} />;
       default:
         return <CheckSquare className={className} />;
     }
@@ -227,13 +230,26 @@ export default function BrainUpHubPage() {
                         {renderAppIcon(app.iconName, 'h-8 w-8')}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h2 className="font-black text-xl sm:text-2xl text-[#292929] group-hover:text-[#8E0E75] transition-colors tracking-tight">
-                          {app.name}
-                        </h2>
+                        <div className="flex items-center justify-between gap-2">
+                          <h2 className="font-black text-xl sm:text-2xl text-[#292929] group-hover:text-[#8E0E75] transition-colors tracking-tight">
+                            {app.name}
+                          </h2>
+                          {app.badge && (
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shrink-0 ${
+                                app.badge === 'Mantenimiento'
+                                  ? 'bg-amber-100 text-amber-900 border-amber-300'
+                                  : 'bg-[#F8F6FC] text-[#8E0E75] border-[#D8CFF0]'
+                              }`}
+                            >
+                              {app.badge}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-sm font-bold text-[#8E0E75] mt-0.5">{app.tagline}</p>
                         <p className="text-sm text-[#4A4A4A] leading-relaxed mt-2">{app.description}</p>
                         <span className="inline-flex items-center gap-1.5 mt-3 text-sm font-bold text-[#8E0E75]">
-                          Abrir
+                          {app.badge === 'Mantenimiento' ? 'Ver estado' : 'Abrir'}
                           <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
                         </span>
                       </div>

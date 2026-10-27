@@ -101,12 +101,56 @@ export class ChatService {
    * Obtiene todos los mensajes accionables (tareas/revisiones) pendientes
    */
   public static async getActionItems(userId?: string): Promise<ChatMessage[]> {
+    try {
+      const supabase = createClient();
+      let query = supabase
+        .from('messages')
+        .select('*, sender:profiles(*), assignee:profiles(*)')
+        .eq('is_action_item', true)
+        .eq('is_completed', false)
+        .order('created_at', { ascending: false });
+
+      if (userId) {
+        query = query.or(`assigned_to.eq.${userId},assigned_to.eq.current_user`);
+      }
+
+      const { data, error } = await query;
+      if (!error && data && data.length > 0) {
+        return data as ChatMessage[];
+      }
+    } catch {
+      // Fallback local
+    }
+
     const all = this.getStoredMessages();
     return all.filter((m) => {
       if (!m.is_action_item) return false;
       if (userId && m.assigned_to !== 'current_user' && m.assigned_to !== userId) return false;
       return true;
     });
+  }
+
+  /**
+   * Carga todos los mensajes fijados (pinned) en una única consulta optimizada (evita N+1)
+   */
+  public static async getPinnedMessages(): Promise<ChatMessage[]> {
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*, sender:profiles(*), assignee:profiles(*)')
+        .eq('is_pinned', true)
+        .order('created_at', { ascending: false });
+
+      if (!error && data && data.length > 0) {
+        return data as ChatMessage[];
+      }
+    } catch {
+      // Fallback local
+    }
+
+    const all = this.getStoredMessages();
+    return all.filter((m) => m.is_pinned);
   }
 
   /**

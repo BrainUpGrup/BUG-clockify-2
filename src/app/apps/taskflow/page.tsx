@@ -780,15 +780,8 @@ function TaskFlowContent() {
   const toolParam = searchParams.get('tool') || 'taskflow';
   const { user, isLoading: authLoading } = useAuth();
   
-  // Timer Context para integración directa con Clockify
-  const { 
-    isTimerRunning, 
-    timerSeconds, 
-    activeCompany, 
-    activeDescription, 
-    startTimerWithEntry,
-    stopTimer 
-  } = useTimer();
+  // Timer Context para integración directa con Clockify (iniciar temporizador desde tarea)
+  const { startTimerWithEntry } = useTimer();
 
   // Estados principales de TaskFlow
   const [items, setItems] = useState<TaskFlowItem[]>([]);
@@ -1189,6 +1182,21 @@ function TaskFlowContent() {
     setIsModalOpen(true);
   };
 
+  // Atajo universal Ctrl + N / Cmd + N para crear nueva tarea en TaskFlow
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n' && !e.shiftKey && !e.altKey) {
+        const tag = document.activeElement?.tagName?.toLowerCase();
+        if (tag !== 'input' && tag !== 'textarea') {
+          e.preventDefault();
+          handleOpenCreateModal();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // Abrir modal para editar
   const handleOpenEditModal = (item: TaskFlowItem) => {
     setEditingItem(item);
@@ -1370,6 +1378,14 @@ function TaskFlowContent() {
               <List className={`h-3.5 w-3.5 shrink-0 transition-transform ${targetView === 'list' ? 'scale-110 text-white' : 'text-[#8E0E75]'}`} />
               <span>Lista</span>
             </button>
+          </div>
+
+          {/* Micro-distinción visual de conceptos (Calendario vs Post-its) */}
+          <div className="hidden xl:flex items-center gap-2 text-[11px] font-medium text-[#4A4A4A] bg-[#F8F6FC] px-2.5 py-1 rounded-sm border border-[#D8CFF0]">
+            <span className="text-[#8E0E75] font-black uppercase tracking-wider text-[10px]">Guía:</span>
+            <span><strong>Calendario:</strong> entregables con fecha</span>
+            <span className="text-[#D8CFF0]">·</span>
+            <span><strong>Post-its:</strong> alertas recurrentes e ideas</span>
           </div>
 
           {/* Filtros de Ámbito */}

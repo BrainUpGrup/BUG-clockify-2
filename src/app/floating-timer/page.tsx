@@ -14,7 +14,7 @@ import {
   Maximize2,
   ChevronDown
 } from 'lucide-react';
-import { useTimer } from '@/context/timer-context';
+import { useTimer, useTimerSeconds } from '@/context/timer-context';
 import { formatSecondsToTimer } from '@/lib/utils';
 import { MOCK_COMPANIES } from '@/lib/mock-data';
 
@@ -25,10 +25,10 @@ export default function FloatingTimerPage() {
     setActiveCompanyId,
     setActiveCompany,
     isTimerRunning, 
-    timerSeconds, 
     startTimer, 
     stopTimer 
   } = useTimer();
+  const timerSeconds = useTimerSeconds();
 
   const [showCompanySelect, setShowCompanySelect] = useState(false);
   const [viewMode, setViewMode] = useState<'large' | 'compact'>('large');

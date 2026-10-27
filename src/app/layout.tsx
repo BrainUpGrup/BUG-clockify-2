@@ -24,6 +24,7 @@ import { NotificationProvider } from '@/context/notifications-context';
 import { FloatingTimerCompanion } from '@/components/timer/floating-timer-companion';
 import { AppShell } from '@/components/layout/app-shell';
 import { FeedbackProvider } from '@/components/ui/feedback-provider';
+import { KeyboardShortcutsModal } from '@/components/ui/keyboard-shortcuts-modal';
 
 export default function RootLayout({
   children,
@@ -46,6 +47,7 @@ export default function RootLayout({
                 </AppShell>
                 <FloatingTimerCompanion />
                 <FeedbackProvider />
+                <KeyboardShortcutsModal />
               </NotificationProvider>
             </TimerProvider>
           </ThemeLayersProvider>

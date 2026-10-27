@@ -14,7 +14,7 @@ import { Company, TimeEntry } from '@/types/database';
 import { Clock, ShieldCheck } from 'lucide-react';
 import { useTimer } from '@/context/timer-context';
 import { notify, friendlyError, removeWithUndo } from '@/lib/feedback';
-import { formatMinutes } from '@/lib/utils';
+import { formatMinutes, safeSetLocalStorage, safeGetLocalStorage } from '@/lib/utils';
 
 export default function EmployeeDashboardPage() {
   const router = useRouter();
@@ -45,10 +45,10 @@ export default function EmployeeDashboardPage() {
 
     // 1. Restaurar al instante desde caché local (0ms de retraso)
     try {
-      const cachedComp = localStorage.getItem('bug_clockify_cache_companies');
-      const cachedEntr = localStorage.getItem(`bug_clockify_cache_entries_${currentUserId}`);
-      if (cachedComp) setCompanies(JSON.parse(cachedComp));
-      if (cachedEntr) setEntries(JSON.parse(cachedEntr));
+      const cachedComp = safeGetLocalStorage<Company[] | null>('bug_clockify_cache_companies', null);
+      const cachedEntr = safeGetLocalStorage<TimeEntry[] | null>(`bug_clockify_cache_entries_${currentUserId}`, null);
+      if (cachedComp) setCompanies(cachedComp);
+      if (cachedEntr) setEntries(cachedEntr);
       if (cachedComp) setIsLoading(false);
     } catch (e) {
       console.warn('Cache read notice:', e);
@@ -72,11 +72,12 @@ export default function EmployeeDashboardPage() {
 
           if (compRes.data) {
             setCompanies(compRes.data as Company[]);
-            localStorage.setItem('bug_clockify_cache_companies', JSON.stringify(compRes.data));
+            safeSetLocalStorage('bug_clockify_cache_companies', compRes.data);
           }
           if (entriesRes.data) {
             setEntries(entriesRes.data as unknown as TimeEntry[]);
-            localStorage.setItem(`bug_clockify_cache_entries_${currentUserId}`, JSON.stringify(entriesRes.data));
+            // Guardar solo los 200 más recientes en caché para el empleado
+            safeSetLocalStorage(`bug_clockify_cache_entries_${currentUserId}`, entriesRes.data, 200);
           }
         } catch (err) {
           console.error('Error cargando datos de Supabase:', err);

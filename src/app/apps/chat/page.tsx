@@ -120,21 +120,21 @@ function BrainUpChatContent() {
     loadMsgs();
   }, [selectedChannelId]);
 
-  // Recargar todos los action items y fijados
+  // Recargar todos los action items y fijados en paralelo (1 sola consulta, sin N+1)
   const refreshGlobalItems = async () => {
-    const actions = await ChatService.getActionItems(user?.id);
-    setActionItems(actions);
+    try {
+      const [actions, allChans, pinned] = await Promise.all([
+        ChatService.getActionItems(user?.id),
+        ChatService.getChannels(),
+        ChatService.getPinnedMessages(),
+      ]);
 
-    const allChans = await ChatService.getChannels();
-    setChannels(allChans);
-
-    // Recopilar todos los mensajes fijados de todos los canales
-    const allStoredMsgs: ChatMessage[] = [];
-    for (const c of allChans) {
-      const msgs = await ChatService.getMessages(c.id);
-      allStoredMsgs.push(...msgs);
+      setActionItems(actions);
+      setChannels(allChans);
+      setPinnedMessages(pinned);
+    } catch (err) {
+      console.warn('Error refreshing global chat items:', err);
     }
-    setPinnedMessages(allStoredMsgs.filter((m) => m.is_pinned));
   };
 
   useEffect(() => {
