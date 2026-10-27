@@ -852,21 +852,6 @@
   7. **Hub y Login (B2, M9):** Tarjetas de aplicación clicables completas y cabecera compacta (sin scroll a 1366x768). El login reconoce una sesión activa ("Ir al Hub" / "Cambiar de cuenta"); el acceso rápido demo solo aparece en desarrollo o con `NEXT_PUBLIC_SHOW_DEMO_LOGIN=true`; emojis sustituidos por iconos SVG (DM-01).
   8. **Legibilidad y movimiento (A6, B1, B3):** Todos los tamaños de 7–10 px elevados a 11 px mínimo (201 usos). Títulos principales y botones de Clockify en tipo oración. Regla `prefers-reduced-motion` en `globals.css`.
   9. **Chat:** Sin mejoras funcionales (M8) por la futura integración con Slack vía API; solo hereda el aviso de acceso denegado y los tamaños mínimos de texto.
-### [v2.9.2] - 2026-10-27 - Supresión de Autoapertura del Temporizador Flotante al Iniciar la Web
-- **Solicitud del Usuario:** *"cuando enciendo la web siempre me sale la ventana flotnate para controlar enl tiempo, no quiero que sea asi"*.
-- **Decisión Técnica e Implementación:**
-  - En `src/components/timer/floating-timer-companion.tsx`:
-    1. Se eliminó la restauración automática de visibilidad desde `localStorage` al montar el componente, asegurando que la web inicie siempre limpia sin el widget flotante superpuesto.
-    2. Se implementó `handleCloseWidget` para que, cuando el usuario decida cerrar el widget mediante los botones de cerrar `X`, se limpie y elimine de forma efectiva la clave `bug_floating_widget_visible` del almacenamiento local en ambos modos (Modo Reducido y Modo Grande).
-- **Validación y Pruebas:**
-<<<<<<< Updated upstream
-  - Compilación TypeScript con `npx tsc --noEmit`: **0 errores**.
-
-
-=======
-  - `npx tsc --noEmit`: 0 errores.
-  - Verificado en navegador: login con sesión activa, Hub y TaskFlow sin scroll horizontal a 1366 px, desplegable de listas con teclado, modal de TaskFlow (foco, Escape), vista previa "2.50 = 2h 50m" con aviso, validación de descripción, ritmo esperado en cuotas y aviso de acceso denegado al Chat.
-
 ### [v2.9.1] - 2026-10-27 - Sistema Integral de Microayudas, Guía de Velocidad y Atajos Visuales
 - **Solicitud del Usuario:** Mejorar el apartado de microayudas y atajos visuales en toda la plataforma.
 - **Decisión Técnica e Implementación:**
@@ -907,4 +892,3 @@
 - **Validación y Pruebas:**
   - `npx tsc --noEmit`: 0 errores.
   - Servidor verificado en `http://localhost:3000`.
->>>>>>> Stashed changes

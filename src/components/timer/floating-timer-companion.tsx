@@ -58,17 +58,11 @@ export function FloatingTimerCompanion() {
             setPosition(parsed);
           }
         }
-<<<<<<< Updated upstream
-
-        // Limpiar cualquier estado previo de visibilidad para que no se abra automáticamente al iniciar
+        // Garantizar que NUNCA se auto-abra el widget al encender o recargar la web
         try {
           localStorage.removeItem('bug_floating_widget_visible');
         } catch {}
-=======
-        // Garantizar que NUNCA se auto-abra el widget al encender o recargar la web
-        localStorage.removeItem('bug_floating_widget_visible');
         setIsWidgetVisible(false);
->>>>>>> Stashed changes
 
         const savedCollapsed = localStorage.getItem('bug_floating_widget_collapsed');
         if (savedCollapsed === 'true') {
@@ -79,14 +73,6 @@ export function FloatingTimerCompanion() {
       }
     }
   }, []);
-
-  // Cerrar widget flotante y limpiar almacenamiento para que no vuelva a salir automáticamente
-  const handleCloseWidget = () => {
-    setIsWidgetVisible(false);
-    try {
-      localStorage.removeItem('bug_floating_widget_visible');
-    } catch {}
-  };
 
   // Función para abrir la ventana flotante que sigue al usuario a otras webs/aplicaciones (PiP)
   const openExternalPipWindow = useCallback(async () => {
