@@ -31,14 +31,15 @@ export default function FloatingTimerPage() {
   const timerSeconds = useTimerSeconds();
 
   const [showCompanySelect, setShowCompanySelect] = useState(false);
-  const [viewMode, setViewMode] = useState<'large' | 'compact'>('large');
+  const [viewMode, setViewMode] = useState<'large' | 'compact'>('compact');
 
-  // Cargar preferencia de modo guardada
+  // Asegurar que siempre inicie en modo reducido al abrir
   useEffect(() => {
+    setViewMode('compact');
     try {
-      const savedMode = localStorage.getItem('bug_floating_timer_mode');
-      if (savedMode === 'compact' || savedMode === 'large') {
-        setViewMode(savedMode);
+      localStorage.setItem('bug_floating_timer_mode', 'compact');
+      if (typeof window !== 'undefined' && window.resizeTo) {
+        window.resizeTo(360, 84);
       }
     } catch {}
   }, []);

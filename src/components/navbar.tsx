@@ -20,7 +20,8 @@ import {
   ExternalLink,
   Pin,
   ChevronDown,
-  HelpCircle
+  HelpCircle,
+  Keyboard
 } from 'lucide-react';
 import { useTimer, useTimerSeconds } from '@/context/timer-context';
 import { formatSecondsToTimer } from '@/lib/utils';
@@ -380,7 +381,7 @@ export function Navbar() {
           })}
         </nav>
 
-        {/* Botón de Microayudas y Atajos Visuales */}
+        {/* Botón Circular Minimalista de Atajos de Teclado (A juego con el Avatar) */}
         <button
           type="button"
           onClick={() => {
@@ -388,13 +389,11 @@ export function Navbar() {
               window.dispatchEvent(new CustomEvent('bug_open_shortcuts'));
             }
           }}
-          className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F8F6FC] hover:bg-[#D8CFF0]/40 text-[#8E0E75] border-2 border-[#D8CFF0] hover:border-[#8E0E75] text-xs font-black tracking-tight transition-all cursor-pointer shadow-2xs ml-1"
+          className="hidden sm:flex items-center justify-center h-10 w-10 sm:h-11 sm:w-11 rounded-full bg-[#FAF8FD] hover:bg-white text-[#8E0E75] hover:text-[#191654] border-2 border-[#D8CFF0] hover:border-[#8E0E75] shadow-2xs hover:shadow-sm transition-all cursor-pointer group hover:scale-105 active:scale-95 shrink-0 ml-1"
           title="Atajos de teclado y trucos de velocidad (Pulsa ?)"
           aria-label="Atajos de teclado y ayuda"
         >
-          <HelpCircle className="h-4 w-4 text-[#8E0E75]" />
-          <span className="hidden xl:inline">Atajos</span>
-          <kbd className="text-[10px] font-mono font-black bg-white px-1.5 py-0.2 rounded border border-[#D8CFF0] text-[#191654]">?</kbd>
+          <Keyboard className="h-5 w-5 text-[#8E0E75] group-hover:text-[#191654] transition-colors" />
         </button>
 
         {/* Perfil del Usuario Compacto & Reformulado (No satura el layout) */}
@@ -437,7 +436,24 @@ export function Navbar() {
                 </div>
               </div>
 
-              <div className="pt-3">
+              <div className="pt-3 space-y-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowProfileMenu(false);
+                    if (typeof window !== 'undefined') {
+                      window.dispatchEvent(new CustomEvent('bug_open_shortcuts'));
+                    }
+                  }}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-[#FAF8FD] text-[#191654] hover:text-[#8E0E75] text-xs font-bold transition-colors cursor-pointer border border-transparent hover:border-[#D8CFF0]"
+                >
+                  <div className="flex items-center gap-2">
+                    <Keyboard className="h-4 w-4 text-[#8E0E75]" />
+                    <span>Guía de Atajos</span>
+                  </div>
+                  <kbd className="text-[10px] font-mono font-bold bg-[#F8F6FC] px-1.5 py-0.5 rounded border border-[#D8CFF0] text-[#191654]">?</kbd>
+                </button>
+
                 <button
                   type="button"
                   onClick={handleLogoutClick}

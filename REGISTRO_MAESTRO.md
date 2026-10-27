@@ -892,3 +892,76 @@
 - **Validación y Pruebas:**
   - `npx tsc --noEmit`: 0 errores.
   - Servidor verificado en `http://localhost:3000`.
+
+### [v2.9.3] - 2026-10-27 - Posicionamiento Predeterminado en Esquina Inferior Derecha y Modo Reducido del Temporizador Flotante
+- **Solicitud del Usuario:** *"quiero que incluyas que siempre que cierre o abra por primera vez la venta flotante de tiempo que se ponga en la esquina inferior derecha y sobre todo que este en modo reducido"*.
+- **Decisión Técnica e Implementación:**
+  1. **Widget Flotante Arrastrable (`src/components/timer/floating-timer-companion.tsx`):**
+     - Se creó la función `getBottomRightPosition()` que calcula dinámicamente las coordenadas `(x, y)` considerando el ancho de pantalla actual y restando el tamaño del widget reducido con un margen ergonómico seguro de 24px del borde inferior y derecho.
+     - Estado inicial configurado con `isCollapsed = true` (Modo Súper Reducido) y `isPipCompact = true`.
+     - `handleOpenWidget`: Al abrirse por primera vez o reabrirse mediante el botón de fijar (`📌`), se fuerza inmediatamente el restablecimiento a la esquina inferior derecha (`setPosition(getBottomRightPosition())`) y modo reducido (`setIsCollapsed(true)`).
+     - `handleCloseWidget`: Al cerrarse mediante el botón `X`, además de ocultarse, se reubica de nuevo en la esquina inferior derecha y en modo reducido para la próxima apertura.
+     - Se añadió un listener de redimensionamiento de ventana (`resize`) para asegurar que el widget se mantenga siempre dentro de los márgenes visibles de la pantalla.
+  2. **Ventana Externa Picture-in-Picture & Fallback Popup (`src/app/floating-timer/page.tsx`):**
+     - Ventana nativa PiP: Inicializa siempre en modo reducido con dimensiones compactas (340x68 px).
+     - Ventana popup externa de escritorio: Se calcula `left` y `top` para ubicarse exactamente en la esquina inferior derecha del monitor (`screenW - 384`, `screenH - 144`).
+     - Vista `/floating-timer`: Modo inicial establecido por defecto en `'compact'`.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores**.
+  - Verificado en navegador y servidor local en `http://localhost:3000`.
+
+### [v2.9.4] - 2026-10-27 - Rediseño Integral y Descompresión Visual del Modal de Atajos de Teclado
+- **Solicitud del Usuario:** *"si te fijas en esta imagen todo esta demasiado apretado, bien los colores pero me falta diseño"*.
+- **Diagnóstico UI/UX:**
+  1. El modal `KeyboardShortcutsModal` anterior concentraba 21 atajos en una cuadrícula fija 2x2 demasiado densa (`space-y-2.5`, ancho de 896px), provocando saltos de línea antiestéticos y sensación de pared de texto apretada.
+  2. Las teclas `<kbd>` eran bloques planos grises sin tridimensionalidad táctil ni conectores entre combinaciones.
+  3. No existía filtro interactivo ni buscador instantáneo para localizar acciones rápidamente.
+- **Decisión Técnica e Implementación:**
+  - En `src/components/ui/keyboard-shortcuts-modal.tsx`:
+    1. **Ampliación y Respiración Visual:** Ancho expandido a `max-w-5xl` con espaciados generosos (`p-6 sm:p-8 space-y-8`), eliminando cualquier agobio visual o salto de línea forzado.
+    2. **Buscador en Tiempo Real:** Entrada de búsqueda con icono `Search` integrada en la cabecera para filtrar al instante por acción, tecla o categoría (ej. "cronómetro", "330", "Enter", "Alt").
+    3. **Pestañas de Filtrado por Categoría (Píldoras):** Selector superior interactivo con conteo de atajos (`Todos (21)`, `Clockify (5)`, `Shorthands (5)`, `Navegación (6)`, `TaskFlow (5)`), permitiendo enfocarse en una sección específica o explorar todas a la vez.
+    4. **Teclas 3D Mecánicas Premium (Keycaps):**
+       - Gradiente sutil superior `from-white via-[#FCFBFD] to-[#F1EAF8]`, borde suave `#D8CFF0` con borde inferior extruido en 3D (`border-b-[3px] border-b-[#B8A7E0]`) y sombras táctiles de tecla real.
+       - Conectores `+` nítidos y elegantes entre combinaciones (ej. `Ctrl + ↵ Enter`).
+       - Distinción visual para gestos de ratón (`Clic`, `Arrastrar`, `Deshacer`) con acabado de pastilla funcional interactiva.
+    5. **Tarjeta "Regla de Oro de Agencia":** Rediseñada con estética de tarjeta destacada ejecutiva (anillo ámbar, icono brillante `Sparkles`, tipografía jerarquizada y chips de teclado estilizados `Enter` y `330`).
+    6. **Pie de Modal:** Instrucción de cierre clara y botón `ENTENDIDO` agrandado con sombra de elevación y micro-interacciones hover.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores**.
+  - Servidor de desarrollo activo en `http://localhost:3000`.
+
+### [v2.9.5] - 2026-10-27 - Rediseño Ejecutivo de la Parte Baja del Modal de Atajos de Teclado
+- **Solicitud del Usuario:** *"la parte baja sigue mal"* (con captura adjunta señalando en círculo negro la tarjeta amarilla de consejos y el pie de página).
+- **Diagnóstico UI/UX:**
+  1. **Tarjeta Amarilla Invasiva ("Regla de Oro"):** La tarjeta en tonos ámbar/amarillo (`from-amber-50... border-amber-300`) rompía bruscamente la identidad de marca (*La Abuela*: ciruela `#8E0E75`, deep blue `#191654`, lila `#F8F6FC` y acento pastel `#D8CFF0`), pareciendo una alerta de peligro o advertencia fuera de contexto.
+  2. **Efecto "Doble Pie" y Asfixia Vertical:** Al ubicarse al final del scroll y sobre el pie de página blanco, creaba dos bloques inferiores superpuestos que consumían más de 200px de altura vertical, comprimiendo las tarjetas de atajos y provocando cortes antiestéticos.
+  3. **Pie Desconectado:** El texto de salida (`Acceso rápido...`) y el botón `ENTENDIDO` se sentían dispersos y poco estilizados.
+- **Decisión Técnica e Implementación:**
+  - En `src/components/ui/keyboard-shortcuts-modal.tsx`:
+    1. **Erradicación del Bloque Amarillo:** Se eliminó la tarjeta ámbar del contenedor con scroll, liberando el 100% de la altura del modal para visualizar los atajos cómodamente y sin asfixia visual.
+    2. **Pie de Página Ejecutivo Unificado:**
+       - **Tip Pro de Velocidad Integrado:** Diseñado como una tarjeta blanca refinada (`bg-white border-2 border-[#D8CFF0] shadow-xs`) integrada directamente en el pie de página, con icono `Zap` en degradado corporativo (`from-[#191654] to-[#8E0E75]`), titular "Tip Pro de Velocidad:" en ciruela y keycaps 3D (`Enter`, `330`) con acabado institucional.
+       - **Atajos de Cierre Elegantes:** Indicador visual discreto con keycaps extruidos `ESC` y `?` para salida rápida.
+       - **Botón `ENTENDIDO` de Alto Impacto:** Botón corporativo con gradiente de marca (`from-[#191654] to-[#8E0E75]`), tipografía enérgica mayúscula y micro-interacción táctil (`hover:scale-[1.02] active:scale-[0.98]`).
+    3. **Dimensionamiento y Proporción:** Ajuste de altura a `h-[88vh] max-h-[92vh]`, cabecera refinada (`p-5 sm:p-6`) y scrollbar sutil estilizado, logrando un equilibrio visual impecable.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores**.
+  - `npm run build`: **Compilación exitosa** (14/14 páginas estáticas generadas sin fallos).
+
+### [v2.9.6] - 2026-10-27 - Botón Circular Minimalista de Atajos en la Barra de Navegación
+- **Solicitud del Usuario:** *"este boton no me gusta"* (con captura adjunta señalando en círculo negro la píldora `[ ? Atajos ? ]` de la barra superior).
+- **Diagnóstico UI/UX:**
+  1. La píldora anterior combinaba un icono de ayuda, el texto "Atajos" y un recuadro `<kbd>?</kbd>`, creando una redundancia visual de doble signo de interrogación que recargaba la barra superior.
+  2. Al situarse junto al avatar circular del usuario (`CB`), rompía la simetría y armonía del extremo derecho del header.
+- **Decisión Técnica e Implementación:**
+  - En `src/components/navbar.tsx`:
+    1. **Botón Circular Minimalista:** Se reemplazó la píldora por un botón circular perfecto (`rounded-full h-10 w-10 sm:h-11 sm:w-11`), a juego con las dimensiones del avatar adyacente.
+    2. **Iconografía Institucional Limpia:** Se utiliza exclusivamente el icono `Keyboard` en ciruela corporativo `#8E0E75`, sin texto ni cajetines dobles, con micro-interacciones hover táctiles (`scale-105`, fondo blanco y borde activo).
+    3. **Integración en Menú de Perfil:** Se añadió la opción *"Guía de Atajos [ ? ]"* dentro del desplegable del avatar de usuario para acceso contextual.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores**.
+
+
+
+

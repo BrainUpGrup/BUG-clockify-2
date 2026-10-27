@@ -32,47 +32,49 @@ export function FloatingTimerCompanion() {
   } = useTimer();
   const timerSeconds = useTimerSeconds();
 
+  // Calcular posición anclada a la esquina inferior derecha con margen seguro
+  const getBottomRightPosition = useCallback(() => {
+    if (typeof window === 'undefined') return { x: 20, y: 120 };
+    const widgetWidth = 320;
+    const widgetHeight = 55;
+    const margin = 24;
+    return {
+      x: Math.max(10, window.innerWidth - widgetWidth - margin),
+      y: Math.max(10, window.innerHeight - widgetHeight - margin),
+    };
+  }, []);
+
   // Estado de la ventana nativa Always-on-Top (Document Picture-in-Picture)
   const [pipWindow, setPipWindow] = useState<Window | null>(null);
   const [isPipSupported, setIsPipSupported] = useState<boolean>(false);
-  const [isPipCompact, setIsPipCompact] = useState<boolean>(false);
+  const [isPipCompact, setIsPipCompact] = useState<boolean>(true); // Siempre inicia en modo reducido
 
   // Estado del widget flotante arrastrable dentro de la aplicación
   const [isWidgetVisible, setIsWidgetVisible] = useState<boolean>(false);
-  const [isCollapsed, setIsCollapsed] = useState<boolean>(false); // false = Grande, true = Súper Reducido
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(true); // true = Súper Reducido por defecto
   const [position, setPosition] = useState<{ x: number; y: number }>({ x: 20, y: 120 });
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const dragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
-  // Comprobar soporte de Document Picture-in-Picture al montar
+  // Comprobar soporte de Document Picture-in-Picture y fijar posición inferior derecha por defecto
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setIsPipSupported('documentPictureInPicture' in window);
       
-      // Restaurar posición guardada del widget arrastrable
-      try {
-        const savedPos = localStorage.getItem('bug_floating_widget_pos');
-        if (savedPos) {
-          const parsed = JSON.parse(savedPos);
-          if (typeof parsed.x === 'number' && typeof parsed.y === 'number') {
-            setPosition(parsed);
-          }
-        }
-        // Garantizar que NUNCA se auto-abra el widget al encender o recargar la web
-        try {
-          localStorage.removeItem('bug_floating_widget_visible');
-        } catch {}
-        setIsWidgetVisible(false);
+      // Siempre ubicar en la esquina inferior derecha y en modo reducido por defecto
+      const brPos = getBottomRightPosition();
+      setPosition(brPos);
+      setIsCollapsed(true);
 
-        const savedCollapsed = localStorage.getItem('bug_floating_widget_collapsed');
-        if (savedCollapsed === 'true') {
-          setIsCollapsed(true);
-        }
-      } catch (e) {
-        console.warn('Error restoring floating widget config:', e);
-      }
+      // Garantizar que NUNCA se auto-abra el widget al encender o recargar la web
+      try {
+        localStorage.removeItem('bug_floating_widget_visible');
+        localStorage.setItem('bug_floating_widget_pos', JSON.stringify(brPos));
+        localStorage.setItem('bug_floating_widget_collapsed', 'true');
+      } catch {}
+      setIsWidgetVisible(false);
     }
-  }, []);
+  }, [getBottomRightPosition]);
 
   // Función para abrir la ventana flotante que sigue al usuario a otras webs/aplicaciones (PiP)
   const openExternalPipWindow = useCallback(async () => {
@@ -152,14 +154,18 @@ export function FloatingTimerCompanion() {
     }
   }, [pipWindow, isPipCompact]);
 
-  // Fallback si el navegador no soporta Document PiP directamente
+  // Fallback si el navegador no soporta Document PiP directamente: abrir en esquina inferior derecha en modo reducido
   const openPopupFallback = () => {
-    const left = window.screen.width - 400;
-    const top = 100;
+    const screenW = typeof window !== 'undefined' ? (window.screen.availWidth || window.screen.width) : 1920;
+    const screenH = typeof window !== 'undefined' ? (window.screen.availHeight || window.screen.height) : 1080;
+    const width = 360;
+    const height = 84;
+    const left = Math.max(10, screenW - width - 24);
+    const top = Math.max(10, screenH - height - 60);
     const popup = window.open(
       '/floating-timer',
       'BrainUpFloatingTimer',
-      `width=380,height=180,left=${left},top=${top},toolbar=no,menubar=no,status=no,resizable=yes`
+      `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,status=no,resizable=yes`
     );
     if (popup) {
       popup.focus();
@@ -192,7 +198,15 @@ export function FloatingTimerCompanion() {
   // Escuchar eventos globales del bus de la aplicación para activar el widget
   useEffect(() => {
     const handleOpenWidget = () => {
+      // Siempre que se abra (por primera vez o tras cerrar), colocar en esquina inferior derecha y en modo reducido
+      const brPos = getBottomRightPosition();
+      setPosition(brPos);
+      setIsCollapsed(true);
       setIsWidgetVisible(true);
+      try {
+        localStorage.setItem('bug_floating_widget_pos', JSON.stringify(brPos));
+        localStorage.setItem('bug_floating_widget_collapsed', 'true');
+      } catch {}
     };
 
     const handleOpenPip = () => {
@@ -206,7 +220,7 @@ export function FloatingTimerCompanion() {
       window.removeEventListener('bug_open_floating_widget', handleOpenWidget);
       window.removeEventListener('bug_open_pip_window', handleOpenPip);
     };
-  }, [openExternalPipWindow]);
+  }, [openExternalPipWindow, getBottomRightPosition]);
 
   // Lógica de arrastre con el ratón (Drag & Drop en cualquier posición de la pantalla)
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -246,8 +260,40 @@ export function FloatingTimerCompanion() {
     };
   }, [isDragging, position]);
 
+  // Mantener dentro de los bordes visibles si cambia el tamaño de la ventana
+  useEffect(() => {
+    const handleResize = () => {
+      setPosition((prev) => {
+        const widgetWidth = isCollapsed ? 320 : 340;
+        const widgetHeight = isCollapsed ? 55 : 180;
+        const margin = 20;
+        return {
+          x: Math.max(10, Math.min(window.innerWidth - widgetWidth - margin, prev.x)),
+          y: Math.max(10, Math.min(window.innerHeight - widgetHeight - margin, prev.y)),
+        };
+      });
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isCollapsed]);
+
   const handleSetCollapsed = (collapsed: boolean) => {
     setIsCollapsed(collapsed);
+    if (!collapsed) {
+      // Al expandir a grande, asegurarse de que no se desborde por abajo de la pantalla
+      setPosition((prev) => {
+        const largeHeight = 180;
+        const maxY = typeof window !== 'undefined' ? window.innerHeight - largeHeight - 20 : prev.y;
+        return {
+          x: Math.max(10, Math.min(typeof window !== 'undefined' ? window.innerWidth - 350 : prev.x, prev.x)),
+          y: Math.min(prev.y, Math.max(10, maxY)),
+        };
+      });
+    } else {
+      // Al volver a modo reducido, ubicarlo cómodamente en la esquina inferior derecha
+      const brPos = getBottomRightPosition();
+      setPosition(brPos);
+    }
     try {
       localStorage.setItem('bug_floating_widget_collapsed', collapsed ? 'true' : 'false');
     } catch {}
@@ -255,8 +301,14 @@ export function FloatingTimerCompanion() {
 
   const handleCloseWidget = () => {
     setIsWidgetVisible(false);
+    // Siempre que se cierre, restablecer a la esquina inferior derecha y en modo reducido para la próxima vez
+    const brPos = getBottomRightPosition();
+    setPosition(brPos);
+    setIsCollapsed(true);
     try {
       localStorage.removeItem('bug_floating_widget_visible');
+      localStorage.setItem('bug_floating_widget_pos', JSON.stringify(brPos));
+      localStorage.setItem('bug_floating_widget_collapsed', 'true');
     } catch {}
   };
 
