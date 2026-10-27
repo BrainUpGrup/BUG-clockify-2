@@ -1,0 +1,22 @@
+{
+  "id": "9aa4435f0483",
+  "status": "failed",
+  "phase": "review",
+  "progress": 0.0,
+  "created_at": "2026-10-26T08:05:59+00:00",
+  "approved": false,
+  "error": "TypeError: \"Could not resolve authentication method. Expected one of api_key, auth_token, or credentials to be set. Or for the `Authorization` header to be explicitly omitted\"",
+  "files": [],
+  "review_summary": null,
+  "original_filename": "WhatsApp Video 2026-10-16 at 15.10.48.mp4",
+  "source_lang": "en",
+  "target_lang": "es",
+  "topic": "Video de rally que no tiene audio es solo un prueba",
+  "glossary": "",
+  "review_required": true,
+  "burn": true,
+  "callback_url": null,
+  "updated_at": "2026-10-26T08:07:05+00:00",
+  "duration": 11.701451,
+  "vertical": false
+}
