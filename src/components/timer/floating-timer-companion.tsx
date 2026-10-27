@@ -58,10 +58,12 @@ export function FloatingTimerCompanion() {
             setPosition(parsed);
           }
         }
-        const savedVisibility = localStorage.getItem('bug_floating_widget_visible');
-        if (savedVisibility === 'true') {
-          setIsWidgetVisible(true);
-        }
+
+        // Limpiar cualquier estado previo de visibilidad para que no se abra automáticamente al iniciar
+        try {
+          localStorage.removeItem('bug_floating_widget_visible');
+        } catch {}
+
         const savedCollapsed = localStorage.getItem('bug_floating_widget_collapsed');
         if (savedCollapsed === 'true') {
           setIsCollapsed(true);
@@ -251,6 +253,13 @@ export function FloatingTimerCompanion() {
     setIsCollapsed(collapsed);
     try {
       localStorage.setItem('bug_floating_widget_collapsed', collapsed ? 'true' : 'false');
+    } catch {}
+  };
+
+  const handleCloseWidget = () => {
+    setIsWidgetVisible(false);
+    try {
+      localStorage.removeItem('bug_floating_widget_visible');
     } catch {}
   };
 
@@ -505,7 +514,7 @@ export function FloatingTimerCompanion() {
                 {/* Botón Cerrar */}
                 <button
                   type="button"
-                  onClick={() => setIsWidgetVisible(false)}
+                  onClick={handleCloseWidget}
                   className="p-1 rounded-md hover:bg-rose-50 text-slate-300 hover:text-rose-600 transition-colors cursor-pointer"
                   title="Cerrar widget"
                 >
@@ -559,7 +568,7 @@ export function FloatingTimerCompanion() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setIsWidgetVisible(false)}
+                    onClick={handleCloseWidget}
                     className="p-1 rounded-md hover:bg-rose-50 text-slate-300 hover:text-rose-600 transition-colors"
                     title="Cerrar widget"
                   >
