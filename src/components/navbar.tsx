@@ -15,6 +15,7 @@ import {
   Building2,
   MessageSquare,
   Video,
+  Server,
   Play,
   Square,
   ExternalLink,
@@ -78,6 +79,7 @@ export function Navbar() {
   const isClockifyActive = isEmployeeActive || isCoordinatorActive;
   const isTaskFlowActive = pathname.includes('/taskflow');
   const isChatActive = pathname.includes('/chat');
+  const isHostingActive = pathname.includes('/hosting');
   const isSubtitulosActive = pathname.includes('/subtitulos');
   const isAdminActive = pathname.includes('/admin');
   const isAdmin = user?.role === 'admin';
@@ -87,6 +89,7 @@ export function Navbar() {
   const canAccessClockify = isAdmin || isCoordinator || canUserAccessHubApp(user, 'clockify');
   const canAccessTaskflow = isAdmin || isCoordinator || canUserAccessHubApp(user, 'taskflow');
   const canAccessChat = isAdmin || isCoordinator || canUserAccessHubApp(user, 'chat');
+  const canAccessHosting = isAdmin || isCoordinator || canUserAccessHubApp(user, 'hosting');
   const canAccessSubtitulos = isAdmin || isCoordinator || canUserAccessHubApp(user, 'subtitulos');
 
   const handleLogoutClick = async () => {
@@ -148,6 +151,7 @@ export function Navbar() {
       case 'Clock': return Clock;
       case 'CheckSquare': return CheckSquare;
       case 'MessageSquare': return MessageSquare;
+      case 'Server': return Server;
       case 'Video': return Video;
       case 'Image': return Image;
       case 'Users': return Users;
@@ -161,6 +165,7 @@ export function Navbar() {
   const getAppNavLabel = (app: HubApp) => {
     if (app.id === 'clockify') return 'Tiempo';
     if (app.id === 'taskflow') return 'Agenda';
+    if (app.id === 'hosting') return 'Hosting';
     if (app.id === 'subtitulos') return 'Subtítulos';
     if (app.id === 'chat') return 'Chat';
     return app.name.replace(/^Brain Up\s+/, '');
@@ -211,6 +216,8 @@ export function Navbar() {
         isActive = isTaskFlowActive;
       } else if (app.id === 'chat') {
         isActive = isChatActive;
+      } else if (app.id === 'hosting') {
+        isActive = isHostingActive;
       } else if (app.id === 'subtitulos') {
         isActive = isSubtitulosActive;
       } else {

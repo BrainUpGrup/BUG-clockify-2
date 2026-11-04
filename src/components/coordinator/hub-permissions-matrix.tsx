@@ -18,6 +18,7 @@ import {
   Filter,
   CheckCircle2,
   MessageSquare,
+  Server,
   Video
 } from 'lucide-react';
 import { Profile } from '@/types/database';
@@ -55,6 +56,8 @@ export function HubPermissionsMatrix({ employees }: HubPermissionsMatrixProps) {
         return <CheckSquare className={className} />;
       case 'MessageSquare':
         return <MessageSquare className={className} />;
+      case 'Server':
+        return <Server className={className} />;
       case 'Image':
         return <Image className={className} />;
       case 'Users':

@@ -1363,3 +1363,34 @@
 - **Validación y Pruebas:**
   - `npx tsc --noEmit`: **0 errores de compilación**.
   - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis) y DM-15 (Zero-Scroll).
+
+### [v3.7.0] - 2026-11-04 - Nuevo Módulo Centralizado: Brain Up Hosting & Dominios
+- **Solicitud del Usuario:**
+  *"perfecto, ahora vamos ha hacer un nuevo apartado apartado de hosting: este apartado constara de un hub donde podremos ver todos los hosting de los clientes que ya tneemos, quieor que se pueda importa y exportar en csv, ademas de eso te añado un csv para que puedas introducir ya uno de los hosting. Buscamos encnotrar un sistema que nos notifiuque cuando un hosting se va a expirar para avisar al cliente, o renovarlo nosotros mismos. La posibilidad d enotificaciones tiene que salir en un panel de notificaciones de el propio aparado de hosting las notificaciones tienen que poder llegarnos con 7,15,30.60,90 dias ademas de eso quiero que tambien xista la posibilidad de crear esos hostings manualmente para que podamos ir gestioanndolo de manera manual si fuese necesario."*
+- **Diagnóstico Técnico:**
+  La agencia gestiona más de 150 dominios y servidores (Cdmon y otros proveedores) de clientes, con riesgo de caídas de servicio o expiraciones involuntarias debido a que las renovaciones automáticas están frecuentemente desactivadas. Se requería una herramienta integrada para monitorizar fechas de vencimiento, recibir alertas escalonadas (7, 15, 30, 60 y 90 días), contactar clientes con plantillas prediseñadas y registrar renovaciones.
+- **Decisión Técnica e Implementación:**
+  1. **Tipado & Modelo de Datos (`src/types/hosting.ts`):**
+     - Interfaces `HostingService`, `HostingAlert`, `HostingMetrics`, `NotificationStages`.
+     - Soporte para tipos de servicio (`Hosting`, `Dominio`, `Correo`, `SSL`, `VPS`), ciclos (`Anual`, `Semestral`, `Mensual`), costes y PVP, proveedor, método de pago y estados.
+  2. **Semilla Inicial Oficial (`src/lib/hosting-seed-data.ts`):**
+     - Parseo e incorporación de los **153 servicios reales** proporcionados en `renewable_services_manumorca_4-11-2026.csv` procedentes del panel de Cdmon.
+  3. **Capa de Servicios y Persistencia Dual (`src/lib/hosting-service.ts`):**
+     - Soporte para Supabase PostgreSQL (tabla `hosting_services`) con fallback resiliente en `localStorage` con sincronización en tiempo real vía CustomEvents.
+     - Funciones de cálculo de días restantes relativos, cómputo de métricas ejecutivas, renovación con 1 clic (+1 año), registro de etapas de aviso, exportador CSV compatible con Excel y Cdmon, y parser importador multiformato (; y ,).
+     - Generador de plantillas de correo formal de aviso para el cliente (`generateClientNotificationEmail`).
+  4. **Componentes Especializados:**
+     - `HostingStats`: Tarjetas métricas ejecutivas (total contratados, caducados, en 7d, en 30d, en 60-90d, y botón de alertas).
+     - `HostingNotificationsDrawer`: Panel lateral desplegable con pestañas filtradas por etapas de notificación (7, 15, 30, 60 y 90 días), botones directos de renovación y marcado de preaviso.
+     - `HostingModal`: Formulario de alta/edición manual en 2 columnas paralelas compactas cumpliendo DM-15 (< 420px).
+     - `HostingEmailModal`: Modal de previsualización y copiado al portapapeles del email para el cliente.
+     - `HostingImportModal`: Diálogo para importar nuevos CSVs con opción de reemplazar o fusionar.
+  5. **Página Principal (`src/app/apps/hosting/page.tsx`):**
+     - Tabla de alta densidad con filtros en vivo, paginación compacta, alternancia inline de auto-renovación y acciones rápidas.
+  6. **Integración Global en la Suite:**
+     - Incorporado como aplicación oficial en `src/lib/hub-apps.ts` (`id: 'hosting'`, ruta `/apps/hosting`, icono `Server`).
+     - Añadido soporte en la barra de navegación (`src/components/navbar.tsx`), catálogo del HUB (`src/app/hub/page.tsx`) y matriz de permisos de coordinación (`HubPermissionsMatrix`).
+     - Script DDL añadido en `schema.sql`.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis), DM-02 (Controles In-App), DM-03 (100% Pantalla) y DM-15 (Zero-Scroll).

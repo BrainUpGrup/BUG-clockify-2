@@ -26,6 +26,7 @@ import {
   Share2, 
   MessageSquare,
   Video,
+  Server,
   ArrowRight, 
   ShieldCheck, 
   Palette, 
@@ -178,6 +179,8 @@ export default function BrainUpHubPage() {
         return <Share2 className={className} />;
       case 'MessageSquare':
         return <MessageSquare className={className} />;
+      case 'Server':
+        return <Server className={className} />;
       case 'Video':
         return <Video className={className} />;
       default:

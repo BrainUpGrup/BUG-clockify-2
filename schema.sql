@@ -344,4 +344,43 @@ set
 -- Las empresas y clientes se darán de alta por la coordinadora desde el panel.
 -- ==============================================================================
 
+-- 4. TABLA: hosting_services (Servicios de Hosting, Dominios y Alertas de Renovación)
+create table if not exists public.hosting_services (
+  id text primary key,
+  name text not null,
+  service_type text not null default 'Hosting',
+  renewal_cycle text not null default 'Anual',
+  expiration_date date not null,
+  auto_renew boolean not null default false,
+  payment_method text null default 'Manual / No configurado',
+  provider text not null default 'Cdmon',
+  client_name text null,
+  company_id uuid null references public.companies(id) on delete set null,
+  price_cost numeric(10, 2) null default 0,
+  price_client numeric(10, 2) null default 0,
+  status text not null default 'active' check (status in ('active', 'expired', 'renewed', 'cancelled')),
+  notes text null,
+  last_notified_at timestamptz null,
+  notification_stages jsonb null default '{"7": false, "15": false, "30": false, "60": false, "90": false}',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_hosting_expiration_date on public.hosting_services(expiration_date);
+create index if not exists idx_hosting_name on public.hosting_services(name);
+
+alter table public.hosting_services enable row level security;
+
+create policy "Usuarios autenticados leen hostings"
+  on public.hosting_services for select
+  to authenticated
+  using (true);
+
+create policy "Usuarios autenticados gestionan hostings"
+  on public.hosting_services for all
+  to authenticated
+  using (true)
+  with check (true);
+
+
 
