@@ -280,7 +280,7 @@ export function TaskModal({
       {/* Contenedor Modal de 2 Columnas Optimizadas para ZERO SCROLL */}
       <div
         ref={dialogRef}
-        className="bg-white border border-[#D8CFF0] rounded-sm shadow-2xl w-full max-w-4xl flex flex-col tab-transition my-auto max-h-[calc(100vh-1rem)]"
+        className="bg-white border border-[#D8CFF0] rounded-2xl shadow-2xl w-full max-w-4xl flex flex-col tab-transition my-auto max-h-[calc(100vh-1rem)]"
         role="dialog"
         aria-modal="true"
         aria-labelledby="taskflow-modal-title"
@@ -288,7 +288,7 @@ export function TaskModal({
         {/* Cabecera Compacta en una sola fila */}
         <div className="py-2 px-3 sm:px-4 border-b border-[#EAE4F5] bg-gradient-to-r from-[#F8F6FC] to-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
-            <div className="p-1 rounded-sm bg-[#8E0E75]/10 text-[#8E0E75]">
+            <div className="p-1 rounded-xl bg-[#8E0E75]/10 text-[#8E0E75]">
               {type === 'meeting' ? <CalendarIcon className="h-3.5 w-3.5" /> : <CheckSquare className="h-3.5 w-3.5" />}
             </div>
             <div>
@@ -300,11 +300,11 @@ export function TaskModal({
 
           {/* Selector de Tipo Tarea / Reunión Integrado Compacto */}
           <div className="flex items-center gap-2">
-            <div className="flex items-center rounded-sm bg-[#F8F6FC] p-0.5 border border-[#D8CFF0] text-[11px] font-extrabold uppercase">
+            <div className="flex items-center rounded-xl bg-[#F8F6FC] p-0.5 border border-[#D8CFF0] text-[11px] font-extrabold uppercase">
               <button
                 type="button"
                 onClick={() => setType('task')}
-                className={`flex items-center gap-1 px-2.5 py-0.5 rounded-sm transition-all cursor-pointer ${
+                className={`flex items-center gap-1 px-2.5 py-0.5 rounded-lg transition-all cursor-pointer ${
                   type === 'task' ? 'bg-[#8E0E75] text-white shadow-xs' : 'text-[#4A4A4A] hover:text-[#292929]'
                 }`}
               >
@@ -314,7 +314,7 @@ export function TaskModal({
               <button
                 type="button"
                 onClick={() => setType('meeting')}
-                className={`flex items-center gap-1 px-2.5 py-0.5 rounded-sm transition-all cursor-pointer ${
+                className={`flex items-center gap-1 px-2.5 py-0.5 rounded-lg transition-all cursor-pointer ${
                   type === 'meeting' ? 'bg-[#8E0E75] text-white shadow-xs' : 'text-[#4A4A4A] hover:text-[#292929]'
                 }`}
               >
@@ -326,7 +326,7 @@ export function TaskModal({
             <button
               type="button"
               onClick={onClose}
-              className="p-1 rounded-sm hover:bg-slate-100 text-slate-400 hover:text-[#292929] transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-[#292929] transition-colors cursor-pointer"
               title="Cerrar ventana"
             >
               <X className="h-4 w-4" />
@@ -356,7 +356,7 @@ export function TaskModal({
                 }
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-2.5 py-1 border border-[#D8CFF0] rounded-sm text-xs bg-[#F8F6FC] focus:bg-white focus:border-[#8E0E75] outline-none font-medium text-[#292929]"
+                className="w-full px-2.5 py-1 border border-[#D8CFF0] rounded-lg text-xs bg-[#F8F6FC] focus:bg-white focus:border-[#8E0E75] outline-none font-medium text-[#292929]"
               />
             </div>
 
@@ -384,7 +384,7 @@ export function TaskModal({
                     placeholder="ej. Restaurante El Gourmet"
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
-                    className="w-full px-2 py-1 border border-[#D8CFF0] rounded-sm text-xs bg-[#F8F6FC] focus:bg-white focus:border-[#8E0E75] outline-none"
+                    className="w-full px-2 py-1 border border-[#D8CFF0] rounded-lg text-xs bg-[#F8F6FC] focus:bg-white focus:border-[#8E0E75] outline-none"
                   />
                 )}
               </div>
@@ -413,7 +413,7 @@ export function TaskModal({
                       aria-label="Horas estimadas"
                       value={estimatedHours}
                       onChange={(e) => setEstimatedHours(e.target.value.replace(',', '.'))}
-                      className="w-full px-2 py-1 border border-[#D8CFF0] rounded-sm text-xs bg-[#F8F6FC] focus:bg-white focus:border-[#8E0E75] outline-none font-bold"
+                      className="w-full px-2 py-1 border border-[#D8CFF0] rounded-lg text-xs bg-[#F8F6FC] focus:bg-white focus:border-[#8E0E75] outline-none font-bold"
                     />
                   </div>
 
@@ -422,7 +422,7 @@ export function TaskModal({
                       <button
                         type="button"
                         onClick={handleShiftToNextBusinessDay}
-                        className="px-2.5 py-1 rounded-sm bg-[#8E0E75]/10 hover:bg-[#8E0E75] text-[#8E0E75] hover:text-white border border-[#8E0E75]/30 text-[11px] font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
+                        className="px-2.5 py-1 rounded-xl bg-[#8E0E75]/10 hover:bg-[#8E0E75] text-[#8E0E75] hover:text-white border border-[#8E0E75]/30 text-[11px] font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
                         title="Desplazar tarea a mañana (+1 día hábil) en cualquier momento del día"
                       >
                         <FastForward className="h-3 w-3" />
@@ -441,7 +441,7 @@ export function TaskModal({
                       type="time"
                       value={startTime}
                       onChange={(e) => setStartTime(e.target.value)}
-                      className="w-full px-1.5 py-1 border border-[#D8CFF0] rounded-sm text-xs bg-[#F8F6FC] focus:bg-white focus:border-[#8E0E75] outline-none font-mono font-bold"
+                      className="w-full px-1.5 py-1 border border-[#D8CFF0] rounded-lg text-xs bg-[#F8F6FC] focus:bg-white focus:border-[#8E0E75] outline-none font-mono font-bold"
                     />
                   </div>
                   <div className="col-span-6">
@@ -452,7 +452,7 @@ export function TaskModal({
                       type="time"
                       value={endTime}
                       onChange={(e) => setEndTime(e.target.value)}
-                      className="w-full px-1.5 py-1 border border-[#D8CFF0] rounded-sm text-xs bg-[#F8F6FC] focus:bg-white focus:border-[#8E0E75] outline-none font-mono font-bold"
+                      className="w-full px-1.5 py-1 border border-[#D8CFF0] rounded-lg text-xs bg-[#F8F6FC] focus:bg-white focus:border-[#8E0E75] outline-none font-mono font-bold"
                     />
                   </div>
                 </>
@@ -461,7 +461,7 @@ export function TaskModal({
 
             {/* Si es reunión: Ubicación o Enlace (Compacto) */}
             {type === 'meeting' && (
-              <div className="grid grid-cols-2 gap-2 p-1.5 rounded-sm bg-[#F8F6FC] border border-[#D8CFF0]">
+              <div className="grid grid-cols-2 gap-2 p-1.5 rounded-xl bg-[#F8F6FC] border border-[#D8CFF0]">
                 <div>
                   <label className="block text-[11px] font-extrabold uppercase text-[#292929] mb-0.5">
                     Ubicación / Meet
@@ -471,7 +471,7 @@ export function TaskModal({
                     placeholder="ej. Google Meet"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
-                    className="w-full px-2 py-0.5 border border-[#D8CFF0] rounded-sm text-xs bg-white focus:border-[#8E0E75] outline-none"
+                    className="w-full px-2 py-0.5 border border-[#D8CFF0] rounded-lg text-xs bg-white focus:border-[#8E0E75] outline-none"
                   />
                 </div>
                 <div>
@@ -483,7 +483,7 @@ export function TaskModal({
                     placeholder="https://meet.google.com/..."
                     value={meetingUrl}
                     onChange={(e) => setMeetingUrl(e.target.value)}
-                    className="w-full px-2 py-0.5 border border-[#D8CFF0] rounded-sm text-xs bg-white focus:border-[#8E0E75] outline-none font-mono text-[11px]"
+                    className="w-full px-2 py-0.5 border border-[#D8CFF0] rounded-lg text-xs bg-white focus:border-[#8E0E75] outline-none font-mono text-[11px]"
                   />
                 </div>
               </div>
@@ -499,18 +499,18 @@ export function TaskModal({
                 placeholder="Detalles clave, orden del día, requisitos..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full px-2 py-1 border border-[#D8CFF0] rounded-sm text-xs bg-[#F8F6FC] focus:bg-white focus:border-[#8E0E75] outline-none resize-none"
+                className="w-full px-2 py-1 border border-[#D8CFF0] rounded-lg text-xs bg-[#F8F6FC] focus:bg-white focus:border-[#8E0E75] outline-none resize-none"
               />
             </div>
 
             {/* Asignación y Visibilidad (Compacto) */}
-            <div className="p-1.5 rounded-sm border border-[#D8CFF0] bg-white flex items-center justify-between text-xs">
+            <div className="p-1.5 rounded-xl border border-[#D8CFF0] bg-white flex items-center justify-between text-xs">
               <label className="flex items-center gap-1.5 cursor-pointer font-bold text-[#292929]">
                 <input
                   type="checkbox"
                   checked={isShared}
                   onChange={(e) => setIsShared(e.target.checked)}
-                  className="h-3.5 w-3.5 rounded-sm border-slate-300 text-[#8E0E75] cursor-pointer"
+                  className="h-3.5 w-3.5 rounded-lg border-slate-300 text-[#8E0E75] cursor-pointer"
                 />
                 <span className="text-[11px]">{isShared ? 'Compartir con equipo' : 'Solo para mí (Privada)'}</span>
               </label>
@@ -553,7 +553,7 @@ export function TaskModal({
           <div className="md:col-span-5 space-y-2 flex flex-col justify-between">
             
             {/* 1. Selector de Lista de Tareas Asignada */}
-            <div className="p-2 rounded-sm bg-[#F8F6FC] border border-[#D8CFF0] space-y-1.5">
+            <div className="p-2 rounded-xl bg-[#F8F6FC] border border-[#D8CFF0] space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="text-[11px] font-extrabold uppercase tracking-wider text-[#292929] flex items-center gap-1">
                   <Layers className="h-3 w-3 text-[#8E0E75]" />
@@ -589,12 +589,12 @@ export function TaskModal({
                       placeholder="Nombre lista..."
                       value={newListName}
                       onChange={(e) => setNewListName(e.target.value)}
-                      className="px-2 py-0.5 text-xs border border-[#D8CFF0] rounded-sm bg-white flex-1 min-w-0"
+                      className="px-2 py-0.5 text-xs border border-[#D8CFF0] rounded-lg bg-white flex-1 min-w-0"
                     />
                     <button
                       type="button"
                       onClick={handleCreateNewList}
-                      className="px-2 py-0.5 bg-[#8E0E75] text-white rounded-sm text-[11px] font-black uppercase shrink-0 cursor-pointer"
+                      className="px-2 py-0.5 bg-[#8E0E75] text-white rounded-lg text-[11px] font-black uppercase shrink-0 cursor-pointer"
                     >
                       OK
                     </button>
@@ -621,7 +621,7 @@ export function TaskModal({
             </div>
 
             {/* 2. Color de la Tira (Exclusivo Paleta Google Calendar) */}
-            <div className="p-2.5 rounded-sm bg-[#F8F6FC] border border-[#D8CFF0] space-y-2">
+            <div className="p-2.5 rounded-xl bg-[#F8F6FC] border border-[#D8CFF0] space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-[11px] font-extrabold uppercase tracking-wider text-[#292929] flex items-center gap-1.5">
                   <Palette className="h-3.5 w-3.5 text-[#8E0E75]" />
@@ -708,7 +708,7 @@ export function TaskModal({
             </div>
 
             {/* 3. Desplazamiento: Manual o Automático (A libre elección del usuario) */}
-            <div className="p-2 rounded-sm bg-[#F8F6FC] border border-[#D8CFF0] space-y-1.5">
+            <div className="p-2 rounded-xl bg-[#F8F6FC] border border-[#D8CFF0] space-y-1.5">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#292929] flex items-center gap-1">
                   <RotateCw className="h-3 w-3 text-[#8E0E75]" />
@@ -775,7 +775,7 @@ export function TaskModal({
                   href={getGoogleCalendarUrl(editingItem)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 px-2 py-1 rounded-sm bg-white border border-slate-300 text-slate-700 hover:text-[#8E0E75] text-[11px] font-bold shadow-2xs"
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white border border-slate-300 text-slate-700 hover:text-[#8E0E75] text-[11px] font-bold shadow-2xs"
                 >
                   <ExternalLink className="h-3 w-3 text-blue-600" />
                   <span>Google Cal</span>
@@ -783,7 +783,7 @@ export function TaskModal({
                 <button
                   type="button"
                   onClick={() => downloadSingleEventIcs(editingItem)}
-                  className="inline-flex items-center gap-1 px-2 py-1 rounded-sm bg-white border border-slate-300 text-slate-700 hover:text-[#8E0E75] text-[11px] font-bold shadow-2xs"
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white border border-slate-300 text-slate-700 hover:text-[#8E0E75] text-[11px] font-bold shadow-2xs"
                 >
                   <Download className="h-3 w-3" />
                   <span>.ics</span>
@@ -796,7 +796,7 @@ export function TaskModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-3 py-1.5 rounded-sm border border-[#D8CFF0] hover:bg-white text-[#4A4A4A] text-xs font-extrabold uppercase tracking-wider cursor-pointer"
+              className="px-4 py-2 rounded-xl border border-[#D8CFF0] hover:bg-white text-[#4A4A4A] text-xs font-extrabold uppercase tracking-wider cursor-pointer"
             >
               Cancelar
             </button>
@@ -804,7 +804,7 @@ export function TaskModal({
               type="submit"
               form="taskflow-form"
               title="Ctrl + Enter"
-              className="px-4 py-1.5 rounded-sm bg-[#8E0E75] hover:bg-[#700B5C] text-white text-sm font-bold shadow-xs transition-all cursor-pointer"
+              className="px-5 py-2.5 rounded-xl bg-[#8E0E75] hover:bg-[#700B5C] text-white text-sm font-bold shadow-xs transition-all cursor-pointer"
             >
               {editingItem ? 'Guardar cambios' : type === 'meeting' ? 'Crear reunión' : 'Crear tarea'}
             </button>

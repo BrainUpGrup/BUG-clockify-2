@@ -627,7 +627,7 @@ export function FloatingTimerCompanion() {
               </div>
 
               {/* Empresa en Curso y Cronómetro */}
-              <div className="flex items-center justify-between p-2 rounded-sm bg-[#F8F6FC] border border-[#D8CFF0]">
+              <div className="flex items-center justify-between p-2 rounded-lg bg-[#F8F6FC] border border-[#D8CFF0]">
                 <div className="flex items-center gap-2 min-w-0 pr-2">
                   <div className="h-7 w-7 rounded-xs bg-white border border-[#D8CFF0] flex items-center justify-center shrink-0 text-[#8E0E75]">
                     <Building2 className="h-3.5 w-3.5" />

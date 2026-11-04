@@ -330,13 +330,13 @@ export function getGoogleCalendarUrl(item: TaskFlowItem): string {
   }
 
   const detailsArray = [
-    `🏢 Empresa / Cliente: ${item.companyName}`,
-    item.priority ? `⚡ Prioridad: ${item.priority.toUpperCase()}` : '',
-    `📌 Estado: ${item.status.toUpperCase()}`,
-    item.assignees?.length ? `👥 Responsables: ${item.assignees.join(', ')}` : '',
-    item.description ? `📝 Detalles: ${item.description}` : '',
-    item.meetingUrl ? `🔗 Enlace de Reunión: ${item.meetingUrl}` : '',
-    `⚡ Gestionado vía Brain Up TaskFlow & Clockify Hub`
+    `Empresa / Cliente: ${item.companyName}`,
+    item.priority ? `Prioridad: ${item.priority.toUpperCase()}` : '',
+    `Estado: ${item.status.toUpperCase()}`,
+    item.assignees?.length ? `Responsables: ${item.assignees.join(', ')}` : '',
+    item.description ? `Detalles: ${item.description}` : '',
+    item.meetingUrl ? `Enlace de Reunión: ${item.meetingUrl}` : '',
+    `Gestionado vía Brain Up TaskFlow & Clockify Hub`
   ].filter(Boolean);
 
   const details = encodeURIComponent(detailsArray.join('\n'));

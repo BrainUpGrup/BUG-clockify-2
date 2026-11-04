@@ -34,12 +34,12 @@ function RegisterFormContent() {
   // Si no dispone del enlace oficial de invitación, se bloquea el acceso
   if (!isInviteValid) {
     return (
-      <div className="w-full max-w-md bg-white border border-[#D8CFF0] rounded-sm shadow-xl p-8 sm:p-10 space-y-6 text-center">
+      <div className="w-full max-w-md bg-white border border-[#D8CFF0] rounded-2xl shadow-xl p-8 sm:p-10 sm:p-10 space-y-6 text-center">
         {/* Cabecera con Logotipo */}
         <div className="flex justify-center">
-          <div className="h-16 w-16 relative rounded-full bg-white border border-[#D8CFF0] p-1 shadow-xs">
+          <div className="h-16 w-16 relative rounded-full bg-white border border-[#D8CFF0] p-2.5 shadow-xs">
             <Image
-              src="/logo.png"
+              src="/isotipo.svg"
               alt="Brain Up Grup"
               fill
               sizes="64px"
@@ -50,7 +50,7 @@ function RegisterFormContent() {
         </div>
 
         <div className="space-y-2">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-sm bg-amber-50 border border-amber-300 text-amber-800 text-[11px] font-extrabold uppercase tracking-wider mx-auto">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-50 border border-amber-300 text-amber-800 text-[11px] font-extrabold uppercase tracking-wider mx-auto">
             <ShieldAlert className="h-3.5 w-3.5 text-amber-600" />
             <span>Acceso Exclusivo por Enlace</span>
           </div>
@@ -62,14 +62,14 @@ function RegisterFormContent() {
           </p>
         </div>
 
-        <div className="p-3.5 rounded-sm bg-[#F8F6FC] border border-[#D8CFF0] text-xs text-[#4A4A4A] leading-normal font-light">
+        <div className="p-3.5 rounded-xl bg-[#F8F6FC] border border-[#D8CFF0] text-xs text-[#4A4A4A] leading-normal font-light">
           Solicita a la coordinadora que te facilite el enlace de registro del equipo. Si ya dispones de una cuenta activa, puedes iniciar sesión directamente.
         </div>
 
         <div className="pt-2">
           <Link
             href="/login"
-            className="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-sm bg-[#8E0E75] text-white text-xs font-extrabold uppercase tracking-wider hover:bg-[#700B5C] transition-all shadow-md shadow-[#8E0E75]/25"
+            className="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-[#8E0E75] text-white text-xs font-extrabold uppercase tracking-wider hover:bg-[#700B5C] transition-all shadow-md shadow-[#8E0E75]/25"
           >
             <span>Ir a Iniciar Sesión</span>
           </Link>
@@ -111,13 +111,13 @@ function RegisterFormContent() {
   };
 
   return (
-    <div className="w-full max-w-lg bg-white border border-[#D8CFF0] rounded-sm shadow-xl p-8 sm:p-10 space-y-6">
+    <div className="w-full max-w-lg bg-white border border-[#D8CFF0] rounded-2xl shadow-xl p-8 sm:p-10 sm:p-10 space-y-6">
       {/* Cabecera con Logotipo de "La Abuela" */}
       <div className="text-center space-y-3">
         <div className="flex justify-center">
-          <div className="h-16 w-16 relative rounded-full bg-white border border-[#D8CFF0] p-1 shadow-xs">
+          <div className="h-16 w-16 relative rounded-full bg-white border border-[#D8CFF0] p-2.5 shadow-xs">
             <Image
-              src="/logo.png"
+              src="/isotipo.svg"
               alt="Brain Up Grup"
               fill
               sizes="64px"
@@ -152,7 +152,7 @@ function RegisterFormContent() {
             </p>
           </div>
 
-          <div className="p-4 rounded-sm bg-[#F8F6FC] border border-[#D8CFF0] text-left space-y-2">
+          <div className="p-4 rounded-xl bg-[#F8F6FC] border border-[#D8CFF0] text-left space-y-2">
             <div className="flex items-center gap-2 text-xs font-bold text-[#8E0E75]">
               <Clock className="h-4 w-4 shrink-0" />
               <span>Estado: Pendiente de Aceptación</span>
@@ -165,7 +165,7 @@ function RegisterFormContent() {
           <div className="pt-2">
             <Link
               href="/login"
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-sm bg-[#8E0E75] text-white text-xs font-extrabold uppercase tracking-wider hover:bg-[#700B5C] transition-all shadow-md shadow-[#8E0E75]/25"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#8E0E75] text-white text-xs font-extrabold uppercase tracking-wider hover:bg-[#700B5C] transition-all shadow-md shadow-[#8E0E75]/25"
             >
               <span>Ir a Iniciar Sesión</span>
             </Link>
@@ -174,7 +174,7 @@ function RegisterFormContent() {
       ) : (
         /* Formulario de Registro */
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="p-3.5 rounded-sm bg-[#F8F6FC] border border-[#D8CFF0] flex items-start gap-3">
+          <div className="p-3.5 rounded-xl bg-[#F8F6FC] border border-[#D8CFF0] flex items-start gap-3">
             <ShieldCheck className="h-4 w-4 text-[#8E0E75] shrink-0 mt-0.5" />
             <p className="text-[11px] text-[#4A4A4A] leading-normal font-light">
               Has accedido mediante el <strong>enlace oficial de empresa</strong>. Rellena tus datos para solicitar el alta. El coordinador validará tu cuenta.
@@ -182,7 +182,7 @@ function RegisterFormContent() {
           </div>
 
           {errorMsg && (
-            <div className="p-3 rounded-sm bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold">
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold">
               {errorMsg}
             </div>
           )}
@@ -199,7 +199,7 @@ function RegisterFormContent() {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="ej. Marc Torrent"
-                className="w-full px-4 py-2.5 pl-10 rounded-sm border border-[#D8CFF0] bg-white text-xs text-[#292929] placeholder:text-slate-400 focus:border-[#8E0E75] focus:ring-2 focus:ring-[#8E0E75]/15 outline-none transition-all"
+                className="w-full px-4 py-2.5 pl-10 rounded-xl border border-[#D8CFF0] bg-white text-xs text-[#292929] placeholder:text-slate-400 focus:border-[#8E0E75] focus:ring-2 focus:ring-[#8E0E75]/15 outline-none transition-all"
               />
               <User className="h-4 w-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             </div>
@@ -217,7 +217,7 @@ function RegisterFormContent() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="tu.nombre@brainupgrup.com"
-                className="w-full px-4 py-2.5 pl-10 rounded-sm border border-[#D8CFF0] bg-white text-xs text-[#292929] placeholder:text-slate-400 focus:border-[#8E0E75] focus:ring-2 focus:ring-[#8E0E75]/15 outline-none transition-all"
+                className="w-full px-4 py-2.5 pl-10 rounded-xl border border-[#D8CFF0] bg-white text-xs text-[#292929] placeholder:text-slate-400 focus:border-[#8E0E75] focus:ring-2 focus:ring-[#8E0E75]/15 outline-none transition-all"
               />
               <Mail className="h-4 w-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             </div>
@@ -235,7 +235,7 @@ function RegisterFormContent() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••••••"
-                className="w-full px-4 py-2.5 pl-10 rounded-sm border border-[#D8CFF0] bg-white text-xs text-[#292929] placeholder:text-slate-400 focus:border-[#8E0E75] focus:ring-2 focus:ring-[#8E0E75]/15 outline-none transition-all"
+                className="w-full px-4 py-2.5 pl-10 rounded-xl border border-[#D8CFF0] bg-white text-xs text-[#292929] placeholder:text-slate-400 focus:border-[#8E0E75] focus:ring-2 focus:ring-[#8E0E75]/15 outline-none transition-all"
               />
               <Lock className="h-4 w-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             </div>
@@ -244,7 +244,7 @@ function RegisterFormContent() {
           <button
             type="submit"
             disabled={isSubmitting || !fullName.trim() || !email.trim()}
-            className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-sm bg-[#8E0E75] text-white text-xs font-extrabold uppercase tracking-wider hover:bg-[#700B5C] active:scale-95 disabled:opacity-50 transition-all shadow-md shadow-[#8E0E75]/25 cursor-pointer mt-2"
+            className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-[#8E0E75] text-white text-xs font-extrabold uppercase tracking-wider hover:bg-[#700B5C] active:scale-95 disabled:opacity-50 transition-all shadow-md shadow-[#8E0E75]/25 cursor-pointer mt-2"
           >
             <UserPlus className="h-4 w-4" />
             <span>{isSubmitting ? 'Enviando Solicitud...' : 'Solicitar Alta de Empleado'}</span>

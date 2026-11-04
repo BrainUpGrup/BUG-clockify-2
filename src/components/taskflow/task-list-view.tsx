@@ -35,7 +35,7 @@ export function TaskListView({
 }: TaskListViewProps) {
   if (items.length === 0) {
     return (
-      <div className="bg-white border border-[#D8CFF0] rounded-sm p-12 text-center space-y-2 shadow-xs">
+      <div className="bg-white border border-[#D8CFF0] rounded-2xl p-12 text-center space-y-2 shadow-xs">
         <p className="text-xs text-[#4A4A4A] font-medium">
           No hay tareas ni reuniones que coincidan con los filtros seleccionados.
         </p>
@@ -44,7 +44,7 @@ export function TaskListView({
   }
 
   return (
-    <div className="bg-white border border-[#D8CFF0] rounded-sm shadow-xs overflow-hidden">
+    <div className="bg-white border border-[#D8CFF0] rounded-2xl shadow-xs overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
@@ -122,7 +122,7 @@ export function TaskListView({
                   {/* Prioridad */}
                   <td className="py-3 px-4">
                     <span
-                      className={`inline-block px-2 py-0.5 rounded-sm text-[11px] font-extrabold uppercase tracking-wider border ${
+                      className={`inline-block px-2.5 py-0.5 rounded-md text-[11px] font-extrabold uppercase tracking-wider border ${
                         item.priority === 'alta'
                           ? 'bg-red-50 text-red-700 border-red-300'
                           : item.priority === 'media'
@@ -170,7 +170,7 @@ export function TaskListView({
                       <button
                         type="button"
                         onClick={() => onStartClockifyTimer(item)}
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-sm bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[11px] font-extrabold cursor-pointer shadow-2xs"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[11px] font-extrabold cursor-pointer shadow-2xs"
                         title="Iniciar cronómetro en Clockify para este cliente y tarea"
                       >
                         <Play className="h-2.5 w-2.5 fill-emerald-700 text-emerald-700" />
@@ -181,7 +181,7 @@ export function TaskListView({
                         href={getGoogleCalendarUrl(item)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-sm bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-[11px] font-extrabold cursor-pointer shadow-2xs"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-[11px] font-extrabold cursor-pointer shadow-2xs"
                         title="Añadir a Google Calendar"
                       >
                         <ExternalLink className="h-2.5 w-2.5 text-blue-600" />
@@ -191,7 +191,7 @@ export function TaskListView({
                       <button
                         type="button"
                         onClick={() => downloadSingleEventIcs(item)}
-                        className="p-1 rounded-sm bg-white hover:bg-slate-50 text-[#8E0E75] border border-slate-200 cursor-pointer shadow-2xs"
+                        className="p-1.5 rounded-lg bg-white hover:bg-slate-50 text-[#8E0E75] border border-slate-200 cursor-pointer shadow-2xs"
                         title="Descargar archivo .ics"
                       >
                         <Download className="h-3 w-3" />
@@ -205,7 +205,7 @@ export function TaskListView({
                       <button
                         type="button"
                         onClick={() => onSelectItem(item)}
-                        className="p-1 rounded-sm text-slate-400 hover:text-[#8E0E75] hover:bg-[#F8F6FC] transition-colors cursor-pointer"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-[#8E0E75] hover:bg-[#F8F6FC] transition-colors cursor-pointer"
                         title="Editar"
                       >
                         <Edit2 className="h-3.5 w-3.5" />
@@ -213,7 +213,7 @@ export function TaskListView({
                       <button
                         type="button"
                         onClick={() => onDeleteItem(item.id)}
-                        className="p-1 rounded-sm text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                         title="Eliminar"
                       >
                         <Trash2 className="h-3.5 w-3.5" />

@@ -112,20 +112,65 @@ ALTER TABLE public.slack_channel_reads ENABLE ROW LEVEL SECURITY;
 -- slack_installations: sin políticas -> solo la service role (servidor) accede.
 
 CREATE POLICY "Ver canales vinculados" ON public.slack_channel_links
-    FOR SELECT USING (auth.uid() IS NOT NULL);
+    FOR SELECT USING (
+        auth.uid() IS NOT NULL
+        AND EXISTS (
+            SELECT 1 FROM public.profiles
+            WHERE id = auth.uid() AND status = 'active'
+        )
+    );
+
 CREATE POLICY "Coordinador gestiona vínculos de canal" ON public.slack_channel_links
     FOR UPDATE USING (public.is_coordinator());
 
 CREATE POLICY "Ver vínculo Slack propio o coordinador" ON public.slack_user_links
-    FOR SELECT USING (profile_id = auth.uid() OR public.is_coordinator());
+    FOR SELECT USING (
+        (profile_id = auth.uid() OR public.is_coordinator())
+        AND EXISTS (
+            SELECT 1 FROM public.profiles
+            WHERE id = auth.uid() AND status = 'active'
+        )
+    );
 
 CREATE POLICY "Ver mensajes cacheados" ON public.slack_messages
-    FOR SELECT USING (auth.uid() IS NOT NULL);
+    FOR SELECT USING (
+        auth.uid() IS NOT NULL
+        AND EXISTS (
+            SELECT 1 FROM public.profiles
+            WHERE id = auth.uid() AND status = 'active'
+        )
+    );
 
 CREATE POLICY "Ver tareas propias o coordinador" ON public.slack_tasks
-    FOR SELECT USING (assignee_profile_id = auth.uid() OR public.is_coordinator());
+    FOR SELECT USING (
+        (assignee_profile_id = auth.uid() OR public.is_coordinator())
+        AND EXISTS (
+            SELECT 1 FROM public.profiles
+            WHERE id = auth.uid() AND status = 'active'
+        )
+    );
+
 CREATE POLICY "Completar tareas propias o coordinador" ON public.slack_tasks
-    FOR UPDATE USING (assignee_profile_id = auth.uid() OR public.is_coordinator());
+    FOR UPDATE USING (
+        (assignee_profile_id = auth.uid() OR public.is_coordinator())
+        AND EXISTS (
+            SELECT 1 FROM public.profiles
+            WHERE id = auth.uid() AND status = 'active'
+        )
+    );
 
 CREATE POLICY "Gestionar lecturas propias" ON public.slack_channel_reads
-    FOR ALL USING (profile_id = auth.uid()) WITH CHECK (profile_id = auth.uid());
+    FOR ALL USING (
+        profile_id = auth.uid()
+        AND EXISTS (
+            SELECT 1 FROM public.profiles
+            WHERE id = auth.uid() AND status = 'active'
+        )
+    )
+    WITH CHECK (
+        profile_id = auth.uid()
+        AND EXISTS (
+            SELECT 1 FROM public.profiles
+            WHERE id = auth.uid() AND status = 'active'
+        )
+    );

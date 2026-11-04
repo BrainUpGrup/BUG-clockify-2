@@ -54,7 +54,11 @@ import {
   StickyNote
 } from 'lucide-react';
 
-const STORAGE_KEY_ITEMS_V2 = 'bug_taskflow_items_v2';
+import { 
+  STORAGE_KEY_ITEMS_V2, 
+  SEED_TASKFLOW_ITEMS, 
+  getStoredTaskFlowItems 
+} from '@/lib/taskflow-data';
 const STORAGE_KEY_POSTITS = 'bug_taskflow_postits_v1';
 
 function getTodayString(): string {
@@ -117,662 +121,7 @@ const SEED_POST_ITS: PostItItem[] = [
   },
 ];
 
-function getWeekDayDate(dayIndex: number): string {
-  // dayIndex: 0 = Lunes, 1 = Martes, 2 = Miércoles, 3 = Jueves, 4 = Viernes, 5 = Sábado, 6 = Domingo
-  const now = new Date();
-  const currentDayOfWeek = (now.getDay() + 6) % 7;
-  const monday = new Date(now);
-  monday.setDate(now.getDate() - currentDayOfWeek);
-  const target = new Date(monday);
-  target.setDate(monday.getDate() + dayIndex);
-  return target.toISOString().split('T')[0];
-}
 
-const SEED_TASKFLOW_ITEMS: TaskFlowItem[] = [
-  // Lunes (Día 0)
-  {
-    id: 'tf-seed-mon-1',
-    type: 'task',
-    title: 'FIESTA ESTATAL',
-    companyName: 'Brain Up Interno',
-    status: 'done',
-    priority: 'baja',
-    colorStrip: 'yellow',
-    date: getWeekDayDate(0),
-    createdBy: 'Equipo Brain Up',
-    isShared: true,
-    assignees: ['Todos'],
-    createdAt: getWeekDayDate(0),
-  },
-
-  // Martes (Día 1)
-  {
-    id: 'tf-seed-tue-1',
-    type: 'meeting',
-    title: 'DENILSON (BNI)',
-    companyName: 'BNI Networking',
-    status: 'in_progress',
-    priority: 'alta',
-    colorStrip: 'pink',
-    date: getWeekDayDate(1),
-    startTime: '11:00',
-    endTime: '12:00',
-    location: 'Google Meet',
-    createdBy: 'Equipo Brain Up',
-    isShared: true,
-    assignees: ['Alejandro Ramos'],
-    createdAt: getWeekDayDate(1),
-  },
-  {
-    id: 'tf-seed-tue-2',
-    type: 'meeting',
-    title: 'ALBERT BARCELÓ (BUG): reunión',
-    companyName: 'Brain Up Grup',
-    status: 'in_progress',
-    priority: 'alta',
-    colorStrip: 'pink',
-    date: getWeekDayDate(1),
-    startTime: '12:30',
-    endTime: '13:30',
-    location: 'Oficina Central BUG',
-    createdBy: 'Albert Barceló',
-    isShared: true,
-    assignees: ['Albert Barceló', 'Alejandro Ramos'],
-    createdAt: getWeekDayDate(1),
-  },
-  {
-    id: 'tf-seed-tue-3',
-    type: 'task',
-    title: 'EL7: Nadal i Sant Esteve CAT + carta para web + s/f diseño menús',
-    companyName: 'EL7 Menús',
-    status: 'todo',
-    priority: 'media',
-    colorStrip: 'purple',
-    date: getWeekDayDate(1),
-    estimatedHours: 2.5,
-    createdBy: 'Equipo Creativo',
-    isShared: true,
-    assignees: ['Diseño BUG'],
-    createdAt: getWeekDayDate(1),
-  },
-  {
-    id: 'tf-seed-tue-4',
-    type: 'task',
-    title: 'VERITY: s/f xxxxx octubre',
-    companyName: 'Verity Brands',
-    status: 'todo',
-    priority: 'media',
-    colorStrip: 'purple',
-    date: getWeekDayDate(1),
-    estimatedHours: 1.5,
-    createdBy: 'Equipo Creativo',
-    isShared: true,
-    assignees: ['Alejandro Ramos'],
-    createdAt: getWeekDayDate(1),
-  },
-  {
-    id: 'tf-seed-tue-5',
-    type: 'task',
-    title: 'SANTOS: idiomas mss + publicitat exterior + planificar + formulari',
-    companyName: 'Santos Muebles',
-    status: 'todo',
-    priority: 'alta',
-    colorStrip: 'yellow',
-    date: getWeekDayDate(1),
-    estimatedHours: 3,
-    createdBy: 'Equipo BUG',
-    isShared: true,
-    assignees: ['Alejandro Ramos'],
-    createdAt: getWeekDayDate(1),
-  },
-  {
-    id: 'tf-seed-tue-6',
-    type: 'task',
-    title: 'PONT: creativitats novembre',
-    companyName: 'Pont Assegurances',
-    status: 'todo',
-    priority: 'media',
-    colorStrip: 'orange',
-    date: getWeekDayDate(1),
-    estimatedHours: 2,
-    createdBy: 'Equipo Creativo',
-    isShared: true,
-    assignees: ['Equipo Creativo'],
-    createdAt: getWeekDayDate(1),
-  },
-  {
-    id: 'tf-seed-tue-7',
-    type: 'task',
-    title: 'PONT: s/f lots de nadal',
-    companyName: 'Pont Assegurances',
-    status: 'done',
-    priority: 'baja',
-    colorStrip: 'white',
-    date: getWeekDayDate(1),
-    estimatedHours: 1,
-    createdBy: 'Equipo BUG',
-    isShared: true,
-    assignees: ['Alejandro Ramos'],
-    createdAt: getWeekDayDate(1),
-  },
-
-  // Miércoles (Día 2)
-  {
-    id: 'tf-seed-wed-1',
-    type: 'meeting',
-    title: 'BNI',
-    companyName: 'BNI Networking',
-    status: 'done',
-    priority: 'alta',
-    colorStrip: 'pink',
-    date: getWeekDayDate(2),
-    startTime: '06:30',
-    endTime: '08:30',
-    location: 'Presencial BNI',
-    createdBy: 'Equipo BUG',
-    isShared: true,
-    assignees: ['Alejandro Ramos'],
-    createdAt: getWeekDayDate(2),
-  },
-  {
-    id: 'tf-seed-wed-2',
-    type: 'meeting',
-    title: 'TALAIOT (BUG): consultoría',
-    companyName: 'Talaiot Media',
-    status: 'in_progress',
-    priority: 'alta',
-    colorStrip: 'pink',
-    date: getWeekDayDate(2),
-    startTime: '10:00',
-    endTime: '11:00',
-    location: 'Google Meet',
-    createdBy: 'Equipo BUG',
-    isShared: true,
-    assignees: ['Consultoría BUG'],
-    createdAt: getWeekDayDate(2),
-  },
-  {
-    id: 'tf-seed-wed-3',
-    type: 'meeting',
-    title: 'INBOKEAPP (ONLINE): BNI',
-    companyName: 'Inboke App',
-    status: 'todo',
-    priority: 'media',
-    colorStrip: 'pink',
-    date: getWeekDayDate(2),
-    startTime: '15:00',
-    endTime: '15:30',
-    location: 'Google Meet',
-    createdBy: 'Equipo BUG',
-    isShared: true,
-    assignees: ['Alejandro Ramos'],
-    createdAt: getWeekDayDate(2),
-  },
-  {
-    id: 'tf-seed-wed-4',
-    type: 'meeting',
-    title: 'GABRIELA (ONLINE)',
-    companyName: 'Gabriela Estilistas',
-    status: 'todo',
-    priority: 'media',
-    colorStrip: 'pink',
-    date: getWeekDayDate(2),
-    startTime: '15:30',
-    endTime: '16:00',
-    location: 'Google Meet',
-    createdBy: 'Equipo BUG',
-    isShared: true,
-    assignees: ['Alejandro Ramos'],
-    createdAt: getWeekDayDate(2),
-  },
-  {
-    id: 'tf-seed-wed-5',
-    type: 'meeting',
-    title: 'MANU NIÑOS TARDE',
-    companyName: 'Manu Coaching',
-    status: 'todo',
-    priority: 'media',
-    colorStrip: 'pink',
-    date: getWeekDayDate(2),
-    startTime: '17:00',
-    endTime: '18:00',
-    location: 'Presencial',
-    createdBy: 'Equipo BUG',
-    isShared: true,
-    assignees: ['Alejandro Ramos'],
-    createdAt: getWeekDayDate(2),
-  },
-  {
-    id: 'tf-seed-wed-6',
-    type: 'task',
-    title: 'ASOVALL: Art 1 Octubre como no se pudo publicar, qué sugieres...',
-    companyName: 'Asovall Asoc',
-    status: 'todo',
-    priority: 'media',
-    colorStrip: 'blue',
-    date: getWeekDayDate(2),
-    estimatedHours: 1.5,
-    createdBy: 'Equipo BUG',
-    isShared: true,
-    assignees: ['Alejandro Ramos'],
-    createdAt: getWeekDayDate(2),
-  },
-  {
-    id: 'tf-seed-wed-7',
-    type: 'task',
-    title: 'EL7: modificación menús',
-    companyName: 'EL7 Menús',
-    status: 'todo',
-    priority: 'baja',
-    colorStrip: 'blue',
-    date: getWeekDayDate(2),
-    estimatedHours: 1,
-    createdBy: 'Equipo Creativo',
-    isShared: true,
-    assignees: ['Diseño BUG'],
-    createdAt: getWeekDayDate(2),
-  },
-  {
-    id: 'tf-seed-wed-8',
-    type: 'task',
-    title: 'PONT: catàleg digital cat/cast',
-    companyName: 'Pont Assegurances',
-    status: 'todo',
-    priority: 'media',
-    colorStrip: 'orange',
-    date: getWeekDayDate(2),
-    estimatedHours: 2,
-    createdBy: 'Equipo BUG',
-    isShared: true,
-    assignees: ['Alejandro Ramos'],
-    createdAt: getWeekDayDate(2),
-  },
-  {
-    id: 'tf-seed-wed-9',
-    type: 'task',
-    title: 'PONT: s/ info Fira Barcelona',
-    companyName: 'Pont Assegurances',
-    status: 'todo',
-    priority: 'baja',
-    colorStrip: 'purple',
-    date: getWeekDayDate(2),
-    estimatedHours: 1,
-    createdBy: 'Equipo BUG',
-    isShared: true,
-    assignees: ['Alejandro Ramos'],
-    createdAt: getWeekDayDate(2),
-  },
-
-  // Jueves (Día 3)
-  {
-    id: 'tf-seed-thu-1',
-    type: 'task',
-    title: 'PONT: s/ lotes navidad márgenes + info catàleg digital',
-    companyName: 'Pont Assegurances',
-    status: 'todo',
-    priority: 'media',
-    colorStrip: 'purple',
-    date: getWeekDayDate(3),
-    estimatedHours: 1.5,
-    createdBy: 'Equipo BUG',
-    isShared: true,
-    assignees: ['Alejandro Ramos'],
-    createdAt: getWeekDayDate(3),
-  },
-  {
-    id: 'tf-seed-thu-2',
-    type: 'task',
-    title: 'SPLENDID: fotos & videos para rrss noviembre',
-    companyName: 'Splendid Events',
-    status: 'todo',
-    priority: 'alta',
-    colorStrip: 'purple',
-    date: getWeekDayDate(3),
-    estimatedHours: 3,
-    createdBy: 'Equipo Creativo',
-    isShared: true,
-    assignees: ['Equipo Audiovisual'],
-    createdAt: getWeekDayDate(3),
-  },
-  {
-    id: 'tf-seed-thu-3',
-    type: 'meeting',
-    title: 'EL SET 13:00 a 15:30: sesión de fotos + lona fachada',
-    companyName: 'El Set Produccions',
-    status: 'todo',
-    priority: 'alta',
-    colorStrip: 'pink',
-    date: getWeekDayDate(3),
-    startTime: '13:00',
-    endTime: '15:30',
-    location: 'Estudio Fotográfico',
-    createdBy: 'Equipo Audiovisual',
-    isShared: true,
-    assignees: ['Alejandro Ramos', 'Equipo Audiovisual'],
-    createdAt: getWeekDayDate(3),
-  },
-  {
-    id: 'tf-seed-thu-4',
-    type: 'task',
-    title: 'AORTAHUB: contenido del mes',
-    companyName: 'Aorta Hub',
-    status: 'todo',
-    priority: 'media',
-    colorStrip: 'blue',
-    date: getWeekDayDate(3),
-    estimatedHours: 2,
-    createdBy: 'Equipo Creativo',
-    isShared: true,
-    assignees: ['Alejandro Ramos'],
-    createdAt: getWeekDayDate(3),
-  },
-  {
-    id: 'tf-seed-thu-5',
-    type: 'task',
-    title: 'ART NOV: kine3 (slack)',
-    companyName: 'Art Noveau',
-    status: 'todo',
-    priority: 'alta',
-    colorStrip: 'yellow',
-    date: getWeekDayDate(3),
-    estimatedHours: 1,
-    createdBy: 'Equipo BUG',
-    isShared: true,
-    assignees: ['Alejandro Ramos'],
-    createdAt: getWeekDayDate(3),
-  },
-  {
-    id: 'tf-seed-thu-6',
-    type: 'task',
-    title: 'ALEHUBB: dossier para inversores + inmobiliaria',
-    companyName: 'Alehubb Inversiones',
-    status: 'todo',
-    priority: 'alta',
-    colorStrip: 'mint',
-    date: getWeekDayDate(3),
-    estimatedHours: 3,
-    createdBy: 'Equipo BUG',
-    isShared: true,
-    assignees: ['Alejandro Ramos'],
-    createdAt: getWeekDayDate(3),
-  },
-  {
-    id: 'tf-seed-thu-7',
-    type: 'task',
-    title: 'GENESCA: comprar cat, cast, com + email',
-    companyName: 'Genesca Pastissers',
-    status: 'todo',
-    priority: 'media',
-    colorStrip: 'mint',
-    date: getWeekDayDate(3),
-    estimatedHours: 1.5,
-    createdBy: 'Equipo BUG',
-    isShared: true,
-    assignees: ['Alejandro Ramos'],
-    createdAt: getWeekDayDate(3),
-  },
-  {
-    id: 'tf-seed-thu-8',
-    type: 'task',
-    title: 'PONT: logo per reunió',
-    companyName: 'Pont Assegurances',
-    status: 'todo',
-    priority: 'media',
-    colorStrip: 'yellow',
-    date: getWeekDayDate(3),
-    estimatedHours: 1,
-    createdBy: 'Equipo Creativo',
-    isShared: true,
-    assignees: ['Diseño BUG'],
-    createdAt: getWeekDayDate(3),
-  },
-  {
-    id: 'tf-seed-thu-9',
-    type: 'task',
-    title: 'KURDOI: influencers decisiones de pago para mini calendario de...',
-    companyName: 'Kurdoi Marca',
-    status: 'todo',
-    priority: 'alta',
-    colorStrip: 'yellow',
-    date: getWeekDayDate(3),
-    estimatedHours: 2,
-    createdBy: 'Equipo BUG',
-    isShared: true,
-    assignees: ['Alejandro Ramos'],
-    createdAt: getWeekDayDate(3),
-  },
-  {
-    id: 'tf-seed-thu-10',
-    type: 'task',
-    title: 'CLAUDIA: firma contrato',
-    companyName: 'Claudia Legal',
-    status: 'todo',
-    priority: 'media',
-    colorStrip: 'mint',
-    date: getWeekDayDate(3),
-    estimatedHours: 0.5,
-    createdBy: 'Coordinación Brain Up',
-    isShared: true,
-    assignees: ['Alejandro Ramos'],
-    createdAt: getWeekDayDate(3),
-  },
-
-  // Viernes (Día 4 - Hoy)
-  {
-    id: 'tf-seed-fri-1',
-    type: 'meeting',
-    title: 'SILVIA (ONLINE)',
-    companyName: 'Silvia Consulting',
-    status: 'todo',
-    priority: 'alta',
-    colorStrip: 'pink',
-    date: getWeekDayDate(4),
-    startTime: '09:30',
-    endTime: '10:30',
-    location: 'Google Meet',
-    createdBy: 'Equipo BUG',
-    isShared: true,
-    assignees: ['Alejandro Ramos'],
-    createdAt: getWeekDayDate(4),
-  },
-  {
-    id: 'tf-seed-fri-2',
-    type: 'task',
-    title: 'GLOBAL: creatividades noviembre',
-    companyName: 'Global Soluciones',
-    status: 'todo',
-    priority: 'media',
-    colorStrip: 'orange',
-    date: getWeekDayDate(4),
-    estimatedHours: 3,
-    createdBy: 'Equipo Creativo',
-    isShared: true,
-    assignees: ['Equipo Creativo'],
-    createdAt: getWeekDayDate(4),
-  },
-  {
-    id: 'tf-seed-fri-3',
-    type: 'task',
-    title: 'SDT BUSCAR FECHA: presupuesto manu + ALEHUBB',
-    companyName: 'SDT Soluciones',
-    status: 'todo',
-    priority: 'alta',
-    colorStrip: 'mint',
-    date: getWeekDayDate(4),
-    estimatedHours: 1.5,
-    createdBy: 'Equipo BUG',
-    isShared: true,
-    assignees: ['Alejandro Ramos'],
-    createdAt: getWeekDayDate(4),
-  },
-  {
-    id: 'tf-seed-fri-4',
-    type: 'task',
-    title: 'BAC: informar a cliente de la traducción de la web al catalán',
-    companyName: 'BAC Asesores',
-    status: 'todo',
-    priority: 'media',
-    colorStrip: 'blue',
-    date: getWeekDayDate(4),
-    estimatedHours: 1,
-    createdBy: 'Equipo BUG',
-    isShared: true,
-    assignees: ['Alejandro Ramos'],
-    createdAt: getWeekDayDate(4),
-  },
-  {
-    id: 'tf-seed-fri-5',
-    type: 'task',
-    title: 'SPLENDID: propuesta wedding planner nadal',
-    companyName: 'Splendid Events',
-    status: 'todo',
-    priority: 'media',
-    colorStrip: 'purple',
-    date: getWeekDayDate(4),
-    estimatedHours: 2,
-    createdBy: 'Equipo BUG',
-    isShared: true,
-    assignees: ['Alejandro Ramos'],
-    createdAt: getWeekDayDate(4),
-  },
-  {
-    id: 'tf-seed-fri-6',
-    type: 'task',
-    title: 'ALPHA: s/f Reportage fotogràfic suports Alpha Media Group',
-    companyName: 'Alpha Media Group',
-    status: 'todo',
-    priority: 'media',
-    colorStrip: 'purple',
-    date: getWeekDayDate(4),
-    estimatedHours: 2.5,
-    createdBy: 'Equipo Audiovisual',
-    isShared: true,
-    assignees: ['Equipo Audiovisual'],
-    createdAt: getWeekDayDate(4),
-  },
-  {
-    id: 'tf-seed-fri-7',
-    type: 'task',
-    title: 'GENESCA: s/f formularios + citar',
-    companyName: 'Genesca Pastissers',
-    status: 'todo',
-    priority: 'media',
-    colorStrip: 'purple',
-    date: getWeekDayDate(4),
-    estimatedHours: 1,
-    createdBy: 'Equipo BUG',
-    isShared: true,
-    assignees: ['Alejandro Ramos'],
-    createdAt: getWeekDayDate(4),
-  },
-  {
-    id: 'tf-seed-fri-8',
-    type: 'task',
-    title: 'AONCHIP + SPLENDID: s/f cambios web per iniciar anglès',
-    companyName: 'Aonchip Tech',
-    status: 'todo',
-    priority: 'baja',
-    colorStrip: 'gray',
-    date: getWeekDayDate(4),
-    estimatedHours: 2,
-    createdBy: 'Desarrollo Web',
-    isShared: true,
-    assignees: ['Desarrollo Web'],
-    createdAt: getWeekDayDate(4),
-  },
-  {
-    id: 'tf-seed-fri-9',
-    type: 'task',
-    title: 'GLOVO: han dit algo?',
-    companyName: 'Glovo Partner',
-    status: 'todo',
-    priority: 'alta',
-    colorStrip: 'yellow',
-    date: getWeekDayDate(4),
-    estimatedHours: 0.5,
-    createdBy: 'Equipo BUG',
-    isShared: true,
-    assignees: ['Alejandro Ramos'],
-    createdAt: getWeekDayDate(4),
-  },
-  {
-    id: 'tf-seed-fri-10',
-    type: 'task',
-    title: 'VERITY: s/f rrss oct',
-    companyName: 'Verity Brands',
-    status: 'todo',
-    priority: 'media',
-    colorStrip: 'purple',
-    date: getWeekDayDate(4),
-    estimatedHours: 1.5,
-    createdBy: 'Equipo Creativo',
-    isShared: true,
-    assignees: ['Alejandro Ramos'],
-    createdAt: getWeekDayDate(4),
-  },
-  {
-    id: 'tf-seed-fri-11',
-    type: 'task',
-    title: 'MAS BONVILAR: descargar catálogo apartado',
-    companyName: 'Mas Bonvilar',
-    status: 'todo',
-    priority: 'baja',
-    colorStrip: 'gray',
-    date: getWeekDayDate(4),
-    estimatedHours: 1,
-    createdBy: 'Equipo BUG',
-    isShared: true,
-    assignees: ['Alejandro Ramos'],
-    createdAt: getWeekDayDate(4),
-  },
-
-  // Sábado (Día 5)
-  {
-    id: 'tf-seed-sat-1',
-    type: 'task',
-    title: 'BANCORA',
-    companyName: 'Bancora Studio',
-    status: 'todo',
-    priority: 'baja',
-    colorStrip: 'gray',
-    date: getWeekDayDate(5),
-    estimatedHours: 2,
-    createdBy: 'Equipo BUG',
-    isShared: true,
-    assignees: ['Alejandro Ramos'],
-    createdAt: getWeekDayDate(5),
-  },
-  {
-    id: 'tf-seed-sat-2',
-    type: 'task',
-    title: 'DANIEL TAPICERO',
-    companyName: 'Daniel Tapicería',
-    status: 'todo',
-    priority: 'media',
-    colorStrip: 'mint',
-    date: getWeekDayDate(5),
-    estimatedHours: 1.5,
-    createdBy: 'Equipo BUG',
-    isShared: true,
-    assignees: ['Alejandro Ramos'],
-    createdAt: getWeekDayDate(5),
-  },
-  {
-    id: 'tf-seed-sat-3',
-    type: 'task',
-    title: 'EL7: cuándo',
-    companyName: 'EL7 Menús',
-    status: 'todo',
-    priority: 'baja',
-    colorStrip: 'gray',
-    date: getWeekDayDate(5),
-    estimatedHours: 0.5,
-    createdBy: 'Equipo BUG',
-    isShared: true,
-    assignees: ['Alejandro Ramos'],
-    createdAt: getWeekDayDate(5),
-  },
-];
 
 function TaskFlowContent() {
   const router = useRouter();
@@ -1216,11 +565,11 @@ function TaskFlowContent() {
 
   if (authLoading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FFFFFF]">
+      <div className="min-h-screen flex items-center justify-center bg-[var(--hub-bg,#DDD2EA)]">
         <div className="flex flex-col items-center gap-3">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#D8CFF0] border-t-[#8E0E75]" />
           <p className="text-xs font-bold uppercase tracking-wider text-[#292929]">
-            Cargando Brain Up TaskFlow...
+            Cargando Brain Up Agenda...
           </p>
         </div>
       </div>
@@ -1245,7 +594,7 @@ function TaskFlowContent() {
           </div>
           <Link
             href="/hub"
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-sm bg-[#8E0E75] text-white text-xs font-extrabold uppercase tracking-wider hover:bg-[#700B5C] transition-all shadow-sm"
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#8E0E75] text-white text-xs font-extrabold uppercase tracking-wider hover:bg-[#700B5C] transition-all shadow-sm"
           >
             <ArrowLeft className="h-4 w-4" />
             <span>Volver a mi HUB de Aplicaciones</span>
@@ -1291,10 +640,10 @@ function TaskFlowContent() {
   });
 
   return (
-    <div className="flex-1 flex flex-col font-sans w-full">
+    <div className="flex-1 min-h-0 h-full max-h-full flex flex-col font-sans w-full overflow-hidden">
       {/* Notificación Toast Flotante */}
       {toastMessage && (
-        <div className="fixed bottom-5 right-5 z-50 max-w-md bg-white border border-[#8E0E75] p-3.5 rounded-sm shadow-xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-3 duration-300">
+        <div className="fixed bottom-5 right-5 z-50 max-w-md bg-white border border-[#8E0E75] p-3.5 rounded-xl shadow-xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-3 duration-300">
           <div className="p-1.5 rounded-full bg-emerald-50 text-emerald-700 shrink-0">
             <CheckCircle2 className="h-4 w-4 text-emerald-600" />
           </div>
@@ -1304,20 +653,20 @@ function TaskFlowContent() {
         </div>
       )}
 
-      <main className="page-transition flex-1 w-full max-w-none px-3 sm:px-5 lg:px-6 py-2 flex flex-col space-y-2">
+      <main className="page-transition flex-1 min-h-0 h-full w-full max-w-none px-3 sm:px-5 lg:px-6 py-2 flex flex-col space-y-2 overflow-hidden">
         
         {/* Barra de Herramientas Compacta: Conmutador de Vistas + Filtros de Ámbito y Prioridad (Sin duplicaciones) */}
-        <div className="bg-white border border-[#D8CFF0] px-3 py-1.5 rounded-sm shadow-2xs flex flex-wrap items-center justify-between gap-2 shrink-0">
+        <div className="bg-white border border-[#D8CFF0] px-3.5 py-2 rounded-2xl shadow-2xs flex flex-wrap items-center justify-between gap-2 shrink-0">
           
           {/* Conmutador de Vistas con Pastilla Morada Deslizante Fluida */}
           <div 
             ref={viewSwitcherRef}
             onMouseLeave={() => setHoveredView(null)}
-            className="relative flex items-center rounded-sm bg-[#F8F6FC] p-1 border-2 border-[#D8CFF0] text-[11px] font-extrabold uppercase tracking-wider select-none shadow-2xs"
+            className="relative flex items-center rounded-2xl bg-[#F8F6FC] p-1 border-2 border-[#D8CFF0] text-[11px] font-extrabold uppercase tracking-wider select-none shadow-2xs"
           >
             {/* Pastilla morada deslizante */}
             <div
-              className="absolute rounded-sm bg-[#8E0E75] shadow-sm pointer-events-none transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)]"
+              className="absolute rounded-xl bg-[#8E0E75] shadow-sm pointer-events-none transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)]"
               style={{
                 left: `${viewPill.left}px`,
                 width: `${viewPill.width}px`,
@@ -1332,7 +681,7 @@ function TaskFlowContent() {
               data-view-tab="calendar"
               onClick={() => setViewMode('calendar')}
               onMouseEnter={() => setHoveredView('calendar')}
-              className={`relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-sm transition-colors duration-200 cursor-pointer ${
+              className={`relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-colors duration-200 cursor-pointer ${
                 targetView === 'calendar'
                   ? 'text-white font-black'
                   : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75]'
@@ -1347,7 +696,7 @@ function TaskFlowContent() {
               data-view-tab="postits"
               onClick={() => setViewMode('postits')}
               onMouseEnter={() => setHoveredView('postits')}
-              className={`relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-sm transition-colors duration-200 cursor-pointer ${
+              className={`relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-colors duration-200 cursor-pointer ${
                 targetView === 'postits'
                   ? 'text-white font-black'
                   : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75]'
@@ -1369,7 +718,7 @@ function TaskFlowContent() {
               data-view-tab="list"
               onClick={() => setViewMode('list')}
               onMouseEnter={() => setHoveredView('list')}
-              className={`relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-sm transition-colors duration-200 cursor-pointer ${
+              className={`relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-colors duration-200 cursor-pointer ${
                 targetView === 'list'
                   ? 'text-white font-black'
                   : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75]'
@@ -1381,7 +730,7 @@ function TaskFlowContent() {
           </div>
 
           {/* Micro-distinción visual de conceptos (Calendario vs Post-its) */}
-          <div className="hidden xl:flex items-center gap-2 text-[11px] font-medium text-[#4A4A4A] bg-[#F8F6FC] px-2.5 py-1 rounded-sm border border-[#D8CFF0]">
+          <div className="hidden xl:flex items-center gap-2 text-[11px] font-medium text-[#4A4A4A] bg-[#F8F6FC] px-2.5 py-1 rounded-xl border border-[#D8CFF0]">
             <span className="text-[#8E0E75] font-black uppercase tracking-wider text-[10px]">Guía:</span>
             <span><strong>Calendario:</strong> entregables con fecha</span>
             <span className="text-[#D8CFF0]">·</span>
@@ -1396,7 +745,7 @@ function TaskFlowContent() {
             <button
               type="button"
               onClick={() => setScopeFilter('all')}
-              className={`px-2 py-0.5 rounded-sm border transition-all cursor-pointer ${
+              className={`px-2 py-0.5 rounded-md border transition-all cursor-pointer ${
                 scopeFilter === 'all'
                   ? 'bg-[#8E0E75] text-white border-[#8E0E75] shadow-xs'
                   : 'bg-[#F8F6FC] text-[#4A4A4A] border-slate-200 hover:bg-slate-100'
@@ -1407,7 +756,7 @@ function TaskFlowContent() {
             <button
               type="button"
               onClick={() => setScopeFilter('mine')}
-              className={`px-2 py-0.5 rounded-sm border transition-all cursor-pointer ${
+              className={`px-2 py-0.5 rounded-md border transition-all cursor-pointer ${
                 scopeFilter === 'mine'
                   ? 'bg-[#8E0E75] text-white border-[#8E0E75] shadow-xs'
                   : 'bg-[#F8F6FC] text-[#4A4A4A] border-slate-200 hover:bg-slate-100'
@@ -1418,7 +767,7 @@ function TaskFlowContent() {
             <button
               type="button"
               onClick={() => setScopeFilter('shared')}
-              className={`px-2 py-0.5 rounded-sm border transition-all cursor-pointer ${
+              className={`px-2 py-0.5 rounded-md border transition-all cursor-pointer ${
                 scopeFilter === 'shared'
                   ? 'bg-[#8E0E75] text-white border-[#8E0E75] shadow-xs'
                   : 'bg-[#F8F6FC] text-[#4A4A4A] border-slate-200 hover:bg-slate-100'
@@ -1429,7 +778,7 @@ function TaskFlowContent() {
             <button
               type="button"
               onClick={() => setScopeFilter('meetings')}
-              className={`px-2 py-0.5 rounded-sm border transition-all cursor-pointer ${
+              className={`px-2 py-0.5 rounded-md border transition-all cursor-pointer ${
                 scopeFilter === 'meetings'
                   ? 'bg-[#8E0E75] text-white border-[#8E0E75] shadow-xs'
                   : 'bg-[#F8F6FC] text-[#4A4A4A] border-slate-200 hover:bg-slate-100'
@@ -1462,7 +811,7 @@ function TaskFlowContent() {
                 type="button"
                 onClick={() => setShowNewListForm((v) => !v)}
                 aria-expanded={showNewListForm}
-                className="inline-flex items-center gap-1 px-2.5 py-2 rounded-sm border border-[#D8CFF0] hover:border-[#8E0E75] text-[#8E0E75] text-sm font-semibold hover:bg-[#F8F6FC] transition-all cursor-pointer"
+                className="inline-flex items-center gap-1 px-3 py-2 rounded-xl border border-[#D8CFF0] hover:border-[#8E0E75] text-[#8E0E75] text-sm font-semibold hover:bg-[#F8F6FC] transition-all cursor-pointer"
                 title="Crear una nueva lista"
               >
                 <FolderPlus className="h-4 w-4" />
@@ -1482,7 +831,7 @@ function TaskFlowContent() {
                     setNewListName('');
                     setShowNewListForm(false);
                   }}
-                  className="absolute right-0 top-full mt-1.5 z-50 w-72 bg-white border border-[#D8CFF0] rounded-sm shadow-xl p-3 space-y-2"
+                  className="absolute right-0 top-full mt-1.5 z-50 w-72 bg-white border border-[#D8CFF0] rounded-xl shadow-xl p-3 space-y-2"
                 >
                   <input
                     autoFocus
@@ -1492,7 +841,7 @@ function TaskFlowContent() {
                     onKeyDown={(e) => e.key === 'Escape' && setShowNewListForm(false)}
                     placeholder="Nombre de la lista"
                     aria-label="Nombre de la nueva lista"
-                    className="w-full px-2.5 py-2 text-sm border border-[#D8CFF0] rounded-sm outline-none focus:border-[#8E0E75]"
+                    className="w-full px-2.5 py-2 text-sm border border-[#D8CFF0] rounded-lg outline-none focus:border-[#8E0E75]"
                   />
                   <div className="flex items-center gap-1.5 flex-wrap" role="radiogroup" aria-label="Color de la lista">
                     {['#D50000', '#F4511E', '#F6BF26', '#33B679', '#039BE5', '#3F51B5', '#8E24AA', '#8E0E75'].map((hex) => (
@@ -1510,7 +859,7 @@ function TaskFlowContent() {
                   </div>
                   <button
                     type="submit"
-                    className="w-full py-2 rounded-sm bg-[#8E0E75] hover:bg-[#700B5C] text-white text-sm font-bold cursor-pointer"
+                    className="w-full py-2 rounded-lg bg-[#8E0E75] hover:bg-[#700B5C] text-white text-sm font-bold cursor-pointer"
                   >
                     Crear lista
                   </button>
@@ -1523,7 +872,7 @@ function TaskFlowContent() {
           <button
             type="button"
             onClick={handleRescheduleOverdue}
-            className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm border border-[#D8CFF0] hover:border-[#8E0E75] bg-[#F8F6FC] hover:bg-white text-[#8E0E75] text-[11px] font-bold transition-all cursor-pointer"
+            className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#D8CFF0] hover:border-[#8E0E75] bg-[#F8F6FC] hover:bg-white text-[#8E0E75] text-[11px] font-bold transition-all cursor-pointer"
             title="Desplazar tareas pendientes vencidas a hoy como recordatorio activo"
           >
             <RotateCw className="h-3 w-3" />
@@ -1538,7 +887,7 @@ function TaskFlowContent() {
               placeholder="Buscar tareas, clientes..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-7 pr-2.5 py-1 border border-[#D8CFF0] rounded-sm text-xs bg-[#F8F6FC] focus:bg-white focus:border-[#8E0E75] outline-none font-medium"
+              className="w-full pl-7 pr-2.5 py-1 border border-[#D8CFF0] rounded-xl text-xs bg-[#F8F6FC] focus:bg-white focus:border-[#8E0E75] outline-none font-medium"
             />
           </div>
 
@@ -1547,20 +896,22 @@ function TaskFlowContent() {
 
         {/* Vista Renderizada: Calendario Nativo (L-V con panel de notificaciones), Mural de Post-its o Lista */}
         {viewMode === 'calendar' && (
-          <NativeCalendar
-            items={filteredItems}
-            postIts={postIts}
-            onOpenPostIt={() => setViewMode('postits')}
-            onSelectItem={handleOpenEditModal}
-            onDeleteItem={handleDeleteItem}
-            onToggleStatus={handleChangeStatus}
-            onStartClockifyTimer={handleStartClockifyTimer}
-            onOpenCreateModal={handleOpenCreateModal}
-            onRescheduleOverdue={handleRescheduleOverdue}
-            onMoveItemDate={handleMoveItemDate}
-            onQuickReschedule={handleQuickReschedule}
-            currentUserName={currentUserName}
-          />
+          <div className="flex-1 min-h-0 w-full h-full overflow-hidden flex flex-col">
+            <NativeCalendar
+              items={filteredItems}
+              postIts={postIts}
+              onOpenPostIt={() => setViewMode('postits')}
+              onSelectItem={handleOpenEditModal}
+              onDeleteItem={handleDeleteItem}
+              onToggleStatus={handleChangeStatus}
+              onStartClockifyTimer={handleStartClockifyTimer}
+              onOpenCreateModal={handleOpenCreateModal}
+              onRescheduleOverdue={handleRescheduleOverdue}
+              onMoveItemDate={handleMoveItemDate}
+              onQuickReschedule={handleQuickReschedule}
+              currentUserName={currentUserName}
+            />
+          </div>
         )}
 
         {viewMode === 'postits' && (
@@ -1571,13 +922,15 @@ function TaskFlowContent() {
         )}
 
         {viewMode === 'list' && (
-          <TaskListView
-            items={filteredItems}
-            onSelectItem={handleOpenEditModal}
-            onDeleteItem={handleDeleteItem}
-            onChangeStatus={handleChangeStatus}
-            onStartClockifyTimer={handleStartClockifyTimer}
-          />
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            <TaskListView
+              items={filteredItems}
+              onSelectItem={handleOpenEditModal}
+              onDeleteItem={handleDeleteItem}
+              onChangeStatus={handleChangeStatus}
+              onStartClockifyTimer={handleStartClockifyTimer}
+            />
+          </div>
         )}
 
       </main>
@@ -1603,11 +956,11 @@ export default function TaskFlowAppPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-[#FFFFFF]">
+        <div className="min-h-screen flex items-center justify-center bg-[var(--hub-bg,#DDD2EA)]">
           <div className="flex flex-col items-center gap-3">
             <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#D8CFF0] border-t-[#8E0E75]" />
             <p className="text-xs font-bold uppercase tracking-wider text-[#292929]">
-              Cargando Brain Up TaskFlow...
+              Cargando Brain Up Agenda...
             </p>
           </div>
         </div>

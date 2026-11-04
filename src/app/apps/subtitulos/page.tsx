@@ -51,7 +51,7 @@ export default function SubtitulosPage() {
       if (!user) {
         router.replace('/login');
       } else if (user.role === 'employee' && !canUserAccessHubApp(user, 'subtitulos')) {
-        flagAccessDenied('No tienes acceso a Subtitulado de vídeos. Pídeselo a tu coordinadora.');
+        flagAccessDenied('No tienes acceso a Brain Up Subtitulado. Pídeselo a tu coordinadora.');
         router.replace('/hub');
       }
     }
@@ -148,7 +148,7 @@ export default function SubtitulosPage() {
         <div className="flex flex-col items-center gap-3">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#D8CFF0] border-t-[#8E0E75]" />
           <p className="text-xs font-bold uppercase tracking-wider text-[#292929]">
-            Cargando Subtitulado de vídeos...
+            Cargando Brain Up Subtitulado...
           </p>
         </div>
       </div>
@@ -176,7 +176,7 @@ export default function SubtitulosPage() {
               <div>
                 <div className="flex items-center gap-2">
                   <h1 className="text-2xl sm:text-3xl font-black text-[#292929] tracking-tight">
-                    Subtitulado de vídeos
+                    Brain Up Subtitulado
                   </h1>
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300">
                     Modo Mantenimiento

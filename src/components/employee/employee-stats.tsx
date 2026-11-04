@@ -113,7 +113,7 @@ export function EmployeeStats({ entries, selectedCompany }: EmployeeStatsProps) 
               PLANO 1: HORAS DE TRABAJO GENERALES <span className="text-[#8E0E75]">(JORNADA GLOBAL)</span>
             </h3>
           </div>
-          <span className="text-[11px] sm:text-[11px] font-bold text-[#4A4A4A] uppercase tracking-wider bg-[#F8F6FC] px-2 py-0.5 rounded-sm border border-[#D8CFF0]">
+          <span className="text-[11px] sm:text-[11px] font-bold text-[#4A4A4A] uppercase tracking-wider bg-[#F8F6FC] px-2.5 py-0.5 rounded-md border border-[#D8CFF0]">
             Suma de todas las empresas
           </span>
         </div>
@@ -121,13 +121,13 @@ export function EmployeeStats({ entries, selectedCompany }: EmployeeStatsProps) 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           
           {/* Card 1.1: Horas Trabajadas Hoy */}
-          <div className="relative overflow-hidden rounded-sm border border-[#D8CFF0] bg-white p-5 shadow-xs transition-all hover:border-[#8E0E75]/60 hover:shadow-sm">
-            <div className="absolute top-0 left-0 bottom-0 w-1 bg-amber-500"></div>
+          <div className="relative overflow-hidden rounded-xl border border-[#D8CFF0] bg-white p-5 shadow-xs transition-all hover:border-[#8E0E75]/60 hover:shadow-sm">
+            <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-amber-500 rounded-l-xl"></div>
             <div className="flex items-center justify-between">
               <span className="text-xs font-extrabold uppercase tracking-wider text-[#4A4A4A]">
                 HORAS TRABAJADAS <span className="text-[#8E0E75]">HOY</span>
               </span>
-              <div className="p-1.5 rounded-sm bg-amber-50 text-amber-600 border border-amber-200">
+              <div className="p-1.5 rounded-lg bg-amber-50 text-amber-600 border border-amber-200">
                 <SunMedium className="h-4 w-4" />
               </div>
             </div>
@@ -146,9 +146,9 @@ export function EmployeeStats({ entries, selectedCompany }: EmployeeStatsProps) 
                   {dailyProgressPercent}% completado
                 </span>
               </div>
-              <div className="h-1.5 w-full bg-[#F8F6FC] rounded-sm overflow-hidden border border-[#D8CFF0]">
+              <div className="h-2 w-full bg-[#F8F6FC] rounded-full overflow-hidden border border-[#D8CFF0]">
                 <div
-                  className={`h-full transition-all duration-700 ease-out ${
+                  className={`h-full transition-all duration-700 ease-out rounded-full ${
                     dailyProgressPercent >= 100
                       ? 'bg-emerald-500 shadow-xs'
                       : dailyProgressPercent >= 40
@@ -162,13 +162,13 @@ export function EmployeeStats({ entries, selectedCompany }: EmployeeStatsProps) 
           </div>
 
           {/* Card 1.2: Horas de Trabajo Semanal */}
-          <div className="relative overflow-hidden rounded-sm border border-[#D8CFF0] bg-white p-5 shadow-xs transition-all hover:border-[#8E0E75]/60 hover:shadow-sm">
-            <div className="absolute top-0 left-0 bottom-0 w-1 bg-[#191654]"></div>
+          <div className="relative overflow-hidden rounded-xl border border-[#D8CFF0] bg-white p-5 shadow-xs transition-all hover:border-[#8E0E75]/60 hover:shadow-sm">
+            <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-[#191654] rounded-l-xl"></div>
             <div className="flex items-center justify-between">
               <span className="text-xs font-extrabold uppercase tracking-wider text-[#4A4A4A]">
                 HORAS DE TRABAJO <span className="text-[#8E0E75]">SEMANAL</span>
               </span>
-              <div className="p-1.5 rounded-sm bg-[#F8F6FC] text-[#191654] border border-[#D8CFF0]">
+              <div className="p-1.5 rounded-lg bg-[#F8F6FC] text-[#191654] border border-[#D8CFF0]">
                 <TrendingUp className="h-4 w-4" />
               </div>
             </div>
@@ -188,13 +188,13 @@ export function EmployeeStats({ entries, selectedCompany }: EmployeeStatsProps) 
           </div>
 
           {/* Card 1.3: Horas de Trabajo Mensual */}
-          <div className="relative overflow-hidden rounded-sm border border-[#D8CFF0] bg-white p-5 shadow-xs transition-all hover:border-[#8E0E75]/60 hover:shadow-sm">
-            <div className="absolute top-0 left-0 bottom-0 w-1 bg-[#8E0E75]"></div>
+          <div className="relative overflow-hidden rounded-xl border border-[#D8CFF0] bg-white p-5 shadow-xs transition-all hover:border-[#8E0E75]/60 hover:shadow-sm">
+            <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-[#8E0E75] rounded-l-xl"></div>
             <div className="flex items-center justify-between">
               <span className="text-xs font-extrabold uppercase tracking-wider text-[#4A4A4A]">
                 HORAS DE TRABAJO <span className="text-[#8E0E75]">MENSUAL</span>
               </span>
-              <div className="p-1.5 rounded-sm bg-[#F8F6FC] text-[#8E0E75] border border-[#D8CFF0]">
+              <div className="p-1.5 rounded-lg bg-[#F8F6FC] text-[#8E0E75] border border-[#D8CFF0]">
                 <CalendarCheck className="h-4 w-4" />
               </div>
             </div>
@@ -227,7 +227,7 @@ export function EmployeeStats({ entries, selectedCompany }: EmployeeStatsProps) 
               PLANO 2: DEDICACIÓN EN <span className="text-[#191654]">"{selectedCompany?.name || 'EMPRESA SELECCIONADA'}"</span>
             </h3>
           </div>
-          <span className="inline-flex items-center gap-1 text-[11px] sm:text-[11px] font-extrabold text-[#8E0E75] uppercase tracking-wider bg-[#F8F6FC] px-2.5 py-0.5 rounded-sm border border-[#8E0E75]/30">
+          <span className="inline-flex items-center gap-1 text-[11px] sm:text-[11px] font-extrabold text-[#8E0E75] uppercase tracking-wider bg-[#F8F6FC] px-2.5 py-0.5 rounded-md border border-[#8E0E75]/30">
             <Sparkles className="h-3 w-3" />
             Reactivas al cambiar de empresa
           </span>
@@ -236,13 +236,13 @@ export function EmployeeStats({ entries, selectedCompany }: EmployeeStatsProps) 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           
           {/* Card 2.1: Horas Trabajadas Hoy en la Empresa */}
-          <div className="relative overflow-hidden rounded-sm border-2 border-[#8E0E75]/30 bg-[#FCFBFD] p-5 shadow-xs transition-all hover:border-[#8E0E75] hover:shadow-sm">
-            <div className="absolute top-0 left-0 bottom-0 w-1 bg-[#8E0E75]"></div>
+          <div className="relative overflow-hidden rounded-xl border-2 border-[#8E0E75]/30 bg-[#FCFBFD] p-5 shadow-xs transition-all hover:border-[#8E0E75] hover:shadow-sm">
+            <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-[#8E0E75] rounded-l-xl"></div>
             <div className="flex items-center justify-between">
               <span className="text-xs font-extrabold uppercase tracking-wider text-[#8E0E75] truncate max-w-[200px]">
                 HORAS HOY EN {selectedCompany?.name || 'CLIENTE'}
               </span>
-              <div className="p-1.5 rounded-sm bg-[#F8F6FC] text-[#8E0E75] border border-[#D8CFF0]">
+              <div className="p-1.5 rounded-lg bg-[#F8F6FC] text-[#8E0E75] border border-[#D8CFF0]">
                 <Building2 className="h-4 w-4" />
               </div>
             </div>
@@ -258,13 +258,13 @@ export function EmployeeStats({ entries, selectedCompany }: EmployeeStatsProps) 
           </div>
 
           {/* Card 2.2: Horas Trabajadas Esta Semana en la Empresa */}
-          <div className="relative overflow-hidden rounded-sm border-2 border-[#8E0E75]/30 bg-[#FCFBFD] p-5 shadow-xs transition-all hover:border-[#8E0E75] hover:shadow-sm">
-            <div className="absolute top-0 left-0 bottom-0 w-1 bg-[#191654]"></div>
+          <div className="relative overflow-hidden rounded-xl border-2 border-[#8E0E75]/30 bg-[#FCFBFD] p-5 shadow-xs transition-all hover:border-[#8E0E75] hover:shadow-sm">
+            <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-[#191654] rounded-l-xl"></div>
             <div className="flex items-center justify-between">
               <span className="text-xs font-extrabold uppercase tracking-wider text-[#191654] truncate max-w-[200px]">
                 HORAS SEMANA EN {selectedCompany?.name || 'CLIENTE'}
               </span>
-              <div className="p-1.5 rounded-sm bg-[#F8F6FC] text-[#191654] border border-[#D8CFF0]">
+              <div className="p-1.5 rounded-lg bg-[#F8F6FC] text-[#191654] border border-[#D8CFF0]">
                 <Clock className="h-4 w-4" />
               </div>
             </div>
@@ -280,13 +280,13 @@ export function EmployeeStats({ entries, selectedCompany }: EmployeeStatsProps) 
           </div>
 
           {/* Card 2.3: Horas Trabajadas Este Mes en la Empresa (Con control de cuota) */}
-          <div className="relative overflow-hidden rounded-sm border-2 border-[#8E0E75]/30 bg-[#FCFBFD] p-5 shadow-xs transition-all hover:border-[#8E0E75] hover:shadow-sm">
-            <div className={`absolute top-0 left-0 bottom-0 w-1 ${quotaPercent > 100 ? 'bg-red-500' : quotaPercent >= 80 ? 'bg-amber-500' : 'bg-emerald-500'}`}></div>
+          <div className="relative overflow-hidden rounded-xl border-2 border-[#8E0E75]/30 bg-[#FCFBFD] p-5 shadow-xs transition-all hover:border-[#8E0E75] hover:shadow-sm">
+            <div className={`absolute top-0 left-0 bottom-0 w-1.5 rounded-l-xl ${quotaPercent > 100 ? 'bg-red-500' : quotaPercent >= 80 ? 'bg-amber-500' : 'bg-emerald-500'}`}></div>
             <div className="flex items-center justify-between">
               <span className="text-xs font-extrabold uppercase tracking-wider text-[#065F46] truncate max-w-[200px]">
                 HORAS MES EN {selectedCompany?.name || 'CLIENTE'}
               </span>
-              <div className={`p-1.5 rounded-sm border ${quotaPercent > 100 ? 'bg-red-50 text-red-600 border-red-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>
+              <div className={`p-1.5 rounded-lg border ${quotaPercent > 100 ? 'bg-red-50 text-red-600 border-red-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>
                 {quotaPercent > 100 ? <AlertCircle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
               </div>
             </div>
@@ -311,9 +311,9 @@ export function EmployeeStats({ entries, selectedCompany }: EmployeeStatsProps) 
                     {quotaPercent}%
                   </span>
                 </div>
-                <div className="h-1.5 w-full bg-[#F8F6FC] rounded-sm overflow-hidden border border-[#D8CFF0]">
+                <div className="h-2 w-full bg-[#F8F6FC] rounded-full overflow-hidden border border-[#D8CFF0]">
                   <div
-                    className={`h-full transition-all duration-700 ease-out ${
+                    className={`h-full transition-all duration-700 ease-out rounded-full ${
                       quotaPercent > 100
                         ? 'bg-red-500'
                         : quotaPercent >= 80

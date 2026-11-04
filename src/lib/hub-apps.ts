@@ -19,7 +19,7 @@ export interface HubApp {
 export const BRAIN_UP_HUB_APPS: HubApp[] = [
   {
     id: 'clockify',
-    name: 'Brain Up Clockify',
+    name: 'Brain Up Tiempo',
     tagline: 'Control Horario & Cuotas de Clientes',
     description: 'Imputación precisa de tiempo por cliente, balance de cuotas mensuales al milímetro y generación de informes ejecutivos en PDF.',
     category: 'operaciones',
@@ -31,7 +31,7 @@ export const BRAIN_UP_HUB_APPS: HubApp[] = [
   },
   {
     id: 'taskflow',
-    name: 'Brain Up TaskFlow',
+    name: 'Brain Up Agenda',
     tagline: 'Gestión de Proyectos, Calendario L-V & Post-its',
     description: 'Calendario laboral de 5 días con panel de notificaciones integrado, mural de post-its con alarmas y auto-desplazamiento.',
     category: 'operaciones',
@@ -43,7 +43,7 @@ export const BRAIN_UP_HUB_APPS: HubApp[] = [
   },
   {
     id: 'subtitulos',
-    name: 'Subtitulado de vídeos',
+    name: 'Brain Up Subtitulado',
     tagline: 'Pausado · Modo Mantenimiento',
     description: 'Arquitectura completa integrada (Whisper large-v3 + Claude + ffmpeg). Pausada temporalmente para optimizar costes de API hasta contar con proyectos de subtitulado recurrente. Para consultas, utiliza el Chat.',
     category: 'creatividad',

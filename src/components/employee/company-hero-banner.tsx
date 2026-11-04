@@ -30,7 +30,7 @@ export function CompanyHeroBanner({
   }));
 
   return (
-    <div className="w-full relative rounded-3xl border-3 border-[#8E0E75] bg-gradient-to-r from-[#F5EDF6] via-[#EFE2F0] to-[#F5EDF6] p-6 sm:p-8 lg:p-10 shadow-md transition-all">
+    <div className="w-full relative rounded-3xl border-2 border-[#8E0E75] bg-gradient-to-r from-[#E3D2EB] via-[#D5BCE3] to-[#E3D2EB] p-6 sm:p-8 lg:p-10 shadow-md shadow-[#8E0E75]/10 transition-all">
       {/* Badge flotante superior de cliente fijado */}
       <div className="absolute -top-3.5 left-8 flex items-center gap-1.5 bg-[#8E0E75] text-white text-xs sm:text-sm font-black uppercase tracking-tight px-4 py-1 rounded-full shadow-md">
         <Sparkles className="h-3.5 w-3.5" />
@@ -98,7 +98,7 @@ export function CompanyHeroBanner({
             searchable
             icon={<Building2 className="h-4 w-4 text-[#8E0E75]" />}
             options={selectOptions}
-            className="w-full text-sm sm:text-base font-bold bg-white"
+            className="w-full text-sm sm:text-base font-bold"
           />
         </div>
 

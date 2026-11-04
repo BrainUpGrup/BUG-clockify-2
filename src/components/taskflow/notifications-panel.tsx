@@ -131,7 +131,7 @@ export function NotificationsPanel({
       {/* Cabecera del Panel */}
       <div className="p-2.5 border-b border-[#D8CFF0] bg-white flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
-          <div className="relative p-1 rounded-sm bg-[#8E0E75] text-white">
+          <div className="relative p-1.5 rounded-lg bg-[#8E0E75] text-white">
             <Bell className="h-3.5 w-3.5" />
             {unreadCount > 0 && (
               <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-rose-600 text-[11px] font-black text-white">
@@ -214,7 +214,7 @@ export function NotificationsPanel({
       {/* Lista Desplazable de Notificaciones: toma todo el espacio vertical disponible */}
       <div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-2">
         {filteredNotifs.length === 0 ? (
-          <div className="py-8 px-3 text-center bg-white border border-dashed border-[#D8CFF0] rounded-sm">
+          <div className="py-8 px-3 text-center bg-white border border-dashed border-[#D8CFF0] rounded-lg">
             <Bell className="h-6 w-6 text-slate-300 mx-auto mb-1.5" />
             <p className="text-[11px] font-bold text-[#292929]">Sin notificaciones pendientes</p>
             <p className="text-[11px] text-[#4A4A4A] mt-1 leading-snug">
@@ -225,7 +225,7 @@ export function NotificationsPanel({
           filteredNotifs.map((notif) => (
             <div
               key={notif.id}
-              className={`p-2 rounded-sm border transition-all text-xs relative group ${
+              className={`p-2 rounded-xl border transition-all text-xs relative group ${
                 notif.read
                   ? 'bg-white border-[#EAE4F5] opacity-80 hover:opacity-100 shadow-2xs'
                   : 'bg-white border-[#8E0E75]/40 shadow-xs ring-1 ring-[#8E0E75]/15'

@@ -255,7 +255,7 @@ export default function EmployeeDashboardPage() {
 
   if (authLoading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FFFFFF]">
+      <div className="min-h-screen flex items-center justify-center bg-[var(--hub-bg,#DDD2EA)]">
         <div className="flex flex-col items-center gap-3">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#D8CFF0] border-t-[#8E0E75]" />
           <p className="text-xs font-bold uppercase tracking-wider text-[#292929]">
@@ -267,7 +267,7 @@ export default function EmployeeDashboardPage() {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-[#FFFFFF] w-full">
+    <div className="flex-1 flex flex-col bg-[var(--hub-bg,#DDD2EA)] w-full font-sans">
       {/* Contenedor Amplio y Heroico con Gran Presencia Visual */}
       <main className="page-transition flex-1 w-full max-w-[1550px] mx-auto px-4 sm:px-8 lg:px-12 py-6 sm:py-8 space-y-7 sm:space-y-8">
         
@@ -334,7 +334,7 @@ export default function EmployeeDashboardPage() {
           </div>
 
           {isLoading ? (
-            <div className="w-full p-8 text-center text-xs text-[#4A4A4A] bg-white rounded-sm border border-[#D8CFF0]">
+            <div className="w-full p-8 text-center text-xs text-[#4A4A4A] bg-white rounded-2xl border border-[#D8CFF0]">
               Cargando registros de tiempo...
             </div>
           ) : (

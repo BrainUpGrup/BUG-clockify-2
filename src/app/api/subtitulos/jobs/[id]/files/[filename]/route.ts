@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { subtitulosClient, SubtitulosApiError } from '@/lib/subtitulos-client';
+import { requireActiveUser } from '@/lib/api-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,7 +11,10 @@ interface RouteContext {
   };
 }
 
-export async function GET(_req: NextRequest, { params }: RouteContext) {
+export async function GET(req: NextRequest, { params }: RouteContext) {
+  const { errorResponse } = await requireActiveUser(req);
+  if (errorResponse) return errorResponse;
+
   try {
     const upstreamRes = await subtitulosClient.fetchFileResponse(params.id, params.filename);
 
@@ -26,7 +30,7 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
     if (contentLength) {
       headers.set('Content-Length', contentLength);
     }
-    headers.set('Cache-Control', 'public, max-age=3600');
+    headers.set('Cache-Control', 'private, no-cache, no-store, must-revalidate');
 
     return new Response(upstreamRes.body, {
       status: 200,

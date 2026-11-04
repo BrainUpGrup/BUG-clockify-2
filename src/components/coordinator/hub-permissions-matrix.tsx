@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Profile } from '@/types/database';
 import { notify } from '@/lib/feedback';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { 
   BRAIN_UP_HUB_APPS, 
   HubApp, 
@@ -132,10 +133,10 @@ export function HubPermissionsMatrix({ employees }: HubPermissionsMatrixProps) {
   return (
     <div className="w-full space-y-6">
       {/* Cabecera Informativa */}
-      <div className="w-full rounded-sm border border-[#D8CFF0] bg-white p-6 shadow-sm">
+      <div className="w-full rounded-2xl border-2 border-[#D0C4EB] bg-white p-6 shadow-md shadow-[#191654]/6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#EAE4F5] gap-3">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-sm bg-[#8E0E75] text-white shadow-xs">
+            <div className="p-2.5 rounded-xl bg-[#8E0E75] text-white shadow-xs">
               <ShieldCheck className="h-5 w-5" />
             </div>
             <div>
@@ -149,7 +150,7 @@ export function HubPermissionsMatrix({ employees }: HubPermissionsMatrixProps) {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-[#F8F6FC] border border-[#D8CFF0] text-[11px] font-extrabold uppercase tracking-wider text-[#8E0E75]">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#F8F6FC] border border-[#D8CFF0] text-[11px] font-extrabold uppercase tracking-wider text-[#8E0E75]">
               <Sparkles className="h-3.5 w-3.5 text-[#8E0E75]" />
               {BRAIN_UP_HUB_APPS.length} Herramientas Integradas
             </span>
@@ -160,13 +161,13 @@ export function HubPermissionsMatrix({ employees }: HubPermissionsMatrixProps) {
         <div className="pt-3 flex items-start gap-2 text-xs text-[#4A4A4A] leading-relaxed">
           <Info className="h-4 w-4 text-[#8E0E75] shrink-0 mt-0.5" />
           <span>
-            <strong>Gestión Limpia y Eficiente:</strong> Si un empleado solo precisa 3 herramientas (ej. Clockify, TaskFlow y Media Hub), desmarca las restantes para que su panel permanezca ordenado y libre de distracciones. Los cambios se sincronizan al instante en el Hub del trabajador.
+            <strong>Gestión Limpia y Eficiente:</strong> Si un empleado solo precisa 3 herramientas (ej. Tiempo, Agenda y Media Hub), desmarca las restantes para que su panel permanezca ordenado y libre de distracciones. Los cambios se sincronizan al instante en el Hub del trabajador.
           </span>
         </div>
       </div>
 
       {/* Buscador de Empleados */}
-      <div className="bg-white border border-[#D8CFF0] p-4 rounded-sm shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div className="bg-white border border-[#D8CFF0] p-4 rounded-2xl shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="relative w-full sm:max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#4A4A4A]" />
           <input
@@ -174,7 +175,7 @@ export function HubPermissionsMatrix({ employees }: HubPermissionsMatrixProps) {
             placeholder="Buscar trabajador por nombre, email o departamento..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 border border-[#D8CFF0] rounded-sm text-xs bg-[#F8F6FC] focus:bg-white focus:border-[#8E0E75] focus:outline-none transition-all"
+            className="w-full pl-9 pr-4 py-2 border border-[#D8CFF0] rounded-xl text-xs bg-[#F8F6FC] focus:bg-white focus:border-[#8E0E75] focus:outline-none transition-all"
           />
         </div>
 
@@ -184,7 +185,7 @@ export function HubPermissionsMatrix({ employees }: HubPermissionsMatrixProps) {
       </div>
 
       {/* Tabla Seleccionable Nativa de Permisos */}
-      <div className="w-full rounded-sm border border-[#D8CFF0] bg-white overflow-hidden shadow-sm">
+      <div className="w-full rounded-2xl border-2 border-[#D0C4EB] bg-white overflow-hidden shadow-md shadow-[#191654]/6">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             
@@ -205,7 +206,7 @@ export function HubPermissionsMatrix({ employees }: HubPermissionsMatrixProps) {
                     title={app.description}
                   >
                     <div className="flex flex-col items-center gap-1">
-                      <div className="p-1.5 rounded-sm bg-white border border-[#D8CFF0] text-[#8E0E75] shadow-xs">
+                      <div className="p-1.5 rounded-xl bg-white border border-[#D8CFF0] text-[#8E0E75] shadow-xs">
                         {renderAppIcon(app.iconName, 'h-4 w-4')}
                       </div>
                       <span className="font-extrabold text-[#292929] leading-tight block truncate max-w-[120px]">
@@ -256,9 +257,12 @@ export function HubPermissionsMatrix({ employees }: HubPermissionsMatrixProps) {
                       {/* Columna 1: Datos del Trabajador */}
                       <td className="py-3.5 px-4 border-r border-[#EAE4F5] sticky left-0 bg-white z-10">
                         <div className="flex items-center gap-2.5">
-                          <div className="h-8 w-8 rounded-full bg-gradient-to-r from-[#191654] to-[#8E0E75] text-white flex items-center justify-center font-extrabold text-[11px] shrink-0">
-                            {initials}
-                          </div>
+                          <UserAvatar
+                            src={emp.avatar_url}
+                            name={emp.full_name}
+                            size="sm"
+                            className="ring-1 ring-[#D8CFF0]"
+                          />
                           <div className="min-w-0">
                             <span className="font-bold text-[#292929] block truncate">
                               {emp.full_name}
@@ -273,7 +277,7 @@ export function HubPermissionsMatrix({ employees }: HubPermissionsMatrixProps) {
                       {/* Columna 2: Contador de Herramientas */}
                       <td className="py-3.5 px-3 text-center border-r border-[#EAE4F5]">
                         <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-extrabold uppercase tracking-wider border ${
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-extrabold uppercase tracking-wider border ${
                             allowedApps.length === BRAIN_UP_HUB_APPS.length
                               ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
                               : allowedApps.length >= 3
@@ -294,7 +298,7 @@ export function HubPermissionsMatrix({ employees }: HubPermissionsMatrixProps) {
                             key={app.id}
                             className="py-3 px-3 text-center border-r border-[#EAE4F5] last:border-r-0"
                           >
-                            <label className="inline-flex items-center justify-center cursor-pointer p-1 rounded-sm hover:bg-[#F8F6FC] transition-colors">
+                            <label className="inline-flex items-center justify-center cursor-pointer p-1 rounded-md hover:bg-[#F8F6FC] transition-colors">
                               <input
                                 type="checkbox"
                                 checked={isChecked}
@@ -313,7 +317,7 @@ export function HubPermissionsMatrix({ employees }: HubPermissionsMatrixProps) {
                           <button
                             type="button"
                             onClick={() => handleSelectAll(emp.id)}
-                            className="px-2 py-1 rounded-sm border border-[#D8CFF0] bg-[#F8F6FC] hover:bg-white text-[11px] font-bold text-[#8E0E75] uppercase tracking-wider transition-colors cursor-pointer"
+                            className="px-2.5 py-1.5 rounded-lg border border-[#D8CFF0] bg-[#F8F6FC] hover:bg-white text-[11px] font-bold text-[#8E0E75] uppercase tracking-wider transition-colors cursor-pointer"
                             title={`Dar acceso a las ${BRAIN_UP_HUB_APPS.length} herramientas`}
                           >
                             Todas ({BRAIN_UP_HUB_APPS.length})
@@ -321,7 +325,7 @@ export function HubPermissionsMatrix({ employees }: HubPermissionsMatrixProps) {
                           <button
                             type="button"
                             onClick={() => handleSelectBasicOnly(emp.id)}
-                            className="px-2 py-1 rounded-sm border border-[#D8CFF0] bg-white hover:bg-[#F8F6FC] text-[11px] font-bold text-[#4A4A4A] uppercase tracking-wider transition-colors cursor-pointer"
+                            className="px-2.5 py-1.5 rounded-lg border border-[#D8CFF0] bg-white hover:bg-[#F8F6FC] text-[11px] font-bold text-[#4A4A4A] uppercase tracking-wider transition-colors cursor-pointer"
                             title={`Asignar solo las básicas (${DEFAULT_EMPLOYEE_APPS.join(', ')})`}
                           >
                             Básicas ({DEFAULT_EMPLOYEE_APPS.length})

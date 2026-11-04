@@ -13,6 +13,7 @@ import {
   Hash
 } from 'lucide-react';
 import { Profile } from '@/types/database';
+import { UserAvatar } from '@/components/ui/user-avatar';
 
 interface RailSidebarProps {
   activeTab: 'summary' | 'clients' | 'groups' | 'dms';
@@ -46,13 +47,13 @@ export function RailSidebar({
         <Link
           href="/hub"
           title="Volver al HUB de Aplicaciones"
-          className="relative h-10 w-10 rounded-full overflow-hidden ring-2 ring-[#8E0E75]/40 hover:ring-[#8E0E75] transition-all bg-[#F8F6FC] flex items-center justify-center group"
+          className="relative h-11 w-11 rounded-full ring-2 ring-[#8E0E75]/40 hover:ring-[#8E0E75] transition-all bg-[#F8F6FC] flex items-center justify-center p-1 group overflow-hidden"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/logo.png"
-            alt="Brain Up Grup"
-            className="h-full w-full object-contain p-0.5 group-hover:scale-105 transition-transform"
+            src="/abuela-avatar.png"
+            alt="Brain Up Grup - La Abuela"
+            className="h-full w-full object-cover group-hover:scale-105 transition-transform rounded-full"
           />
         </Link>
 
@@ -145,16 +146,14 @@ export function RailSidebar({
         <div className="w-8 h-px bg-white/10" />
 
         {/* Avatar Usuario con Punto Verde Online */}
-        <div 
-          className="relative h-10 w-10 rounded-full bg-[#8E0E75] text-white font-extrabold text-xs flex items-center justify-center ring-2 ring-white/20 select-none cursor-pointer"
-          title={`${currentUser?.full_name || 'Usuario'} (En línea)`}
-        >
-          <span>{userInitials}</span>
-          <span 
-            className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-[#3BB54A] ring-2 ring-[#191654]"
-            title="Conectado en tiempo real"
-          />
-        </div>
+        <UserAvatar
+          src={currentUser?.avatar_url}
+          name={currentUser?.full_name}
+          size="md"
+          showOnline={true}
+          isOnline={true}
+          className="ring-2 ring-white/20 cursor-pointer hover:scale-105 transition-transform"
+        />
       </div>
 
     </aside>

@@ -178,7 +178,7 @@ export default function FloatingTimerPage() {
         <div className="flex items-center gap-1.5">
           <div className="h-5 w-5 rounded-full overflow-hidden bg-[#F8F6FC] ring-1 ring-[#8E0E75]/30 flex items-center justify-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="Brain Up" className="h-4 w-4 object-contain" />
+            <img src="/isotipo.png" alt="Brain Up" className="h-4 w-4 object-contain" />
           </div>
           <span className="text-[11px] font-black uppercase text-[#191654] tracking-wider">
             Brain <span className="text-[#8E0E75]">Up</span>
@@ -216,7 +216,7 @@ export default function FloatingTimerPage() {
       </div>
 
       {/* Contenido Principal: Empresa y Cronómetro */}
-      <div className="my-2 p-2.5 rounded-sm bg-[#F8F6FC] border border-[#D8CFF0] flex items-center justify-between gap-2">
+      <div className="my-2 p-2.5 rounded-xl bg-[#F8F6FC] border border-[#D8CFF0] flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0 pr-1">
           <div className="h-8 w-8 rounded-xs bg-white border border-[#D8CFF0] flex items-center justify-center shrink-0 text-[#8E0E75]">
             <Building2 className="h-4 w-4" />
@@ -246,7 +246,7 @@ export default function FloatingTimerPage() {
 
       {/* Desplegable de selección rápida de empresa */}
       {showCompanySelect && (
-        <div className="mb-2 max-h-36 overflow-y-auto bg-white border border-[#D8CFF0] rounded-sm p-1 shadow-md space-y-1">
+        <div className="mb-2 max-h-36 overflow-y-auto bg-white border border-[#D8CFF0] rounded-lg p-1 shadow-md space-y-1">
           <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider block px-1">
             Cambiar Empresa Activa:
           </span>

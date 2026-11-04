@@ -164,3 +164,17 @@ Accede desde tu navegador a [http://localhost:3000](http://localhost:3000).
 ## Historial y Modificaciones Futuras
 
 Cualquier cambio, ampliación o ajuste debe documentarse inmediatamente en el archivo [`REGISTRO_MAESTRO.md`](./REGISTRO_MAESTRO.md) respetando la numeración y formato establecido.
+
+
+---
+
+## Equipo de Agentes Especializados de Inteligencia Artificial
+
+Para mantener la rigurosidad técnica, velocidad de desarrollo y cumplimiento de las directrices maestras (DM-01 a DM-16), el repositorio cuenta con un equipo de 5 agentes especializados:
+- **`jefe`**: Tech Lead, orquestador maestro y custodio de la arquitectura.
+- **`frontend`**: Especialista en Next.js 14, Tailwind CSS, política Zero-Scroll (DM-15) y diseño corporativo de La Abuela.
+- **`backend`**: Especialista en Supabase (PostgreSQL 15, Auth, RLS con `SECURITY DEFINER`, Realtime) y exportaciones.
+- **`revisor-usabilidad`**: Auditor de UX/UI, ergonomía, Cero Emojis (DM-01) y fidelidad con los estudios de usabilidad (`docs/usability/`).
+- **`revisor-seguridad`**: Auditor de blindaje RLS, control de roles (RBAC) y prevención de vulnerabilidades.
+
+Consulta la guía y especificaciones completas en [`AGENTS.md`](./AGENTS.md) y en el directorio [`.agents/`](./.agents/).

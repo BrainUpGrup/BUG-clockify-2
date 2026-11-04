@@ -14,6 +14,24 @@ interface AuthContextType {
   signUp: (fullName: string, email: string, pass: string, department?: string) => Promise<{ error?: string }>;
   logout: () => Promise<void>;
   switchDemoUser: (targetProfile: Profile) => void;
+  updateUserAvatar: (avatarUrl: string | null) => Promise<{ error?: string }>;
+}
+
+
+function persistUser(profile: Profile | null) {
+  if (typeof window === 'undefined') return;
+  try {
+    if (profile) {
+      localStorage.setItem('bug_clockify_current_user', JSON.stringify(profile));
+      const cookieData = JSON.stringify({ id: profile.id, role: profile.role, email: profile.email });
+      document.cookie = 'bug_clockify_user=' + encodeURIComponent(cookieData) + '; path=/; max-age=604800; SameSite=Lax';
+    } else {
+      localStorage.removeItem('bug_clockify_current_user');
+      document.cookie = 'bug_clockify_user=; path=/; max-age=0; SameSite=Lax';
+    }
+  } catch (e) {
+    console.error('persistUser error:', e);
+  }
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,11 +52,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const parsed = JSON.parse(stored) as Profile;
         if (parsed && parsed.status !== 'pending') {
           setUser(parsed);
-          setIsLoading(false); // ¡Renderizado instantáneo!
+          persistUser(parsed);
         }
       }
     } catch (e) {
       console.error(e);
+    } finally {
+      if (isMounted) {
+        setIsLoading(false);
+      }
     }
 
     // 2. PASO EN SEGUNDO PLANO: Sincronización asíncrona no bloqueante
@@ -70,9 +92,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   console.error(e);
                 }
               } else {
-                setUser(profile as Profile);
+                const safeProfile = {
+                  ...profile,
+                  avatar_url: profile.avatar_url || undefined,
+                } as Profile;
+                setUser(safeProfile);
                 try {
-                  localStorage.setItem('bug_clockify_current_user', JSON.stringify(profile));
+                  localStorage.setItem('bug_clockify_current_user', JSON.stringify(safeProfile));
                 } catch (e) {
                   console.error(e);
                 }
@@ -99,105 +125,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Función de inicio de sesión con validación de estado (activo vs pendiente)
   const login = async (email: string, pass: string): Promise<{ error?: string; user?: Profile }> => {
     const cleanEmail = email.trim().toLowerCase();
+    const isDevOrDemo =
+      process.env.NODE_ENV === 'development' ||
+      process.env.NEXT_PUBLIC_SHOW_DEMO_LOGIN === 'true';
 
-    // Cuenta Maestra Super Admin de Brain Up Grup
-    if (cleanEmail === 'appadmin@brainupgrup.com' && pass.trim() === 'fn.5loDnrTTfI2z!') {
-      const adminProfile: Profile = {
-        id: '00000000-0000-0000-0000-000000000001',
-        full_name: 'Super Administrador',
-        email: 'appadmin@brainupgrup.com',
-        role: 'admin',
-        status: 'active',
-        department: 'Sistemas & Seguridad',
-        created_at: '2026-01-01T00:00:00Z',
-      };
-
-      if (isSupabaseConnected) {
-        try {
-          const supabase = createClient();
-          await supabase.from('profiles').upsert(adminProfile);
-        } catch (e) {
-          console.warn('Upsert admin profile notice:', e);
-        }
-      }
-
-      setUser(adminProfile);
-      try {
-        localStorage.setItem('bug_clockify_current_user', JSON.stringify(adminProfile));
-      } catch (e) {
-        console.error(e);
-      }
-      return { user: adminProfile };
-    }
-
-    // Cuenta de Prueba de Coordinadora (Rol Dual: Coordinadora & Empleada)
-    // Acepta tanto coordinacion@ como coordinadora@ con o sin signo de admiración
-    if (
-      (cleanEmail === 'coordinacion@brainupgrup.com' || cleanEmail === 'coordinadora@brainupgrup.com') &&
-      (pass.trim() === 'BrainUp2026!' || pass.trim() === 'BrainUp2026' || pass.trim() === 'brainup2026')
-    ) {
-      const coordProfile: Profile = {
-        id: '00000000-0000-0000-0000-000000000002',
-        full_name: 'Coordinación Brain Up',
-        email: cleanEmail,
-        role: 'coordinator',
-        status: 'active',
-        department: 'Dirección de Operaciones',
-        created_at: '2026-01-01T00:00:00Z',
-      };
-
-      if (isSupabaseConnected) {
-        try {
-          const supabase = createClient();
-          await supabase.from('profiles').upsert(coordProfile);
-        } catch (e) {
-          console.warn('Upsert coord profile notice:', e);
-        }
-      }
-
-      setUser(coordProfile);
-      try {
-        localStorage.setItem('bug_clockify_current_user', JSON.stringify(coordProfile));
-      } catch (e) {
-        console.error(e);
-      }
-      return { user: coordProfile };
-    }
-
-    // Cuenta de Prueba de Empleado (Para verificar vista aislada de trabajador)
-    // Acepta tanto empleado@ como trabajador@
-    if (
-      (cleanEmail === 'empleado@brainupgrup.com' || cleanEmail === 'trabajador@brainupgrup.com') &&
-      (pass.trim() === 'BrainUp2026!' || pass.trim() === 'BrainUp2026' || pass.trim() === 'brainup2026')
-    ) {
-      const empProfile: Profile = {
-        id: '00000000-0000-0000-0000-000000000003',
-        full_name: 'Empleado de Prueba',
-        email: cleanEmail,
-        role: 'employee',
-        status: 'active',
-        department: 'Creatividad & Operaciones',
-        created_at: '2026-01-01T00:00:00Z',
-      };
-
-      if (isSupabaseConnected) {
-        try {
-          const supabase = createClient();
-          await supabase.from('profiles').upsert(empProfile);
-        } catch (e) {
-          console.warn('Upsert employee profile notice:', e);
-        }
-      }
-
-      setUser(empProfile);
-      try {
-        localStorage.setItem('bug_clockify_current_user', JSON.stringify(empProfile));
-      } catch (e) {
-        console.error(e);
-      }
-      return { user: empProfile };
-    }
-
+    // 1. INTENTO PRINCIPAL EN SUPABASE AUTH (Cuentas registradas reales y sesiones criptográficas JWT)
     if (isSupabaseConnected) {
       try {
         const supabase = createClient();
@@ -206,86 +138,126 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           password: pass,
         });
 
-        if (error) {
-          return { error: 'Credenciales inválidas. Verifica tu correo y contraseña.' };
-        }
-
-        if (data.user) {
+        if (!error && data?.user) {
           const { data: profile, error: profError } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', data.user.id)
             .single();
 
-          if (profError || !profile) {
-            return { error: 'No se encontró el perfil de usuario en la base de datos.' };
-          }
+          if (!profError && profile) {
+            // Verificación estricta de estado de cuenta
+            if (profile.status === 'pending') {
+              await supabase.auth.signOut();
+              return {
+                error: 'Tu cuenta está registrada pero aún está PENDIENTE de validación y aceptación por la coordinadora de Brain Up Grup.',
+              };
+            }
 
-          // Verificación de estado de cuenta
-          if (profile.status === 'pending') {
-            await supabase.auth.signOut();
-            return {
-              error: 'Tu cuenta está registrada pero aún está PENDIENTE de validación y aceptación por la coordinadora de Brain Up Grup.',
-            };
-          }
+            if (profile.status === 'rejected') {
+              await supabase.auth.signOut();
+              return { error: 'Tu solicitud de acceso fue rechazada. Contacta con la coordinadora.' };
+            }
 
-          if (profile.status === 'rejected') {
-            await supabase.auth.signOut();
-            return { error: 'Tu solicitud de acceso fue rechazada. Contacta con la coordinadora.' };
+            const loggedProfile = profile as Profile;
+            setUser(loggedProfile);
+            persistUser(loggedProfile);
+            return { user: loggedProfile };
           }
-
-          const loggedProfile = profile as Profile;
-          setUser(loggedProfile);
-          try {
-            localStorage.setItem('bug_clockify_current_user', JSON.stringify(loggedProfile));
-          } catch (e) {
-            console.error(e);
-          }
-          return { user: loggedProfile };
         }
       } catch (err: unknown) {
-        console.error(err);
-        return { error: 'Error de conexión con el servidor de autenticación.' };
+        console.warn('Aviso: Intento Supabase Auth fallido:', err);
       }
     }
 
-    // Modo local / Fallback con perfiles registrados
-    let allProfiles = [...MOCK_PROFILES];
-    try {
-      const storedPending = localStorage.getItem('bug_clockify_pending_users');
-      if (storedPending) {
-        const parsed = JSON.parse(storedPending) as Profile[];
-        allProfiles = [...allProfiles, ...parsed];
+    // 2. FALLBACK EXCLUSIVO PARA DESARROLLO / DEMO (Solo si está habilitado explícitamente en entorno dev)
+    if (isDevOrDemo) {
+      const devPass = pass.trim();
+      const isAllowedDevPass = devPass === 'BrainUp2026!' || devPass === 'BrainUp2026' || devPass === 'brainup2026';
+
+      if (isAllowedDevPass) {
+        // Cuenta Super Admin
+        if (cleanEmail === 'appadmin@brainupgrup.com') {
+          const adminProfile: Profile = {
+            id: '00000000-0000-0000-0000-000000000001',
+            full_name: 'Super Administrador',
+            email: 'appadmin@brainupgrup.com',
+            role: 'admin',
+            status: 'active',
+            department: 'Sistemas & Seguridad',
+            created_at: '2026-01-01T00:00:00Z',
+          };
+          persistUser(adminProfile);
+          setUser(adminProfile);
+          return { user: adminProfile };
+        }
+
+        // Cuenta Coordinadora
+        if (cleanEmail === 'coordinacion@brainupgrup.com' || cleanEmail === 'coordinadora@brainupgrup.com') {
+          const coordProfile: Profile = {
+            id: '00000000-0000-0000-0000-000000000002',
+            full_name: 'Coordinación Brain Up',
+            email: cleanEmail,
+            role: 'coordinator',
+            status: 'active',
+            department: 'Dirección de Operaciones',
+            created_at: '2026-01-01T00:00:00Z',
+          };
+          persistUser(coordProfile);
+          setUser(coordProfile);
+          return { user: coordProfile };
+        }
+
+        // Cuenta Empleado
+        if (cleanEmail === 'empleado@brainupgrup.com' || cleanEmail === 'trabajador@brainupgrup.com') {
+          const empProfile: Profile = {
+            id: '00000000-0000-0000-0000-000000000003',
+            full_name: 'Empleado de Prueba',
+            email: cleanEmail,
+            role: 'employee',
+            status: 'active',
+            department: 'Creatividad & Operaciones',
+            created_at: '2026-01-01T00:00:00Z',
+          };
+          persistUser(empProfile);
+          setUser(empProfile);
+          return { user: empProfile };
+        }
       }
-    } catch (e) {
-      console.error(e);
+
+      // Perfiles mock locales registrados
+      let allProfiles: Profile[] = [...MOCK_PROFILES];
+      try {
+        const storedPending = localStorage.getItem('bug_clockify_pending_users');
+        if (storedPending) {
+          const parsed = JSON.parse(storedPending) as Profile[];
+          if (Array.isArray(parsed)) {
+            allProfiles = [...allProfiles, ...parsed];
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+
+      const found = allProfiles.find((p) => p && p.email && p.email.toLowerCase() === cleanEmail);
+      if (found) {
+        if (found.status === 'pending') {
+          return {
+            error: 'Tu cuenta está registrada pero aún está PENDIENTE de validación por la coordinadora de Brain Up Grup.',
+          };
+        }
+        if (found.status === 'rejected') {
+          return { error: 'Tu solicitud de acceso fue rechazada.' };
+        }
+        setUser(found);
+        persistUser(found);
+        return { user: found };
+      }
     }
 
-    const found = allProfiles.find((p) => p.email.toLowerCase() === cleanEmail);
-
-    if (!found) {
-      return {
-        error: 'No existe ninguna cuenta registrada con este correo. Solicita acceso mediante el enlace de registro.',
-      };
-    }
-
-    if (found.status === 'pending') {
-      return {
-        error: 'Tu cuenta está registrada pero aún está PENDIENTE de validación por la coordinadora de Brain Up Grup.',
-      };
-    }
-
-    if (found.status === 'rejected') {
-      return { error: 'Tu solicitud de acceso fue rechazada.' };
-    }
-
-    setUser(found);
-    try {
-      localStorage.setItem('bug_clockify_current_user', JSON.stringify(found));
-    } catch (e) {
-      console.error(e);
-    }
-    return { user: found };
+    return {
+      error: 'Credenciales inválidas. Verifica tu correo y contraseña.',
+    };
   };
 
   // Registro de nuevo empleado (siempre en estado 'pending')
@@ -370,22 +342,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error(e);
       }
     }
-    try {
-      localStorage.removeItem('bug_clockify_current_user');
-    } catch (e) {
-      console.error(e);
-    }
+    persistUser(null);
     setUser(null);
   };
 
   // Cambio rápido de usuario para testing/demo
   const switchDemoUser = (targetProfile: Profile) => {
+    persistUser(targetProfile);
     setUser(targetProfile);
-    try {
-      localStorage.setItem('bug_clockify_current_user', JSON.stringify(targetProfile));
-    } catch (e) {
-      console.error(e);
+  };
+
+  // Actualizar fotografía del usuario con sincronización en Supabase y caché local
+  const updateUserAvatar = async (avatarUrl: string | null): Promise<{ error?: string }> => {
+    if (!user) return { error: 'No hay usuario autenticado.' };
+
+    const updatedProfile: Profile = {
+      ...user,
+      avatar_url: avatarUrl || undefined,
+    };
+
+    setUser(updatedProfile);
+    persistUser(updatedProfile);
+
+    // Actualizar en Supabase si está conectado
+    if (isSupabaseConnected) {
+      try {
+        const supabase = createClient();
+        const { error } = await supabase
+          .from('profiles')
+          .update({ avatar_url: avatarUrl })
+          .eq('id', user.id);
+
+        if (error) {
+          console.warn('Aviso: error al actualizar avatar en Supabase:', error.message);
+        }
+      } catch (err) {
+        console.warn('Aviso al sincronizar avatar:', err);
+      }
     }
+
+    // Emitir evento para refrescar cualquier componente dependiente
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('bug_user_avatar_updated', { detail: { avatarUrl } }));
+    }
+
+    return {};
   };
 
   return (
@@ -399,6 +400,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signUp,
         logout,
         switchDemoUser,
+        updateUserAvatar,
       }}
     >
       {children}

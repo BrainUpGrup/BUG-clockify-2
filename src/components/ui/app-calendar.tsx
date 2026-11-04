@@ -141,7 +141,7 @@ export function AppCalendar({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center gap-2 px-3 py-1.5 rounded-sm border text-xs font-semibold transition-all outline-none ${
+        className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs font-semibold transition-all outline-none ${
           isOpen
             ? 'bg-white border-[#8E0E75] ring-2 ring-[#8E0E75]/15 shadow-sm text-[#292929]'
             : 'bg-white hover:bg-[#F8F6FC] border-[#D8CFF0] text-[#292929] hover:border-[#8E0E75]'
@@ -154,14 +154,14 @@ export function AppCalendar({
 
       {/* Popover del Calendario Propio con Paleta Brain Up */}
       {isOpen && (
-        <div className="absolute left-0 top-full mt-2 z-50 w-72 rounded-sm border border-[#D8CFF0] bg-white p-4 shadow-2xl shadow-[#191654]/15 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-150">
+        <div className="absolute left-0 top-full mt-2 z-50 w-72 rounded-2xl border border-[#D8CFF0] bg-white p-4 shadow-2xl shadow-[#191654]/15 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-150">
           
           {/* Cabecera del Mes y Año con Flechas de Navegación */}
           <div className="flex items-center justify-between pb-3 border-b border-[#EAE4F5]">
             <button
               type="button"
               onClick={handlePrevMonth}
-              className="p-1 rounded-sm text-[#4A4A4A] hover:text-[#8E0E75] hover:bg-[#F8F6FC] transition-colors cursor-pointer"
+              className="p-1 rounded-lg text-[#4A4A4A] hover:text-[#8E0E75] hover:bg-[#F8F6FC] transition-colors cursor-pointer"
               title="Mes anterior"
             >
               <ChevronLeft className="h-4 w-4" />
@@ -174,7 +174,7 @@ export function AppCalendar({
             <button
               type="button"
               onClick={handleNextMonth}
-              className="p-1 rounded-sm text-[#4A4A4A] hover:text-[#8E0E75] hover:bg-[#F8F6FC] transition-colors cursor-pointer"
+              className="p-1 rounded-lg text-[#4A4A4A] hover:text-[#8E0E75] hover:bg-[#F8F6FC] transition-colors cursor-pointer"
               title="Mes siguiente"
             >
               <ChevronRight className="h-4 w-4" />
@@ -216,7 +216,7 @@ export function AppCalendar({
                   key={day}
                   type="button"
                   onClick={() => handleSelectDay(day)}
-                  className={`flex h-8 w-8 mx-auto items-center justify-center rounded-sm text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex h-8 w-8 mx-auto items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     isSelected
                       ? 'bg-[#8E0E75] text-white shadow-md shadow-[#8E0E75]/30'
                       : isToday
@@ -235,14 +235,14 @@ export function AppCalendar({
             <button
               type="button"
               onClick={() => setQuickDate(0)}
-              className="px-3 py-1 rounded-sm border border-[#8E0E75] bg-white text-[#8E0E75] hover:bg-[#8E0E75] hover:text-white font-bold text-[11px] uppercase tracking-wider transition-all cursor-pointer"
+              className="px-3 py-1 rounded-lg border border-[#8E0E75] bg-white text-[#8E0E75] hover:bg-[#8E0E75] hover:text-white font-bold text-[11px] uppercase tracking-wider transition-all cursor-pointer"
             >
               Hoy
             </button>
             <button
               type="button"
               onClick={() => setQuickDate(1)}
-              className="px-3 py-1 rounded-sm border border-[#8E0E75] bg-white text-[#8E0E75] hover:bg-[#8E0E75] hover:text-white font-bold text-[11px] uppercase tracking-wider transition-all cursor-pointer"
+              className="px-3 py-1 rounded-lg border border-[#8E0E75] bg-white text-[#8E0E75] hover:bg-[#8E0E75] hover:text-white font-bold text-[11px] uppercase tracking-wider transition-all cursor-pointer"
             >
               Ayer
             </button>

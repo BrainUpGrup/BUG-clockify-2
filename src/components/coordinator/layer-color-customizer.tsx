@@ -83,10 +83,10 @@ export function LayerColorCustomizer() {
   return (
     <div className="w-full space-y-6">
       {/* Cabecera del Personalizador */}
-      <div className="w-full rounded-sm border border-[#D8CFF0] bg-white p-6 shadow-sm">
+      <div className="w-full rounded-2xl border-2 border-[#D0C4EB] bg-white p-6 shadow-md shadow-[#191654]/6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#EAE4F5] gap-3">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-sm bg-[#8E0E75] text-white shadow-xs">
+            <div className="p-2.5 rounded-xl bg-[#8E0E75] text-white shadow-xs">
               <Palette className="h-5 w-5" />
             </div>
             <div>
@@ -104,7 +104,7 @@ export function LayerColorCustomizer() {
               <button
                 type="button"
                 onClick={resetToDefaults}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
                 title="Restablecer a la paleta oficial de La Abuela"
               >
                 <RotateCcw className="h-3.5 w-3.5 text-slate-500" />
@@ -115,7 +115,7 @@ export function LayerColorCustomizer() {
             <button
               type="button"
               onClick={handleManualSave}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-sm bg-[#8E0E75] hover:bg-[#700B5C] text-white text-xs font-extrabold uppercase tracking-wider shadow-sm transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#8E0E75] hover:bg-[#700B5C] text-white text-xs font-extrabold uppercase tracking-wider shadow-sm transition-all cursor-pointer"
             >
               {showSavedFeedback ? (
                 <>
@@ -145,7 +145,7 @@ export function LayerColorCustomizer() {
                   key={preset.id}
                   type="button"
                   onClick={() => applyPreset(preset.id)}
-                  className={`text-left p-3 rounded-sm border transition-all cursor-pointer ${
+                  className={`text-left p-3 rounded-xl border transition-all cursor-pointer ${
                     isSelected
                       ? 'border-[#8E0E75] ring-2 ring-[#8E0E75]/20 bg-[#F8F6FC]'
                       : 'border-[#D8CFF0] bg-white hover:border-[#8E0E75]/50'
@@ -178,7 +178,7 @@ export function LayerColorCustomizer() {
         <div className="lg:col-span-7 space-y-4">
           
           {/* Selector de Capa a Modificar */}
-          <div className="bg-white border border-[#D8CFF0] p-4 rounded-sm shadow-xs">
+          <div className="bg-white border border-[#D8CFF0] p-4 rounded-2xl shadow-xs">
             <span className="block text-xs font-extrabold uppercase tracking-wider text-[#292929] mb-3">
               1. Selecciona la Capa que Deseas Personalizar:
             </span>
@@ -190,7 +190,7 @@ export function LayerColorCustomizer() {
                     key={def.key}
                     type="button"
                     onClick={() => setSelectedLayer(def.key)}
-                    className={`flex items-center justify-between p-3 rounded-sm border text-left transition-all cursor-pointer ${
+                    className={`flex items-center justify-between p-3 rounded-xl border text-left transition-all cursor-pointer ${
                       isCurrent
                         ? 'bg-[#8E0E75] text-white font-extrabold border-[#8E0E75] shadow-xs'
                         : 'bg-[#F8F6FC] hover:bg-white text-[#292929] border-[#D8CFF0]'
@@ -203,7 +203,7 @@ export function LayerColorCustomizer() {
                       </span>
                     </div>
                     <div
-                      className="h-6 w-6 rounded-sm border border-black/20 shrink-0 shadow-xs"
+                      className="h-6 w-6 rounded-lg border border-black/20 shrink-0 shadow-xs"
                       style={{ backgroundColor: layers[def.key] }}
                     />
                   </button>
@@ -213,7 +213,7 @@ export function LayerColorCustomizer() {
           </div>
 
           {/* Panel de Ajuste Fino con Ruleta y Sliders RGB */}
-          <div className="bg-white border border-[#D8CFF0] p-5 rounded-sm shadow-xs space-y-4">
+          <div className="bg-white border border-[#D8CFF0] p-5 rounded-2xl shadow-xs space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-[#EAE4F5]">
               <div className="flex items-center gap-2">
                 <Sliders className="h-4 w-4 text-[#8E0E75]" />
@@ -221,7 +221,7 @@ export function LayerColorCustomizer() {
                   2. Ajuste de Color para: {currentDef.name}
                 </span>
               </div>
-              <span className="text-[11px] font-mono font-bold text-[#8E0E75] bg-[#F8F6FC] px-2 py-0.5 rounded-sm border border-[#D8CFF0]">
+              <span className="text-[11px] font-mono font-bold text-[#8E0E75] bg-[#F8F6FC] px-2.5 py-0.5 rounded-md border border-[#D8CFF0]">
                 {currentHex}
               </span>
             </div>
@@ -231,14 +231,14 @@ export function LayerColorCustomizer() {
             </p>
 
             {/* Ruleta de Color Nativa y Cuadro Hex */}
-            <div className="flex flex-col sm:flex-row items-center gap-4 bg-[#F8F6FC] p-3.5 rounded-sm border border-[#D8CFF0]">
+            <div className="flex flex-col sm:flex-row items-center gap-4 bg-[#F8F6FC] p-3.5 rounded-xl border border-[#D8CFF0]">
               <div className="flex items-center gap-3">
                 <div className="relative">
                   <input
                     type="color"
                     value={currentHex}
                     onChange={(e) => setLayerColor(selectedLayer, e.target.value)}
-                    className="h-14 w-14 rounded-sm cursor-pointer border-2 border-white shadow-xs p-0 bg-transparent"
+                    className="h-14 w-14 rounded-xl cursor-pointer border-2 border-white shadow-xs p-0 bg-transparent"
                     title="Haz clic para abrir la ruleta de color"
                   />
                 </div>
@@ -262,7 +262,7 @@ export function LayerColorCustomizer() {
                       setLayerColor(selectedLayer, val);
                     }
                   }}
-                  className="w-24 px-2 py-1 text-center font-mono text-xs font-extrabold rounded-sm border border-[#D8CFF0] bg-white text-[#292929] uppercase focus:border-[#8E0E75] outline-none"
+                  className="w-24 px-2.5 py-1 text-center font-mono text-xs font-extrabold rounded-lg border border-[#D8CFF0] bg-white text-[#292929] uppercase focus:border-[#8E0E75] outline-none"
                 />
               </div>
             </div>
@@ -288,7 +288,7 @@ export function LayerColorCustomizer() {
                   max="255"
                   value={currentRgb.r}
                   onChange={(e) => handleRgbChange('r', parseInt(e.target.value, 10))}
-                  className="w-full accent-red-600 cursor-pointer h-2 bg-slate-200 rounded-sm"
+                  className="w-full accent-red-600 cursor-pointer h-2 bg-slate-200 rounded-lg"
                 />
               </div>
 
@@ -307,7 +307,7 @@ export function LayerColorCustomizer() {
                   max="255"
                   value={currentRgb.g}
                   onChange={(e) => handleRgbChange('g', parseInt(e.target.value, 10))}
-                  className="w-full accent-emerald-600 cursor-pointer h-2 bg-slate-200 rounded-sm"
+                  className="w-full accent-emerald-600 cursor-pointer h-2 bg-slate-200 rounded-lg"
                 />
               </div>
 
@@ -326,7 +326,7 @@ export function LayerColorCustomizer() {
                   max="255"
                   value={currentRgb.b}
                   onChange={(e) => handleRgbChange('b', parseInt(e.target.value, 10))}
-                  className="w-full accent-blue-600 cursor-pointer h-2 bg-slate-200 rounded-sm"
+                  className="w-full accent-blue-600 cursor-pointer h-2 bg-slate-200 rounded-lg"
                 />
               </div>
             </div>
@@ -337,7 +337,7 @@ export function LayerColorCustomizer() {
 
         {/* Columna Derecha: Maqueta Interactiva de Vista Previa en Vivo */}
         <div className="lg:col-span-5 space-y-4">
-          <div className="bg-white border border-[#D8CFF0] p-4 rounded-sm shadow-xs">
+          <div className="bg-white border border-[#D8CFF0] p-4 rounded-2xl shadow-xs">
             <div className="flex items-center gap-2 pb-2.5 border-b border-[#EAE4F5] mb-3">
               <Eye className="h-4 w-4 text-[#8E0E75]" />
               <span className="text-xs font-extrabold uppercase tracking-wider text-[#292929]">
@@ -347,7 +347,7 @@ export function LayerColorCustomizer() {
 
             {/* Simulación de Monitor con Capas Aplicadas */}
             <div
-              className="w-full rounded-sm border border-slate-300 shadow-md overflow-hidden transition-colors duration-300 p-3 space-y-3"
+              className="w-full rounded-lg border border-slate-300 shadow-md overflow-hidden transition-colors duration-300 p-3 space-y-3"
               style={{ backgroundColor: layers.bg }}
             >
               {/* Capa 2: Cabecera Simulada */}
@@ -454,7 +454,7 @@ export function LayerColorCustomizer() {
               </div>
             </div>
 
-            <div className="mt-3 p-2.5 rounded-sm bg-[#F8F6FC] border border-[#D8CFF0] text-[11px] text-[#4A4A4A] space-y-1">
+            <div className="mt-3 p-2.5 rounded-lg bg-[#F8F6FC] border border-[#D8CFF0] text-[11px] text-[#4A4A4A] space-y-1">
               <span className="font-bold text-[#292929] block">Guía de Capas para la Agencia:</span>
               <ul className="list-disc list-inside space-y-0.5 text-[11px]">
                 <li><strong>Capa 1:</strong> El fondo general del Hub y de las páginas.</li>

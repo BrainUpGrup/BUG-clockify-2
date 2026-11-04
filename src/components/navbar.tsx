@@ -21,11 +21,19 @@ import {
   Pin,
   ChevronDown,
   HelpCircle,
-  Keyboard
+  Keyboard,
+  Image,
+  Users,
+  Receipt,
+  BookOpen,
+  Share2,
+  Camera,
+  ChevronRight
 } from 'lucide-react';
 import { useTimer, useTimerSeconds } from '@/context/timer-context';
 import { formatSecondsToTimer } from '@/lib/utils';
-import { canUserAccessHubApp } from '@/lib/hub-apps';
+import { canUserAccessHubApp, BRAIN_UP_HUB_APPS, HubApp } from '@/lib/hub-apps';
+import { UserAvatar } from '@/components/ui/user-avatar';
 
 function NavbarTimerDisplay({ isTimerRunning }: { isTimerRunning: boolean }) {
   const seconds = useTimerSeconds();
@@ -101,15 +109,122 @@ export function Navbar() {
   const logoHref = '/hub';
 
 
-  // Lista unificada de enlaces de navegación con control de permisos
-  const navLinks = [
-    { href: '/hub', label: 'HUB Apps', icon: LayoutGrid, isActive: isHubActive, visible: true },
-    { href: isCoordinator ? '/dashboard/coordinator' : '/dashboard/employee', label: 'Clockify', icon: Clock, isActive: isClockifyActive, visible: canAccessClockify },
-    { href: '/apps/taskflow', label: 'TaskFlow', icon: CheckSquare, isActive: isTaskFlowActive, visible: canAccessTaskflow },
-    { href: '/apps/chat', label: 'Chat', icon: MessageSquare, isActive: isChatActive, visible: canAccessChat },
-    { href: '/apps/subtitulos', label: 'Subtítulos', icon: Video, isActive: isSubtitulosActive, visible: canAccessSubtitulos },
-    { href: '/dashboard/admin', label: 'Admin', icon: ShieldCheck, isActive: isAdminActive, visible: isAdmin },
-  ].filter((l) => l.visible);
+  // Gestión de Favoritas para el layout modular de la barra superior (vacío por defecto hasta que el usuario elija)
+  const [favoriteAppIds, setFavoriteAppIds] = React.useState<string[]>([]);
+
+  React.useEffect(() => {
+    const updateFavorites = () => {
+      try {
+        const stored = localStorage.getItem('bug_hub_favorite_apps');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            setFavoriteAppIds(parsed);
+            return;
+          }
+        }
+        setFavoriteAppIds([]);
+      } catch (e) {
+        console.warn('Error loading favorite apps in navbar:', e);
+        setFavoriteAppIds([]);
+      }
+    };
+
+    updateFavorites();
+    window.addEventListener('bug_hub_favorites_updated', updateFavorites);
+    window.addEventListener('storage', updateFavorites);
+    return () => {
+      window.removeEventListener('bug_hub_favorites_updated', updateFavorites);
+      window.removeEventListener('storage', updateFavorites);
+    };
+  }, []);
+
+  const getAppNavIcon = (iconName: HubApp['iconName']) => {
+    switch (iconName) {
+      case 'Clock': return Clock;
+      case 'CheckSquare': return CheckSquare;
+      case 'MessageSquare': return MessageSquare;
+      case 'Video': return Video;
+      case 'Image': return Image;
+      case 'Users': return Users;
+      case 'Receipt': return Receipt;
+      case 'BookOpen': return BookOpen;
+      case 'Share2': return Share2;
+      default: return CheckSquare;
+    }
+  };
+
+  const getAppNavLabel = (app: HubApp) => {
+    if (app.id === 'clockify') return 'Tiempo';
+    if (app.id === 'taskflow') return 'Agenda';
+    if (app.id === 'subtitulos') return 'Subtítulos';
+    if (app.id === 'chat') return 'Chat';
+    return app.name.replace(/^Brain Up\s+/, '');
+  };
+
+  // Lista modular y dinámica de enlaces de navegación según las favoritas del usuario
+  const navLinks = React.useMemo(() => {
+    const links = [
+      { href: '/hub', label: 'HUB Apps', icon: LayoutGrid, isActive: isHubActive, visible: true },
+    ];
+
+    favoriteAppIds.forEach((appId) => {
+      const app = BRAIN_UP_HUB_APPS.find((a) => a.id === appId);
+      if (!app) return;
+
+      const hasAccess = isAdmin || isCoordinator || canUserAccessHubApp(user, app.id);
+      if (!hasAccess) return;
+
+      let href = app.route;
+      let isActive = false;
+
+      if (app.id === 'clockify') {
+        href = isCoordinator ? '/dashboard/coordinator' : '/dashboard/employee';
+        isActive = isClockifyActive;
+      } else if (app.id === 'taskflow') {
+        isActive = isTaskFlowActive;
+      } else if (app.id === 'chat') {
+        isActive = isChatActive;
+      } else if (app.id === 'subtitulos') {
+        isActive = isSubtitulosActive;
+      } else {
+        const cleanRoute = app.route.split('?')[0];
+        isActive = pathname === cleanRoute || pathname.startsWith(cleanRoute);
+      }
+
+      links.push({
+        href,
+        label: getAppNavLabel(app),
+        icon: getAppNavIcon(app.iconName),
+        isActive,
+        visible: true,
+      });
+    });
+
+    if (isAdmin) {
+      links.push({
+        href: '/dashboard/admin',
+        label: 'Admin',
+        icon: ShieldCheck,
+        isActive: isAdminActive,
+        visible: true,
+      });
+    }
+
+    return links;
+  }, [
+    favoriteAppIds,
+    user,
+    isAdmin,
+    isCoordinator,
+    isHubActive,
+    isClockifyActive,
+    isTaskFlowActive,
+    isChatActive,
+    isSubtitulosActive,
+    isAdminActive,
+    pathname,
+  ]);
 
   const desktopNavRef = React.useRef<HTMLElement>(null);
   const mobileNavRef = React.useRef<HTMLDivElement>(null);
@@ -141,14 +256,14 @@ export function Navbar() {
     };
   }, []);
 
-  const activeLink = navLinks.find((l) => l.isActive) || navLinks[0];
+  const activeLink = navLinks.find((l) => l.isActive);
   const targetHref = hoveredHref || activeLink?.href;
 
   // Actualizar posición de la pastilla morada en escritorio
   React.useEffect(() => {
     const updateDesktopPill = () => {
       if (!desktopNavRef.current) return;
-      const targetEl = desktopNavRef.current.querySelector(`[data-nav-href="${targetHref}"]`) as HTMLElement;
+      const targetEl = targetHref ? (desktopNavRef.current.querySelector(`[data-nav-href="${targetHref}"]`) as HTMLElement) : null;
       if (targetEl) {
         setDesktopPill({
           left: targetEl.offsetLeft,
@@ -159,24 +274,14 @@ export function Navbar() {
           setHasPositionedDesktop(true);
         });
       } else {
-        const activeEl = desktopNavRef.current.querySelector(`[data-nav-href="${activeLink?.href}"]`) as HTMLElement;
-        if (activeEl) {
-          setDesktopPill({
-            left: activeEl.offsetLeft,
-            width: activeEl.offsetWidth,
-            opacity: 1,
-          });
-          requestAnimationFrame(() => {
-            setHasPositionedDesktop(true);
-          });
-        }
+        setDesktopPill((prev) => ({ ...prev, opacity: 0 }));
       }
     };
 
     updateDesktopPill();
     window.addEventListener('resize', updateDesktopPill);
     return () => window.removeEventListener('resize', updateDesktopPill);
-  }, [targetHref, activeLink?.href, pathname, permVersion, navLinks.length]);
+  }, [targetHref, activeLink?.href, pathname, permVersion, navLinks.length, favoriteAppIds]);
 
   // Actualizar posición de la pastilla morada en móvil
   React.useEffect(() => {
@@ -202,36 +307,27 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-[#EAE4F5] bg-white shadow-xs transition-colors duration-200">
-      <div className="w-full flex h-20 items-center justify-between px-4 sm:px-6 lg:px-8 gap-3 sm:gap-5">
+      <div className="w-full flex h-20 items-center justify-between px-3 sm:px-6 lg:px-8 gap-2.5 sm:gap-4">
         
-        {/* Logo Corporativo de Brain Up Grup ("La Abuela") - Tamaño Visual Ampliado */}
+        {/* Logo Corporativo de Brain Up Grup ("La Abuela") - Solo Logo para Maximizar Espacio */}
         <Link
           href={logoHref}
-          className="flex items-center gap-3 shrink-0 group select-none"
-          title="Ir al HUB de Aplicaciones"
+          className="flex items-center shrink-0 group select-none"
+          title="Ir al HUB de Aplicaciones Brain Up"
+          aria-label="Ir al HUB de Aplicaciones Brain Up"
         >
-          <div className="relative h-11 w-11 sm:h-12 sm:w-12 shrink-0 overflow-hidden rounded-full ring-2 ring-[#8E0E75]/30 group-hover:ring-[#8E0E75] transition-all bg-[#F8F6FC] shadow-2xs">
+          <div className="relative h-12 w-12 sm:h-13 sm:w-13 shrink-0 rounded-full ring-2 ring-[#8E0E75]/25 group-hover:ring-[#8E0E75] transition-all bg-[#F8F6FC] shadow-2xs flex items-center justify-center p-2 sm:p-2.5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/logo.png"
-              alt="Brain Up Grup - La Abuela"
-              className="h-full w-full object-contain p-0.5 group-hover:scale-105 transition-transform"
+              src="/isotipo.svg"
+              alt="Brain Up Grup"
+              className="h-full w-full object-contain group-hover:scale-105 transition-transform"
             />
-          </div>
-          {/* BRAIN arriba y UP justo abajo con tipografía destacada */}
-          <div className="flex flex-col justify-center leading-none">
-            <span className="font-black text-[15px] sm:text-[17px] tracking-tight text-[#292929] uppercase leading-none">
-              BRAIN
-            </span>
-            <span className="font-black text-[15px] sm:text-[17px] tracking-tight text-[#8E0E75] uppercase leading-none mt-0.5">
-              UP
-            </span>
           </div>
         </Link>
 
-        {/* Widget Central: Empresa Fijada y Temporizador. Se oculta en la propia pantalla de
-            imputación (que ya tiene su selector y botón) para no duplicar controles. */}
-        <div className={`${isEmployeeActive ? 'hidden' : 'hidden xl:flex'} items-center gap-2.5 px-3 py-1.5 rounded-lg bg-[#F8F6FC] border-2 border-[#D8CFF0] shadow-xs transition-all min-w-0 ml-2 mr-auto`}>
+        {/* Widget Central: Empresa Fijada y Temporizador (Persistente y visible en todas las páginas) */}
+        <div className="hidden lg:flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-[#FAF8FD] border-2 border-[#D8CFF0] shadow-xs transition-all min-w-0 ml-1 sm:ml-2 mr-auto">
           {/* Logo / Hueco de la empresa con salto a Clockify */}
           <Link
             href="/dashboard/employee"
@@ -251,7 +347,7 @@ export function Navbar() {
                 Cliente en curso
               </span>
               <span
-                className="text-sm font-bold text-[#191654] truncate max-w-[110px] 2xl:max-w-[180px] leading-tight group-hover:text-[#8E0E75] transition-colors"
+                className="text-sm font-bold text-[#191654] truncate max-w-[130px] 2xl:max-w-[190px] leading-tight group-hover:text-[#8E0E75] transition-colors"
                 title={activeCompany?.name || 'Elegir cliente'}
               >
                 {activeCompany?.name || 'Elegir cliente'}
@@ -339,7 +435,7 @@ export function Navbar() {
           ref={desktopNavRef}
           onMouseLeave={() => setHoveredHref(null)}
           aria-label="Aplicaciones"
-          className="hidden md:flex items-center gap-1 bg-[#F8F6FC] p-1.5 rounded-xl border-2 border-[#D8CFF0] shrink-0 ml-auto shadow-xs relative select-none"
+          className="hidden md:flex items-center gap-1 bg-[#F8F6FC] p-1.5 rounded-xl border-2 border-[#D8CFF0] shrink-0 ml-auto shadow-xs relative select-none transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)]"
         >
           {/* Pastilla morada que se desliza suavemente */}
           <div
@@ -355,9 +451,31 @@ export function Navbar() {
             }}
           />
 
-          {navLinks.map((link) => {
+          {navLinks.map((link, index) => {
             const isTargeted = targetHref === link.href;
             const Icon = link.icon;
+            const isHub = link.href === '/hub';
+            const totalFavs = favoriteAppIds.length;
+
+            // Modo adaptativo compacto para evitar desbordar el layout con muchas favoritas:
+            // 1. HUB Apps: siempre muestra texto.
+            // 2. Enlace Activo: siempre muestra texto para orientar al usuario en qué aplicación se encuentra.
+            // 3. Si hay más de 3 favoritas (zona extendida):
+            //    - Las primeras 2 favoritas (index 1 y 2) muestran texto en pantallas anchas (xl/2xl).
+            //    - De la 3ª favorita en adelante ("pasada la zona x"), SOLO SE MUESTRA EL LOGO (icono).
+            const isIconOnly = !isHub && !link.isActive && (
+              totalFavs > 3 ? index > 2 : false
+            );
+
+            // Visibilidad responsive para el texto
+            let textVisibilityClass = 'hidden lg:inline';
+            if (isHub || link.isActive) {
+              textVisibilityClass = 'hidden sm:inline';
+            } else if (totalFavs > 5) {
+              textVisibilityClass = 'hidden 2xl:inline';
+            } else {
+              textVisibilityClass = 'hidden xl:inline';
+            }
 
             return (
               <Link
@@ -368,14 +486,27 @@ export function Navbar() {
                 onMouseEnter={() => setHoveredHref(link.href)}
                 aria-current={link.isActive ? 'page' : undefined}
                 title={link.label}
-                className={`relative z-10 whitespace-nowrap flex items-center gap-2 px-3 lg:px-3.5 py-2 rounded-lg text-sm transition-colors duration-200 cursor-pointer ${
+                aria-label={link.label}
+                className={`animate-nav-item relative z-10 whitespace-nowrap flex items-center justify-center transition-all duration-200 cursor-pointer rounded-lg text-sm ${
+                  isIconOnly
+                    ? 'px-2.5 py-2'
+                    : 'gap-2 px-3 lg:px-3.5 py-2'
+                } ${
                   isTargeted
                     ? 'text-white font-bold'
                     : 'text-[#4A4A4A] font-semibold hover:text-[#8E0E75]'
                 }`}
               >
-                <Icon className={`h-4.5 w-4.5 shrink-0 transition-transform duration-200 ${isTargeted ? 'text-white' : 'text-[#8E0E75]'}`} />
-                <span className="hidden lg:inline">{link.label}</span>
+                <Icon
+                  className={`h-4.5 w-4.5 shrink-0 transition-transform duration-200 ${
+                    isTargeted ? 'text-white' : 'text-[#8E0E75]'
+                  }`}
+                />
+                {!isIconOnly && (
+                  <span className={textVisibilityClass}>
+                    {link.label}
+                  </span>
+                )}
               </Link>
             );
           })}
@@ -396,35 +527,53 @@ export function Navbar() {
           <Keyboard className="h-5 w-5 text-[#8E0E75] group-hover:text-[#191654] transition-colors" />
         </button>
 
-        {/* Perfil del Usuario Compacto & Reformulado (No satura el layout) */}
-        <div ref={profileMenuRef} className="relative flex items-center gap-2 shrink-0 ml-1">
+        {/* Perfil del Usuario: Clic directo en la foto o inicial navega a la subpágina /profile */}
+        <div ref={profileMenuRef} className="relative flex items-center gap-1.5 shrink-0 ml-1">
+          <Link
+            href="/profile"
+            className="flex items-center rounded-full ring-2 ring-transparent hover:ring-[#8E0E75] hover:scale-105 active:scale-95 transition-all cursor-pointer"
+            title={`${user?.full_name || 'Usuario'} · Clic para abrir mi perfil y cambiar foto`}
+            aria-label="Ir a mi perfil y cambiar foto"
+          >
+            <UserAvatar
+              src={user?.avatar_url}
+              name={user?.full_name}
+              size="md"
+              showOnline={true}
+              isOnline={true}
+              className="group-hover:scale-105 transition-transform"
+            />
+          </Link>
+
+          {/* Flecha discreta para abrir menú desplegable con opciones rápidas */}
           <button
             type="button"
             onClick={() => setShowProfileMenu(!showProfileMenu)}
             aria-haspopup="menu"
             aria-expanded={showProfileMenu}
-            aria-label={`Menú de ${user?.full_name || 'usuario'}: perfil y cerrar sesión`}
-            className="flex items-center gap-2 p-1.5 rounded-full hover:bg-[#F8F6FC] border-2 border-transparent hover:border-[#D8CFF0] transition-all cursor-pointer group"
-            title={`${user?.full_name || 'Usuario'} · Perfil y cerrar sesión`}
+            aria-label="Opciones de perfil y sesión"
+            className="p-1 rounded-full hover:bg-[#F8F6FC] text-[#4A4A4A] hover:text-[#8E0E75] transition-colors cursor-pointer"
+            title="Opciones de usuario"
           >
-            <div className="relative">
-              <div className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-full bg-gradient-to-tr from-[#191654] via-[#700B5C] to-[#8E0E75] text-white font-black text-xs sm:text-sm shadow-sm group-hover:scale-105 transition-transform ring-2 ring-[#8E0E75]/25">
-                {userInitials}
-              </div>
-              <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-white" />
-            </div>
-            <ChevronDown className={`h-4 w-4 text-[#4A4A4A] group-hover:text-[#8E0E75] transition-transform ${showProfileMenu ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`h-4 w-4 transition-transform ${showProfileMenu ? 'rotate-180' : ''}`} />
           </button>
 
           {/* Menú Desplegable Compacto del Perfil */}
           {showProfileMenu && (
             <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-xl border-2 border-[#D8CFF0] shadow-xl p-4 z-50 animate-in fade-in zoom-in-95 duration-150">
-              <div className="flex items-center gap-3 pb-3 border-b border-[#EAE4F5]">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-tr from-[#191654] via-[#700B5C] to-[#8E0E75] text-white font-black text-sm shadow-md shrink-0">
-                  {userInitials}
-                </div>
-                <div className="min-w-0">
-                  <h4 className="text-sm font-black text-[#292929] truncate">
+              <Link
+                href="/profile"
+                onClick={() => setShowProfileMenu(false)}
+                className="flex items-center gap-3 pb-3 border-b border-[#EAE4F5] hover:bg-[#FAF8FD] p-2 rounded-xl transition-all cursor-pointer group/prof"
+                title="Abrir página de perfil y cambiar fotografía"
+              >
+                <UserAvatar
+                  src={user?.avatar_url}
+                  name={user?.full_name}
+                  size="lg"
+                />
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-sm font-black text-[#292929] truncate group-hover/prof:text-[#8E0E75] transition-colors">
                     {user?.full_name || 'Usuario'}
                   </h4>
                   <p className="text-xs text-[#4A4A4A] truncate font-medium">
@@ -434,9 +583,21 @@ export function Navbar() {
                     {isAdmin ? 'Super Administrador' : isCoordinator ? 'Coordinadora & Empleada' : 'Empleado / Trabajador'}
                   </span>
                 </div>
-              </div>
+              </Link>
 
               <div className="pt-3 space-y-2">
+                <Link
+                  href="/profile"
+                  onClick={() => setShowProfileMenu(false)}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-[#FAF8FD] text-[#191654] hover:text-[#8E0E75] text-xs font-bold transition-colors cursor-pointer border border-transparent hover:border-[#D8CFF0]"
+                >
+                  <div className="flex items-center gap-2">
+                    <Camera className="h-4 w-4 text-[#8E0E75]" />
+                    <span>Mi Perfil y Cambiar Foto</span>
+                  </div>
+                  <ChevronRight className="h-3.5 w-3.5 text-[#8E0E75]" />
+                </Link>
+
                 <button
                   type="button"
                   onClick={() => {
@@ -469,10 +630,10 @@ export function Navbar() {
 
       </div>
 
-      {/* Navegación móvil para pantallas estrechas con botones ampliados y pastilla deslizante */}
+      {/* Navegación móvil para pantallas estrechas con soporte de scroll horizontal sin rotura */}
       <div 
         ref={mobileNavRef}
-        className="flex md:hidden items-center justify-around bg-[#F8F6FC] border-t border-[#D8CFF0] p-2 relative select-none"
+        className="flex md:hidden items-center justify-start sm:justify-around bg-[#F8F6FC] border-t border-[#D8CFF0] p-2 relative select-none overflow-x-auto no-scrollbar gap-1"
       >
         {/* Pastilla morada deslizante móvil */}
         <div
@@ -498,8 +659,9 @@ export function Navbar() {
               href={link.href}
               data-nav-href={link.href}
               aria-label={link.label}
+              title={link.label}
               aria-current={isCurrentActive ? 'page' : undefined}
-              className={`relative z-10 whitespace-nowrap flex items-center gap-1.5 px-3.5 py-2 rounded-md text-sm font-semibold transition-colors duration-200 ${
+              className={`relative z-10 whitespace-nowrap flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-semibold transition-colors duration-200 shrink-0 ${
                 isCurrentActive
                   ? 'text-white'
                   : 'text-[#4A4A4A]'

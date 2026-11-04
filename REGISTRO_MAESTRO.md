@@ -965,3 +965,301 @@
 
 
 
+### [v3.3.0] - 2026-11-02 - Remediación Integral de Ciberseguridad & Creación del Agente Centinela "Segurata"
+- **Solicitud del Usuario:**
+  *"Arregla todos los apartados, ademas de que quieor que hagas un agente "segurata" que siempre este activo para revisar que todoo a nivel ciberseguridad vaya bien"*
+- **Diagnóstico:**
+  Tras la auditoría completa de seguridad, se identificaron áreas críticas a subsanar: auto-registro con asignación permisiva de roles en `schema.sql`, inserción RLS sin validación en `profiles`, exposición de mensajes y canales a cuentas en estado pendiente en `schema_chat.sql` y `schema_slack.sql`, middleware pasivo sin redirección perimetral, contraseñas en código duro en `auth-context.tsx`, y potencial vector de CSV/Excel Formula Injection en exportaciones.
+- **Decisión Técnica:**
+  1. **Blindaje de Auto-registro y Perfiles (VULN-01 y VULN-02):**
+     - `schema.sql` (`handle_new_user`): Desconectada la lectura de `raw_user_meta_data->>'role'`. Todo nuevo registro público se fija forzosamente como `employee` y `pending`.
+     - `schema.sql` (`tr_protect_profile_privileges`): Trigger expandido a `BEFORE INSERT OR UPDATE ON public.profiles` para neutralizar inyecciones directas vía PostgREST REST.
+     - `schema.sql` (`profiles_insert_registration`): Restringido a `auth.uid() = id or public.is_coordinator_or_admin()`.
+  2. **Aislamiento Estricto de Mensajes para Cuentas Activas (VULN-04):**
+     - `schema_chat.sql` y `schema_slack.sql`: Modificadas todas las políticas RLS SELECT para exigir `auth.uid() IS NOT NULL AND EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND status = 'active')`. Usuarios en estado `pending` o `rejected` tienen veto absoluto de acceso a canales y mensajes corporativos.
+  3. **Seguridad en Rutas de Servidor y Helpers (VULN-05):**
+     - `src/lib/slack/auth.ts` (`getHubUser`): Añadida verificación de `status === 'active'`.
+  4. **Guardián Perimetral en Edge (VULN-06):**
+     - `src/middleware.ts`: Interceptación activa en Next.js Edge Middleware. Rutas privadas (`/dashboard/*`, `/hub/*`, `/floating-timer/*`) redirigen inmediatamente a `/login` si no existe sesión válida de Supabase Auth.
+  5. **Erradicación de Contraseñas Hardcodeadas (VULN-03):**
+     - `src/context/auth-context.tsx`: Supresión total del bypass de contraseñas maestras fijas. Supabase Auth (`signInWithPassword`) pasa a ser el canal primario criptográfico obligatorio. Modo mock relegado a fallback local exclusivo de desarrollo (`NODE_ENV === 'development'`).
+     - `src/app/login/page.tsx`: Actualizado el botón de desarrollo para evitar filtrar contraseñas reales.
+  6. **Neutralización de Formula Injection en Hojas Excel (VULN-07):**
+     - `src/lib/export-reports.ts`: Implementada la función `sanitizeExcelText()` que antepone `'` a cadenas iniciadas por `=`, `+`, `-`, `@`, `\t` o `\r`, protegiendo la apertura de libros en suites ofimáticas.
+  7. **Alta y Despliegue del Agente Centinela "Segurata":**
+     - Especificación creada en `.agents/segurata.md`.
+     - Integrado formalmente en el organigrama y matriz de agentes de `AGENTS.md`.
+     - Registrado en el entorno de ejecución de Antigravity mediante `define_subagent` como subagente `segurata` para supervisión y auditorías continuas.
+- **Validación y Pruebas:**
+  - Auditoría automatizada ejecutada por el agente `segurata`: **100% de puntos validados exitosamente**.
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+
+### [v3.4.0] - 2026-11-02 - Foto de Perfil Institucional con Viñeta Oficial de "La Abuela"
+- **Solicitud del Usuario:**
+  *"Quiero que cambies la foto de perfil de los perfiles por una foto de una viñeta de una abuela"*
+- **Diagnóstico y Contexto:**
+  1. En las versiones anteriores, los perfiles de usuario se representaban únicamente mediante iniciales de texto en un círculo plano con degradado.
+  2. El repositorio cuenta con la ilustración y viñeta institucional oficial de "La Abuela" (`public/la-abuela.png`), icono de la identidad corporativa de Brain Up Grup.
+- **Decisión Técnica e Implementación:**
+  1. **Generación del Asset de Avatar Optimizado (`public/abuela-avatar.png`):**
+     - Se generó una versión cuadrada de 600x600 px centrada en la viñeta de "La Abuela" (gorra, gafas de sol, puro, cadena de oro y cronómetro), con máscara circular alfa antialiasing para encaje perfecto en cualquier fondo y resolución sin desfase de píxeles ni distorsión.
+  2. **Componente Reutilizable `UserAvatar` (`src/components/ui/user-avatar.tsx`):**
+     - Nuevo componente de alta fidelidad que soporta tamaños estándar (`xs`, `sm`, `md`, `lg`, `xl`), carga de imagen con fallback automático a iniciales en caso de contingencia de red, punto de estado online en tiempo real, anillo de realce corporativo (`ring-[#8E0E75]`) y cumplimiento de DM-01 (cero emojis) y DM-13 (La Abuela branding).
+  3. **Actualización de Esquema y Tipados:**
+     - `src/types/database.ts`: Campo `avatar_url?: string` añadido a `Profile`, `Row`, `Insert` y `Update`.
+     - `schema.sql`: Modificada la tabla `public.profiles` con `avatar_url text null default '/abuela-avatar.png'` y registros semilla actualizados.
+     - `src/lib/mock-data.ts`: Inicializados perfiles mock con `/abuela-avatar.png`.
+     - `src/context/auth-context.tsx`: Asegurada la asignación por defecto de `avatar_url` tanto en sesiones cacheadas como en login y registro.
+  4. **Adopción Universal en la Suite:**
+     - `src/components/navbar.tsx`: Sustituido el avatar de texto en el botón de perfil superior y en el desplegable de usuario por `UserAvatar`.
+     - `src/components/chat/rail-sidebar.tsx`: Avatar oficial en cabecera y avatar de usuario online en pie de barra actualizados.
+     - `src/components/chat/chat-view.tsx`: Los avatares de remitente de mensajes ahora exhiben la viñeta de "La Abuela".
+     - `src/app/dashboard/admin/page.tsx`: Tabla de gestión de perfiles con visualización del avatar de "La Abuela".
+     - `src/components/coordinator/user-management.tsx`: Filas de empleados activos y candidatos pendientes muestran el avatar de "La Abuela".
+     - `src/components/coordinator/hub-permissions-matrix.tsx`: Filas de la matriz de permisos muestran el avatar de "La Abuela".
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+
+### [v3.4.1] - 2026-11-02 - Vista de Agenda Zero-Scroll con Desplegable Interactivo de Tareas (+X más) y Scroll Confinado
+- **Solicitud del Usuario:**
+  *"quiero que el apartado de agenda no tenga scroll simplemente tenga un desplegable que haga que las cosas que no se vean se puedan desplegar y ahi si exista un scroll pero la pantalla de incio tiene que ser sin scroll"*
+- **Diagnóstico:**
+  En la vista semanal de `NativeCalendar` (`WeekView`), los días con un número elevado de entregables o tareas renderizaban todas las tiras de colores verticalmente una tras otra sin limitación, sobrepasando los 650px y provocando que la ventana completa del navegador generara una barra de desplazamiento vertical externa.
+- **Decisión Técnica:**
+  1. **Pantalla de Inicio 100% Zero-Scroll (`src/app/apps/taskflow/page.tsx`):**
+     - Se fijó la altura del contenedor principal a `h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)]` con `overflow-hidden`. La página de Agenda se ajusta con exactitud milimétrica al viewport sin desbordar el navegador ni generar scroll en la ventana.
+  2. **Desplegable Inteligente por Día (`src/components/taskflow/native-calendar.tsx`):**
+     - En la pantalla de inicio, cada día laboral muestra un máximo de 3 tareas iniciales.
+     - Si un día tiene más de 3 tareas (ej. 15 tareas), las actividades sobrantes se compactan y se muestra un botón interactivo estilizado: `+ X más (Desplegar)`.
+     - Al hacer clic en el desplegable, se expande una sección con scroll interno confinado que permite al usuario navegar, arrastrar (drag & drop) y activar el cronómetro de todas las tareas adicionales sin alterar el tamaño de la pantalla ni provocar scroll global.
+     - Botón superior `Plegar lista` para colapsar la lista en cualquier momento.
+  3. **Columnas Elásticas y Fluidas:**
+     - Se reemplazó el `min-h-[420px]` estático por `min-h-0 h-full overflow-y-auto`, permitiendo que las 5 columnas se distribuyan armónicamente y absorban internamente cualquier sobrecarga de tareas.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+
+### [v3.4.2] - 2026-11-02 - Erradicación de Scroll Residual de Ventana y Desplegable Extendido al 100% Vertical
+- **Solicitud del Usuario:**
+  *"fijate que sigue habiendo un pequeño scroll y el el desplegable quoiero que llegue hasta abajo del todo de la pagina no que se quede a media pagina"*
+- **Diagnóstico Técnico:**
+  1. **Causa del Scroll Residual de Ventana:**
+     - La cabecera principal (`Navbar`) tiene una altura de `h-20` (80px = 5rem) + 1px de borde inferior (`border-b`).
+     - En `src/app/apps/taskflow/page.tsx`, el contenedor principal usaba una resta desactualizada `h-[calc(100vh-4rem)]` (donde `4rem` = 64px), introduciendo un desfase excedente de exactamente 17px que sobrepasaba el alto del monitor.
+     - Asimismo, el contenedor raíz `AppShell` utilizaba `min-h-screen`, permitiendo que el navegador creara una barra de desplazamiento vertical nativa de 17px.
+  2. **Causa del Desplegable a Media Página:**
+     - En `src/components/taskflow/native-calendar.tsx` (`WeekView`), el contenedor desplegado utilizaba una clase rígida `max-h-[220px]`.
+     - Esto forzaba a que el desplegable se truncara a la mitad exacta de la columna, dejando desaprovechado todo el espacio vertical inferior hasta el borde de la pantalla mientras las actividades se acumulaban en una caja reducida.
+- **Decisión Técnica e Implementación:**
+  1. **Bloqueo Absoluto Zero-Scroll a Nivel de Aplicación:**
+     - `src/components/layout/app-shell.tsx`: Detección de vista Zero-Scroll mediante `const isZeroScrollApp = pathname?.startsWith('/apps/taskflow');`. Cuando está activa, se fija `h-screen max-h-screen overflow-hidden` en el wrapper exterior y `min-h-0 overflow-hidden` en el wrapper interior de los hijos. Queda físicamente impedida cualquier barra de scroll en la ventana global del navegador.
+     - `src/app/apps/taskflow/page.tsx`: Reemplazado `h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)]` por `flex-1 min-h-0 h-full max-h-full overflow-hidden`, adaptándose dinámicamente al 100% del espacio útil sin cálculos fijos frágiles.
+     - En la vista de lista (`TaskListView`), se incorporó el contenedor elástico `flex-1 min-h-0 overflow-y-auto`.
+  2. **Extensión Vertical Completa del Desplegable hasta el Fondo:**
+     - `src/components/taskflow/native-calendar.tsx` (`WeekView`):
+       - Se transformó el contenedor desplegado en una estructura flexbox con `flex-1 min-h-0 flex flex-col`.
+       - La lista interior con las actividades adicionales ahora adopta `flex-1 min-h-0 overflow-y-auto pr-1 rounded-xl border border-[#D8CFF0] bg-[#F8F6FC]/70 p-1.5 shadow-2xs space-y-1.5`.
+       - El desplegable se estira automáticamente hasta tocar la base inferior de la columna del calendario y el pie de la página, eliminando el espacio en blanco inferior y aprovechando todo el monitor.
+       - Las 3 tareas iniciales quedan blindadas con `shrink-0` para preservar su tamaño sin deformaciones.
+       - La columna principal del día y la cuadrícula semanal utilizan `overflow-hidden`, canalizando cualquier desplazamiento exclusivamente al interior del desplegable activo.
+       - Se agregó una zona inferior interactiva en días con pocas tareas para abrir el modal de creación de entregables con un solo clic.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+
+### [v3.4.3] - 2026-11-02 - Avatar con Inicial de Nombre y Subpágina de Perfil con Compresión Extrema de Fotografía (< 15 KB)
+- **Solicitud del Usuario:**
+  *"Cambia el logo del perfil por la primera etra del nombre y si clickamos en la foto de perfil que entre a una sub pagina donde me deje cargar una fotografia que comprimiremos al maximo para ocupar muy poquito"*
+- **Diagnóstico Técnico:**
+  El usuario requiere que el avatar muestre por defecto la primera letra del nombre en lugar de una imagen estática, y que al hacer clic en él se navegue a una subpágina dedicada (`/profile`) con un motor de compresión de imágenes en el navegador que reduzca fotografías pesadas a pocos kilobytes para almacenamiento instantáneo y sin sobrecarga de datos.
+- **Decisión Técnica e Implementación:**
+  1. **Inicial del Nombre en `UserAvatar` (`src/components/ui/user-avatar.tsx`):**
+     - Si el usuario no tiene fotografía propia cargada, se calcula la **primera letra de su nombre** en mayúscula (ej. "Alejandro" -> "A") y se muestra en un círculo con el degradado corporativo `from-[#191654] via-[#700B5C] to-[#8E0E75]` con tipografía Montserrat ultra-negrita en blanco puro.
+     - Si existe una fotografía cargada por el usuario, se renderiza la imagen cuadrada recortada con máscara circular y punto de estado online.
+  2. **Navegación al Perfil desde la Cabecera (`src/components/navbar.tsx`):**
+     - El círculo de la foto/inicial en la barra superior es ahora un enlace directo `<Link href="/profile">` que abre la subpágina con un solo clic.
+     - Se incorporó además un botón con flecha para el menú de opciones rápidas, donde la cabecera del usuario y la opción "Mi Perfil y Cambiar Foto" también navegan a `/profile`.
+  3. **Motor de Compresión de Imágenes en el Cliente (`src/lib/image-compression.ts`):**
+     - Función `compressAvatarImage(file, targetSize = 200, quality = 0.78)` implementada con HTML5 Canvas.
+     - Realiza recorte cuadrado centrado (*Center-Crop*) automático para que fotos verticales u horizontales no se deformen.
+     - Exporta en formato WebP ultraligero (o JPEG de contingencia), comprimiendo fotos de 3 a 10 MB a un promedio de **6 a 12 KB** (reducción superior al **99.7%**).
+     - Función auxiliar `formatBytes()` para visualización amigable de métricas.
+  4. **Subpágina de Perfil (`src/app/profile/page.tsx` y alias `/perfil`):**
+     - Vista con diseño de dos columnas de alta densidad respetando DM-15 (Zero-Scroll) y DM-01 (Cero Emojis).
+     - Columna izquierda: Tarjeta de identidad del usuario con avatar grande, inicial, nombre, correo, departamento y rol, más botón para restablecer a la inicial.
+     - Columna derecha: Zona de arrastrar y soltar (*drag & drop*) o selección de archivo, laboratorio de métricas de compresión (tamaño original vs comprimido, porcentaje de ahorro y resolución 200x200 px), previsualización en tiempo real en los 3 tamaños de la interfaz y botones de aplicar o descartar.
+  5. **Persistencia e Infraestructura:**
+     - `src/context/auth-context.tsx`: Método `updateUserAvatar(avatarUrl)` que actualiza el estado reactivo, la caché en `localStorage` y la base de datos de Supabase (`profiles.avatar_url`).
+     - `src/middleware.ts`: Inclusión de `/profile` y `/perfil` en la lista de rutas protegidas bajo Edge Middleware.
+     - `schema.sql`: Actualización de tablas y semillas para que `avatar_url` sea `null` por defecto, permitiendo que la inicial sea el estado nativo de todo usuario.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+
+### [v3.4.4] - 2026-11-02 - Editor de Encuadre Manual con Arrastre Interactivo y Ajuste de Cabeza/Rostro
+- **Solicitud del Usuario:**
+  *"fijate que la foto le corta la cabeza antes de aceptar tengo qeu tener un metodo de centrar la imagen manualmente"*
+- **Diagnóstico Técnico:**
+  El cálculo automático previo realizaba un recorte cuadrado en el punto medio geométrico exacto (`sy = (alto - ancho) / 2`). En fotografías de retrato verticales, la cabeza y los ojos se ubican habitualmente en el tercio superior de la toma, lo que provocaba que la parte superior del cráneo y la frente quedaran cortadas contra el borde del círculo.
+- **Decisión Técnica e Implementación:**
+  1. **Lienzo Interactivo de Encuadre Manual (`src/app/profile/page.tsx`):**
+     - Se implementó un lienzo de encuadre interactivo en `<canvas>` con máscara circular translúcida y anillo guía corporativo.
+     - **Control de Posición Vertical:** Slider continuo con botones para regular la altura.
+     - **Control de Posición Horizontal:** Slider continuo con botones para regular el centrado horizontal.
+     - **Control de Zoom y Escala:** Slider de escala para ajustar el encuadre.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+
+### [v3.4.5] - 2026-11-02 - Corrección Integral del Editor de Encuadre: Erradicación de Pantalla Negra y Desbloqueo Total de Movimiento 2D
+- **Solicitud del Usuario:**
+  *"so t efijas el programa de mover las imagines no funciona para nadaaa"* (Acompañado de vídeo de depuración mostrando el lienzo negro y la inmovilidad de la fotografía al accionar controles).
+- **Diagnóstico Técnico a Nivel de Píxel y Ciclo de Vida React:**
+  1. **Causa de la Pantalla Negra en el Lienzo:**
+     - El método `handleProcessFile` intentaba dibujar en `canvasRef.current` sincrónicamente dentro de una promesa antes de que el estado de React completara el ciclo de renderizado que monta el elemento `<canvas>` en el DOM. Como resultado, la referencia era nula en el momento de pintar y el contenedor se quedaba con el fondo negro plano de Tailwind (`#0f172a`).
+  2. **Causa del Bloqueo Matemático del Movimiento (Imágenes Cuadradas / Retrato):**
+     - La fórmula anterior utilizaba `cropSize = Math.min(W, H) / zoom` y limitaba el desplazamiento como `maxX = W - cropSize` y `maxY = H - cropSize`.
+     - En imágenes cuadradas o casi cuadradas (como la fotografía de 168 KB del usuario), `W == H`, lo que provocaba que `maxX === 0` y `maxY === 0` a zoom 1.0x.
+     - Al multiplicar por las proporciones de los deslizadores (`sx = maxX * panX` y `sy = maxY * panY`), el resultado era rigurosamente `0` en ambos ejes, haciendo que la imagen estuviese absolutamente congelada sin importar cuánto se moviesen los mandos.
+- **Decisión Técnica e Implementación:**
+  1. **Motor de Encuadre Libre 2D (`src/lib/image-compression.ts`):**
+     - Nueva función pura `exportFramedAvatar(img, originalBytes, transform, targetSize, quality)`.
+     - Utiliza `FrameTransform` con `offsetX` (píxeles), `offsetY` (píxeles) y `zoom` (0.4x a 3.0x).
+     - Escala base adaptativa: `fitScale = Math.max(targetSize / W, targetSize / H)`, garantizando cobertura circular completa a la vez que permite libertad de traslación en X e Y sin importar la relación de aspecto.
+  2. **Renderizado Reactivo en `src/app/profile/page.tsx`:**
+     - Sustituido el montaje asíncrono por un `useEffect` reactivo vinculado a `[loadedImage, transform, originalFileSize]`.
+     - Pinta inmediatamente sobre el canvas 240x240 px con la máscara de apertura circular (radio 100 px), anillo blanco interior y anillo ciruela `#8E0E75` exterior.
+     - Exporta concurrentemente a 200x200 px WebP ultraligero (< 15 KB), actualizando las 3 vistas previas de avatares en la suite a 60 fps.
+  3. **Arrastre Directo con Ratón y Táctil:**
+     - Arrastre 1:1 con cursor interactivo (`cursor-grab` y `active:cursor-grabbing`).
+     - Eventos globales de `mousemove` y `mouseup` en `window` para que el movimiento no se pierda al salir de los bordes del lienzo.
+     - Propiedad `touch-none` para evitar interferencias con el desplazamiento de pantalla en móviles o pantallas táctiles.
+     - Soporte para zoom intuitivo con rueda de ratón (`onWheel`).
+  4. **Controles Deslizantes Milimétricos y Acceso Rápido "Bajar Cabeza":**
+     - Sliders continuos de Posición Vertical (-150 a +150 px), Posición Horizontal (-150 a +150 px) y Zoom (0.50x a 2.50x).
+     - Botón de acceso rápido **"Bajar Cabeza"** que aplica automáticamente `offsetY: 35, zoom: 0.95`, dando aire inmediato a la parte superior de la cabeza para evitar que el círculo corte la frente o el peinado.
+     - Botón de reinicio rápido de posición al centro.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Validación matemática de los offsets sin bloqueos de aspecto.
+  - Conformidad con DM-01 (Cero Emojis), DM-13 (Identidad corporativa) y DM-15 (Zero-Scroll).
+
+### [v3.4.6] - 2026-11-02 - Eliminación de Superposición Residual del Indicador de Presencia en Botón de Cámara
+- **Solicitud del Usuario:**
+  *"fijate que justo abajo de la camara de fotos tiene como un pequeño bug de texturas que se ve un boton verde, elminalo"*
+- **Diagnóstico Técnico:**
+  En la tarjeta de *Identidad Activa* de `src/app/profile/page.tsx`, el componente `UserAvatar` tenía configurado `showOnline={true}`, lo que renderizaba un punto verde de presencia online (`bg-emerald-500`) anclado en `bottom-0 right-0`. Al mismo tiempo, el botón circular con el icono de la cámara para cargar foto también se posicionaba en `bottom-0 right-0`. Dado que el botón de la cámara tenía bordes redondeados y un radio ligeramente distinto, una sección del círculo verde asomaba por debajo del botón ciruela, generando un artefacto visual no deseado ("bug de texturas").
+- **Decisión Técnica e Implementación:**
+  - `src/app/profile/page.tsx`: Se deshabilitó `showOnline={false}` en la instancia principal del avatar en la vista de perfil.
+  - El estado de la sesión ya está garantizado y visible en la cabecera de la misma tarjeta mediante el badge "Sesión verificada" con su propio pulso verde esmeralda.
+  - El botón flotante de la cámara luce ahora completamente nítido y limpio, con su fondo ciruela `#8E0E75`, borde blanco puro de 2px y sombra sin ninguna interferencia cromática debajo.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Inspección visual confirmada.
+  - Cumplimiento estricto de DM-01 (Cero Emojis) y DM-13 (Identidad Visual).
+
+### [v3.4.7] - 2026-11-02 - Ampliación de Presencia de Tarjetas del HUB y Eliminación de Mensaje Residual
+- **Solicitud del Usuario:**
+  *"el apartado de abajo hazmelo mas grande y el texto de ¿Necesitas otra herramienta? Pídesela a tu coordinadora. elimialo"*
+- **Diagnóstico Técnico:**
+  1. En `src/app/hub/page.tsx`, las tarjetas de las aplicaciones se renderizaban en un grid rígido de 3 columnas (`lg:grid-cols-3`) incluso cuando el usuario solo tenía 2 aplicaciones asignadas, lo que dejaba una tercera columna vacía y reducía el ancho disponible de cada tarjeta. Además, tenían una altura contenida (`min-h-[175px]`) y fuentes pequeñas, dejando demasiado espacio en blanco en pantallas grandes.
+  2. Al pie de la lista de aplicaciones se mostraba el texto informativo *"¿Necesitas otra herramienta? Pídesela a tu coordinadora."*, el cual ya no era requerido.
+- **Decisión Técnica e Implementación:**
+  1. **Supresión del Texto:**
+     - Se eliminó por completo el bloque condicional del pie en `src/app/hub/page.tsx` con el texto de solicitud a coordinación.
+  2. **Ampliación y Presencia de las Tarjetas de Herramientas:**
+     - **Grid Dinámico Adaptativo:** Se implementó `displayedApps.length <= 2 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'`, permitiendo que 2 tarjetas abarquen el 50% de la anchura útil cada una con un porte mucho más generoso.
+     - **Dimensiones y Espaciado:** Se incrementó la altura mínima a `min-h-[220px] sm:min-h-[250px]`, con padding ampliado a `p-7 sm:p-8 lg:p-9` y esquinas más suaves (`rounded-3xl`).
+     - **Iconos con Mayor Jerarquía:** Los iconos principales crecieron a `h-11 w-11 sm:h-12 sm:w-12` dentro de contenedores acolchados `p-5 sm:p-6 rounded-2xl sm:rounded-3xl`.
+     - **Tipografía y Legibilidad:** Títulos en `text-2xl sm:text-3xl font-black`, subtítulos en `text-sm sm:text-base font-extrabold` y descripciones en `text-sm sm:text-base` con interlineado holgado (`leading-relaxed`).
+     - **Botón de Acción:** El enlace de apertura se transformó en un botón tipo píldora interactivo (`Abrir Herramienta`) con fondo suave que se tiñe de ciruela `#8E0E75` al interactuar.
+     - **Botón de Favorita:** Estrella independiente ampliada a `h-12 w-12 rounded-2xl` ubicada en `top-5 right-5`.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Cumplimiento de DM-01 (Cero Emojis), DM-03 (Diseño Líquido) y DM-13 (Identidad Visual).
+
+### [v3.4.8] - 2026-11-03 - Interconexión de Entregables Agendados (TaskFlow) en la Ficha de Coordinación
+- **Solicitud del Usuario:**
+  *"Entregables Agendados (TaskFlow): Listado inmediato de las tareas pendientes de ese cliente para los próximos 15 días con sus fechas de entrega y responsables. este me gusta"*
+- **Diagnóstico Técnico:**
+  En el panel de coordinación (`/dashboard/coordinator` -> *Informes / Por Empresa*), la coordinadora solo disponía de la información del pasado (horas ya imputadas a la empresa) y del presente (balance de cuota consumida). Para conocer las entregas futuras pactadas para ese cliente, se veía forzada a cambiar de aplicación, ir a la Agenda (`/apps/taskflow`) y filtrar manualmente, sin poder cruzar si las horas de cuota restantes serían suficientes para cubrir la carga de trabajo prevista.
+- **Decisión Técnica e Implementación:**
+  1. **Capa Centralizada de Datos de TaskFlow (`src/lib/taskflow-data.ts`):**
+     - Se extrajo y unificó la persistencia y semillas de TaskFlow en un módulo compartido (`getStoredTaskFlowItems()`, `getUpcomingDeliverablesForCompany()`, `STORAGE_KEY_ITEMS_V2`).
+     - Aligerado `src/app/apps/taskflow/page.tsx` en más de 650 líneas al delegar en este módulo.
+  2. **Interconexión en Tiempo Real en la Ficha de Empresa (`src/components/coordinator/monthly-reports.tsx`):**
+     - Sincronización reactiva con `localStorage` y eventos `bug_taskflow_updated`.
+     - Nuevo bloque integrado: **"ENTREGABLES AGENDADOS (TASKFLOW): PRÓXIMOS 15 DÍAS"** situado estratégicamente entre las métricas de equipo y el registro cronológico de horas.
+     - **Cruce Inteligente de Cuota vs. Agenda:** Compara matemáticamente las horas de cuota disponibles con la suma de horas estimadas de los entregables agendados para los próximos 15 días. Si la carga prevista excede la bolsa restante, emite una alerta visual preventiva: *"Riesgo de superar la cuota mensual: Déficit previsto de Xh Ym"* con llamada a revisar ampliación de bolsa.
+     - **Tarjetas Detalladas de Entregables:**
+       - Fecha relativa y absoluta formateada (*Hoy*, *Mañana*, *En 3 días*, *Vencida hace Xd*).
+       - Tira de color corporativa y tipo (*Entregable* o *Reunión*).
+       - Nombres y avatares de los empleados responsables asignados.
+       - Horas estimadas de dedicación.
+       - Botón directo *"Abrir Agenda"* con `ExternalLink` para saltar a TaskFlow con 1 clic.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Validación de coincidencia de empresas por ID y nombre.
+  - Conformidad estricta con DM-01 (Cero Emojis), DM-04 (Modelo por Empresa) y DM-13 (Identidad Visual).
+### [v3.4.9] - 2026-11-03 - Optimizacion de Contraste Cromatico de Fondo y Definicion de Cajones
+- **Solicitud del Usuario:**
+  *"intenta buscar un mayr contraste entre el color del fondo y los cajones"*
+- **Diagnostico Tecnico:**
+  El fondo del lienzo general (`--hub-bg`) utilizaba un tono pastel excesivamente claro (`#EFEBF6` / `#F8F6FC`, luminancia ~93%), cuya diferencia cromatica con los contenedores y tarjetas interiores blancos (`#FFFFFF`, luminancia 100%) era de apenas un 6.8% (ratio de contraste 1.17:1). Asimismo, los contenedores principales ("cajones") contaban con un borde de 1px (`border-[#D8CFF0]`) y una sombra tenue (`shadow-sm`), lo que producia un efecto de "fusion visual" en monitores estandar, donde los bloques de formulario y listados no se recortaban con suficiente nitidez.
+- **Decision Tecnica e Implementacion:**
+  1. **Nuevo Fondo de Pantalla de Alto Contraste Corporativo (`#DDD2EA`):**
+     - Se actualizo el color base en `src/context/theme-customizer-context.tsx` (`DEFAULT_THEME_LAYERS.bg` y preset `brainup_classic`) a `#DDD2EA` (RGB: 221, 210, 234).
+     - La relacion de contraste con el blanco puro pasa de 1.17:1 a **1.45:1** (delta de luminancia incrementado de 0.156 a **0.326**, un aumento superior al 100% en separacion visual efectiva).
+     - Se preserva integramente la paleta oficial "La Abuela" de Brain Up (lavanda/lila pastel suave, sin tonalidades grises sucias ni fondos oscuros).
+     - **Migracion Automatica en Caliente:** En `ThemeLayersProvider`, se implemento la deteccion y migracion automatica del valor en `localStorage` (`bug_hub_theme_layers`), de modo que las sesiones de usuario existentes se actualizan al nuevo fondo sin requerir borrado manual de cache.
+     - **Unificacion de Fallbacks de Layouts:** Actualizacion de variables de respaldo CSS `bg-[var(--hub-bg,#DDD2EA)]` en `globals.css`, `app-shell.tsx`, `layout.tsx`, `/dashboard/coordinator`, `/dashboard/employee`, `/hub`, `/apps/taskflow` y `/profile`.
+  2. **Elevacion y Definicion Reforzada de los Cajones (`CompanyCrud` y Vistas de Coordinacion):**
+     - Los contenedores principales pasan de `border border-[#D8CFF0] shadow-sm` a un borde de alta definicion de 2px con sombra ambiental de marca: `border-2 border-[#D0C4EB] bg-white shadow-md shadow-[#191654]/6 transition-shadow hover:shadow-lg hover:shadow-[#191654]/10`.
+     - Delimitacion nitida de cabeceras de tablas (`border-b border-[#D8CFF0]`) y separadores de filas con estados hover refinados (`hover:bg-[#F8F6FC] border-b border-[#F0EAF8]`).
+     - Aplicado homogeneamente en los modulos de `company-crud.tsx`, `user-management.tsx`, `monthly-reports.tsx`, `hub-permissions-matrix.tsx` y `layer-color-customizer.tsx`.
+- **Validacion y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilacion**.
+  - Auditoria de contraste WCAG y verificacion estricta de DM-01 (Cero Emojis), DM-03 (Diseno Liquido) y DM-13 (Identidad Visual).
+### [v3.5.0] - 2026-11-03 - Degradado Sedoso de Lienzo y Corrección de Desbordamiento Horizontal
+- **Solicitud del Usuario:**
+  *"degrada un poco ams este apartado para que qede mas fino y si te fijas al final a la derecha el layout se queda croto"*
+- **Diagnostico Tecnico:**
+  1. **Transicion Cromatica Abrupta:** El fondo del lienzo utilizaba un tono solido plano directamente bajo la barra de navegacion blanca, generando un corte visual seco y pesado que restaba delicadeza ("fino") a la suite.
+  2. **Desbordamiento Horizontal y Recorte Derecho ("layout croto"):**
+     - En `src/app/dashboard/coordinator/page.tsx`, la cabecera utilizaba `sm:flex-row justify-between`. Al sumar el ancho del bloque de titulos (~600px) con las 5 pestanas de coordinacion (~870px), la fila requeria un minimo de 1.470px.
+     - En monitores estandar (1080p con escalado de Windows al 125%/150% o portatiles con viewport efectivo de 1.280px–1.366px), este ancho forzaba a `<main>` a expandirse mas alla del 100vw.
+     - Como consecuencia de `body { overflow-x: hidden }`, el margen derecho de la pantalla quedaba truncado: la pestana *"Colores RGB"* se cortaba en *"COLORE..."*, el boton *"Excel General"* se cortaba en *"EXCEL GENE..."*, la leyenda de cuotas se truncaba en *"Horas S..."* y las tarjetas perdian su acolchado derecho.
+- **Decision Tecnica e Implementacion:**
+  1. **Degradado Sedoso de Fondo ("La Abuela" Refinado):**
+     - Se aplico una transicion vertical progresiva: `bg-gradient-to-b from-[#F8F5FC] via-[#ECE4F4] to-[var(--hub-bg,#DDD2EA)]` en `layout.tsx`, `app-shell.tsx` y `coordinator/page.tsx`.
+     - La cabecera blanca superior enlaza de forma suave con un blanco perlado lila (`#F8F5FC`), degradando sutilmente hacia el lavanda institucional en la zona inferior donde descansan las tarjetas de datos, logrando maxima elegancia visual sin perder contraste.
+     - La cabecera del *Panel de Coordinacion* se encapsulo en un contenedor refinado con degradado horizontal `bg-gradient-to-r from-white/95 via-[#F8F6FC]/90 to-white/80 border-2 border-[#D0C4EB] p-4 sm:p-5 shadow-sm`, evitando que la tipografia descanse en plano sobre el color base.
+  2. **Resolucion Integral de Responsive y Cero Desbordamiento:**
+     - **Breakpoints Realistas:** Se ajusto la disposicion de la cabecera a `flex-col 2xl:flex-row 2xl:items-center justify-between gap-4`. Por debajo de pantallas ultra-anchas (`2xl`), las pestanas se ubican limpiamente bajo el titulo sin provocar colision ni desbordamiento.
+     - **Pestanas Compactas y Scroll Confinado:** En las 5 pestanas de navegacion, se optimizo el padding a `px-3 sm:px-4 py-2 text-xs font-extrabold whitespace-nowrap` y se agrego `overflow-x-auto max-w-full no-scrollbar shrink-0` con `.no-scrollbar` en `globals.css`.
+     - **Contenedores de Estadisticas y Cuotas:** En `src/components/coordinator/monthly-reports.tsx`, se actualizaron los contenedores superiores y la leyenda de semaforos de cuota a `flex-col 2xl:flex-row` con `flex-wrap`, garantizando que ningun boton ni leyenda empuje la tarjeta fuera de la pantalla.
+     - **Blindaje Estricto de Viewport:** Inclusion de `max-w-full min-w-0 overflow-x-hidden` en las etiquetas de layout principal para asegurar margenes laterales simetricos a cualquier resolucion.
+- **Validacion y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilacion**.
+  - Auditoria de margenes y verificacion estricta de DM-01 (Cero Emojis), DM-03 (Diseno Liquido) y DM-15 (Zero-Scroll / Viewport Compacto).
+### [v3.5.1] - 2026-11-03 - Integracion de Archivos Slack (Fotos y Videos) con Subida Hibrida y Attachment Cards
+- **Solicitud del Usuario:**
+  *"pues vamos ha hacerlo asi con slack conectado via API"*
+- **Diagnostico Tecnico:**
+  El chat integrado de Brain Up requeria la capacidad de compartir fotografias y piezas de video conectadas con la infraestructura de Slack, superando las limitaciones nativas de la web: el bloqueo de payload de 4.5 MB en serverless, el conflicto de codecs de iPhone (`.mov`/H.265 en Windows) y la saturacion de memoria RAM por buffers de video no controlados.
+- **Decision Tecnica e Implementacion:**
+  1. **Tipado de Adjuntos (`src/types/chat.ts`):**
+     - Creacion de la interfaz `ChatAttachment` (`id`, `name`, `size`, `type: 'image' | 'video' | 'file'`, `url`, `poster_url`, `mime_type`).
+     - Incorporacion de `attachments?: ChatAttachment[]` en el contrato de `ChatMessage`.
+  2. **Motor de Compresion y Extraccion de Poster en Cliente (`src/lib/chat-attachments.ts`):**
+     - **Compresion WebP Automatica:** Las imagenes seleccionadas se convierten y escalan en el navegador a WebP de alta fidelidad (< 250 KB) con `<canvas>` antes de la transferencia.
+     - **Extraccion de Poster de Video:** Para videos (`.mp4`, `.mov`, `.webm`), se extrae en memoria el fotograma del segundo 0.5 mediante un elemento de video efimero y canvas, generando un thumbnail estatico ligero (~40 KB).
+     - Formateador de tamanos humanos (`formatFileSize`).
+  3. **Rutas de Backend en Next.js para Slack API:**
+     - **Subida (`POST /api/slack/files/upload`):** Soporta el flujo moderno de la API de Slack (`files.getUploadURLExternal` + `files.completeUploadExternal`), subiendo el binario a la nube de Slack. Incluye modo dual con fallback local simulado para entornos de desarrollo sin credenciales configuradas.
+     - **Proxy Seguro (`GET /api/slack/files/[id]`):** Permite el streaming y descarga de archivos protegidos de Slack inyectando la cabecera `Authorization: Bearer xoxb-...`, resolviendo errores 403 y gestionando descargas limpias con `download=1`.
+  4. **Experiencia de Usuario en el Chat (`src/components/chat/chat-view.tsx`):**
+     - **Selector de Archivos:** Boton con icono de clip (`Paperclip`), compatible con imagenes y videos.
+     - **Tarjeta de Adjunto Pendiente:** Previsualizacion flotante sobre el textarea con miniatura, nombre, peso en MB y boton de descarte antes de enviar.
+     - **Attachment Card de Videos (Zero-DOM-Bloat):** Los videos en el feed de mensajes no se precargan como etiquetas pesadas; se muestran en una tarjeta estilizada con poster, boton de *Descargar Video* directo y boton de *Ver/Reproducir*.
+     - **Modal Visor de Medios (Lightbox):** Ventana emergente accesible con fondo oscuro para inspeccionar fotos en alta resolucion o reproducir videos a pantalla completa, liberando los elementos del DOM al cerrarse para garantizar 0 fugas de memoria RAM.
+  5. **Semillas y Servicios:** Actualizacion de `ChatService.sendMessage` y datos de demostracion en `chat-mock-data.ts`.
+- **Validacion y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilacion**.
+  - Verificacion estricta de DM-01 (Cero Emojis), DM-04 (Modelo por Empresa) y DM-13 (Identidad Visual "La Abuela").

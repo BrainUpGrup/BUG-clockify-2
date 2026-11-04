@@ -15,6 +15,7 @@ create table if not exists public.profiles (
   role text not null check (role in ('admin', 'coordinator', 'employee')) default 'employee',
   status text not null check (status in ('active', 'pending', 'rejected')) default 'active',
   department text null default 'Creatividad & Operaciones',
+  avatar_url text null default null,
   created_at timestamptz not null default now()
 );
 
@@ -108,8 +109,6 @@ set search_path = public
 as $$
 declare
   v_full_name text;
-  v_role text;
-  v_status text;
   v_dept text;
 begin
   v_full_name := coalesce(
@@ -117,18 +116,15 @@ begin
     split_part(new.email, '@', 1)
   );
   
-  v_role := coalesce(new.raw_user_meta_data->>'role', 'employee');
-  if v_role not in ('admin', 'coordinator', 'employee') then
-    v_role := 'employee';
-  end if;
-
   v_dept := coalesce(new.raw_user_meta_data->>'department', 'Creatividad & Operaciones');
 
-  -- Coordinadores y Admins entran activos por defecto, empleados entran pendientes
-  v_status := case when v_role in ('admin', 'coordinator') then 'active' else 'pending' end;
-
+  -- MEDIDA DE SEGURIDAD CRÍTICA (VULN-01):
+  -- Todo registro público entra siempre como 'employee' y en estado 'pending'.
+  -- Se prohíbe explícitamente confiar en raw_user_meta_data->>'role' para evitar
+  -- que usuarios no autorizados se auto-asignen rol 'admin' o 'coordinator'.
+  -- Solo un administrador o coordinador puede activar la cuenta y ascender el rol.
   insert into public.profiles (id, full_name, email, role, status, department, created_at)
-  values (new.id, v_full_name, new.email, v_role, v_status, v_dept, now())
+  values (new.id, v_full_name, new.email, 'employee', 'pending', v_dept, now())
   on conflict (id) do update
   set
     full_name = excluded.full_name,
@@ -158,15 +154,52 @@ create policy "profiles_select_policy" on public.profiles
     auth.uid() = id or public.is_coordinator_or_admin()
   );
 
+-- TRIGGER DE SEGURIDAD: Bloquear escalada de privilegios en perfiles
+create or replace function public.protect_profile_privileges()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  -- Solo coordinadores o administradores pueden crear o cambiar roles/estados privilegiados
+  if not public.is_coordinator_or_admin() then
+    if TG_OP = 'INSERT' then
+      if new.role is distinct from 'employee' or new.status is distinct from 'pending' then
+        raise exception 'Operación denegada: los nuevos perfiles solo pueden registrarse como empleado en estado pendiente.';
+      end if;
+    elsif TG_OP = 'UPDATE' then
+      if new.role is distinct from old.role or new.status is distinct from old.status then
+        raise exception 'Operación denegada: no tienes permisos para modificar el rol o el estado de la cuenta.';
+      end if;
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists tr_protect_profile_privileges on public.profiles;
+create trigger tr_protect_profile_privileges
+  before insert or update on public.profiles
+  for each row execute function public.protect_profile_privileges();
+
 drop policy if exists "profiles_insert_registration" on public.profiles;
 create policy "profiles_insert_registration" on public.profiles
-  for insert with check (true);
+  for insert with check (
+    -- Un usuario solo puede insertar su propio perfil autenticado o ser insertado por un coordinador/admin
+    auth.uid() = id or public.is_coordinator_or_admin()
+  );
 
 drop policy if exists "profiles_update_self_or_coordinator" on public.profiles;
 drop policy if exists "profiles_update_policy" on public.profiles;
 create policy "profiles_update_policy" on public.profiles
   for update using (
     auth.uid() = id or public.is_coordinator_or_admin()
+  )
+  with check (
+    -- Un usuario solo puede actualizar su propio registro conservando su rol y estado, salvo coordinador/admin
+    (auth.uid() = id and role = (select p.role from public.profiles p where p.id = auth.uid()) and status = (select p.status from public.profiles p where p.id = auth.uid()))
+    or public.is_coordinator_or_admin()
   );
 
 drop policy if exists "profiles_delete_coordinator" on public.profiles;
@@ -181,7 +214,13 @@ create policy "profiles_delete_policy" on public.profiles
 -- ==============================================================================
 drop policy if exists "companies_select_policy" on public.companies;
 create policy "companies_select_policy" on public.companies
-  for select using (true);
+  for select using (
+    -- Solo usuarios autenticados con cuenta activa o coordinadores pueden consultar empresas
+    auth.uid() is not null and exists (
+      select 1 from public.profiles
+      where id = auth.uid() and status = 'active'
+    )
+  );
 
 drop policy if exists "companies_insert_policy" on public.companies;
 create policy "companies_insert_policy" on public.companies
@@ -237,7 +276,7 @@ create policy "time_entries_delete_policy" on public.time_entries
 -- CUENTAS INICIALES DE PRUEBA Y PRODUCCIÓN (Brain Up Grup)
 -- ==============================================================================
 -- 1. Super Administrador Maestro
-insert into public.profiles (id, full_name, email, role, status, department, created_at)
+insert into public.profiles (id, full_name, email, role, status, department, avatar_url, created_at)
 values (
   '00000000-0000-0000-0000-000000000001',
   'Super Administrador',
@@ -245,6 +284,7 @@ values (
   'admin',
   'active',
   'Sistemas & Seguridad',
+  null,
   now()
 )
 on conflict (email) do update
@@ -255,7 +295,7 @@ set
   department = 'Sistemas & Seguridad';
 
 -- 2. Coordinación Brain Up (Rol Dual: Coordinadora & Empleada)
-insert into public.profiles (id, full_name, email, role, status, department, created_at)
+insert into public.profiles (id, full_name, email, role, status, department, avatar_url, created_at)
 values (
   '00000000-0000-0000-0000-000000000002',
   'Coordinación Brain Up',
@@ -263,6 +303,7 @@ values (
   'coordinator',
   'active',
   'Dirección de Operaciones',
+  null,
   now()
 )
 on conflict (email) do update
@@ -273,7 +314,7 @@ set
   department = 'Dirección de Operaciones';
 
 -- 3. Empleado de Prueba (Vista de Trabajador)
-insert into public.profiles (id, full_name, email, role, status, department, created_at)
+insert into public.profiles (id, full_name, email, role, status, department, avatar_url, created_at)
 values (
   '00000000-0000-0000-0000-000000000003',
   'Empleado de Prueba',
@@ -281,6 +322,7 @@ values (
   'employee',
   'active',
   'Creatividad & Operaciones',
+  null,
   now()
 )
 on conflict (email) do update

@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { 
   ChevronLeft, 
   ChevronRight, 
+  ChevronDown,
+  ChevronUp,
   Calendar as CalendarIcon, 
   Clock, 
   Plus, 
@@ -268,7 +270,7 @@ export function NativeCalendar({
   };
 
   return (
-    <div className="flex flex-col h-full w-full space-y-2">
+    <div className="flex flex-col h-full w-full space-y-2 min-h-0 overflow-hidden">
       
       {/* BARRA SUPERIOR DE GOOGLE CALENDAR / TASKFLOW */}
       <div className="bg-white border-2 border-[#D8CFF0] rounded-lg px-4 py-2.5 shadow-xs flex flex-wrap items-center justify-between gap-3 shrink-0">
@@ -448,7 +450,7 @@ export function NativeCalendar({
       </div>
 
       {/* ÁREA DE CONTENIDO PRINCIPAL: RENDERIZADO SEGÚN VISTA ACTIVA */}
-      <div className="flex-1 min-h-0 bg-white border border-[#D8CFF0] rounded-sm shadow-xs overflow-hidden flex flex-col">
+      <div className="flex-1 min-h-0 bg-white border border-[#D8CFF0] rounded-2xl shadow-xs overflow-hidden flex flex-col">
         {viewType === 'week' && (
           <WeekView
             weekDays={weekDays}
@@ -523,10 +525,10 @@ export function NativeCalendar({
       {/* 1. Detalles del Día Seleccionado */}
       {activePopup === 'day_details' && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-[#D8CFF0] rounded-sm shadow-2xl w-full max-w-xl max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in duration-200">
+          <div className="bg-white border border-[#D8CFF0] rounded-2xl shadow-2xl w-full max-w-xl max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in duration-200">
             <div className="p-4 border-b border-[#EAE4F5] bg-[#F8F6FC] flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-sm bg-[#8E0E75] text-white">
+                <div className="p-2 rounded-xl bg-[#8E0E75] text-white">
                   <CalendarIcon className="h-4 w-4" />
                 </div>
                 <div>
@@ -546,7 +548,7 @@ export function NativeCalendar({
                     setActivePopup('none');
                     onOpenCreateModal(selectedDate);
                   }}
-                  className="px-2.5 py-1 rounded-sm bg-[#8E0E75] hover:bg-[#700B5C] text-white text-[11px] font-extrabold uppercase tracking-wider cursor-pointer"
+                  className="px-2.5 py-1 rounded-xl bg-[#8E0E75] hover:bg-[#700B5C] text-white text-[11px] font-extrabold uppercase tracking-wider cursor-pointer"
                 >
                   <Plus className="h-3 w-3 inline mr-1" />
                   Añadir aquí
@@ -554,7 +556,7 @@ export function NativeCalendar({
                 <button
                   type="button"
                   onClick={() => setActivePopup('none')}
-                  className="p-1 rounded-sm hover:bg-slate-200 text-slate-400 hover:text-[#292929]"
+                  className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-[#292929]"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -563,7 +565,7 @@ export function NativeCalendar({
 
             <div className="p-4 overflow-y-auto space-y-2 flex-1">
               {selectedDayItems.length === 0 ? (
-                <div className="py-8 text-center bg-[#F8F6FC] rounded-sm border border-dashed border-[#D8CFF0] space-y-2">
+                <div className="py-8 text-center bg-[#F8F6FC] rounded-xl border border-dashed border-[#D8CFF0] space-y-2">
                   <p className="text-xs text-[#4A4A4A]">No hay entregables ni reuniones para este día.</p>
                   <button
                     type="button"
@@ -599,10 +601,10 @@ export function NativeCalendar({
       {/* 2. Tareas Pendientes del Mes */}
       {activePopup === 'urgent_warnings' && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border-2 border-amber-500 rounded-sm shadow-2xl w-full max-w-xl max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in duration-200">
+          <div className="bg-white border-2 border-amber-500 rounded-2xl shadow-2xl w-full max-w-xl max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in duration-200">
             <div className="p-4 border-b border-amber-100 bg-amber-50 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-sm bg-amber-600 text-white">
+                <div className="p-2 rounded-xl bg-amber-600 text-white">
                   <Clock className="h-4 w-4" />
                 </div>
                 <div>
@@ -617,7 +619,7 @@ export function NativeCalendar({
               <button
                 type="button"
                 onClick={() => setActivePopup('none')}
-                className="p-1 rounded-sm hover:bg-amber-100 text-amber-600"
+                className="p-1.5 rounded-lg hover:bg-amber-100 text-amber-600"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -625,7 +627,7 @@ export function NativeCalendar({
 
             <div className="p-4 overflow-y-auto space-y-2 flex-1">
               {monthPending.length === 0 ? (
-                <div className="py-8 text-center bg-amber-50/50 rounded-sm text-amber-800 text-xs">
+                <div className="py-8 text-center bg-amber-50/50 rounded-xl text-amber-800 text-xs">
                   Excelente: No hay tareas pendientes este mes.
                 </div>
               ) : (
@@ -651,10 +653,10 @@ export function NativeCalendar({
       {/* 3. Tareas Hechas y Completadas */}
       {activePopup === 'goods_done' && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border-2 border-emerald-500 rounded-sm shadow-2xl w-full max-w-xl max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in duration-200">
+          <div className="bg-white border-2 border-emerald-500 rounded-2xl shadow-2xl w-full max-w-xl max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in duration-200">
             <div className="p-4 border-b border-emerald-100 bg-emerald-50 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-sm bg-emerald-600 text-white">
+                <div className="p-2 rounded-xl bg-emerald-600 text-white">
                   <CheckCircle2 className="h-4 w-4" />
                 </div>
                 <div>
@@ -669,7 +671,7 @@ export function NativeCalendar({
               <button
                 type="button"
                 onClick={() => setActivePopup('none')}
-                className="p-1 rounded-sm hover:bg-emerald-100 text-emerald-600"
+                className="p-1.5 rounded-lg hover:bg-emerald-100 text-emerald-600"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -677,7 +679,7 @@ export function NativeCalendar({
 
             <div className="p-4 overflow-y-auto space-y-2 flex-1">
               {monthDone.length === 0 ? (
-                <div className="py-8 text-center bg-emerald-50/50 rounded-sm text-emerald-800 text-xs">
+                <div className="py-8 text-center bg-emerald-50/50 rounded-xl text-emerald-800 text-xs">
                   Aún no has completado tareas este mes. ¡A por ellas!
                 </div>
               ) : (
@@ -703,10 +705,10 @@ export function NativeCalendar({
       {/* 4. Reuniones Programadas */}
       {activePopup === 'meetings' && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border-2 border-blue-500 rounded-sm shadow-2xl w-full max-w-xl max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in duration-200">
+          <div className="bg-white border-2 border-blue-500 rounded-2xl shadow-2xl w-full max-w-xl max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in duration-200">
             <div className="p-4 border-b border-blue-100 bg-blue-50 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-sm bg-blue-600 text-white">
+                <div className="p-2 rounded-xl bg-blue-600 text-white">
                   <Clock className="h-4 w-4" />
                 </div>
                 <div>
@@ -721,7 +723,7 @@ export function NativeCalendar({
               <button
                 type="button"
                 onClick={() => setActivePopup('none')}
-                className="p-1 rounded-sm hover:bg-blue-100 text-blue-600"
+                className="p-1.5 rounded-lg hover:bg-blue-100 text-blue-600"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -729,7 +731,7 @@ export function NativeCalendar({
 
             <div className="p-4 overflow-y-auto space-y-2 flex-1">
               {monthMeetings.length === 0 ? (
-                <div className="py-8 text-center bg-[#F8F6FC] rounded-sm text-slate-500 text-xs">
+                <div className="py-8 text-center bg-[#F8F6FC] rounded-xl text-slate-500 text-xs">
                   No hay reuniones programadas para este mes.
                 </div>
               ) : (
@@ -951,6 +953,16 @@ function WeekView({
   onQuickReschedule?: (itemId: string, days?: number) => void;
 }) {
   const [dragOverDay, setDragOverDay] = useState<string | null>(null);
+  const [expandedDays, setExpandedDays] = useState<Record<string, boolean>>({});
+
+  const toggleDayExpanded = (dateStr: string) => {
+    setExpandedDays((prev) => ({
+      ...prev,
+      [dateStr]: !prev[dateStr],
+    }));
+  };
+
+  const MAX_INITIAL_VISIBLE = 3;
 
   return (
     <div className="flex-1 flex min-h-0 overflow-hidden">
@@ -1029,7 +1041,7 @@ function WeekView({
         </div>
 
         {/* Cuerpo de las 5 Columnas con Drag & Drop */}
-        <div className="grid grid-cols-5 flex-1 min-h-0 divide-x divide-[#EAE4F5] overflow-y-auto">
+        <div className="grid grid-cols-5 flex-1 min-h-0 divide-x divide-[#EAE4F5] overflow-hidden">
           {weekDays.map((day) => {
             const dayItems = items.filter((it) => it.date === day.dateStr);
             const isTarget = dragOverDay === day.dateStr;
@@ -1057,7 +1069,7 @@ function WeekView({
                     onMoveItemDate(itemId, day.dateStr);
                   }
                 }}
-                className={`p-2 flex flex-col space-y-1.5 min-h-[420px] transition-all relative ${
+                className={`p-2 flex flex-col space-y-1.5 min-h-0 h-full overflow-hidden transition-all relative ${
                   isTarget
                     ? 'bg-[#8E0E75]/10 ring-2 ring-[#8E0E75] ring-inset shadow-inner'
                     : day.isToday
@@ -1075,7 +1087,7 @@ function WeekView({
                 {dayItems.length === 0 ? (
                   <div
                     onClick={() => onOpenCreateModal(day.dateStr)}
-                    className="flex-1 rounded-sm border border-dashed border-slate-200 hover:border-[#8E0E75]/50 hover:bg-[#F8F6FC]/60 p-3 flex flex-col items-center justify-center text-center cursor-pointer transition-all group"
+                    className="flex-1 min-h-[90px] rounded-xl border border-dashed border-slate-200 hover:border-[#8E0E75]/50 hover:bg-[#F8F6FC]/60 p-3 flex flex-col items-center justify-center text-center cursor-pointer transition-all group"
                   >
                     <Plus className="h-4 w-4 text-slate-300 group-hover:text-[#8E0E75] transition-colors" />
                     <span className="text-[11px] text-slate-400 group-hover:text-[#8E0E75] font-semibold mt-1">
@@ -1083,17 +1095,96 @@ function WeekView({
                     </span>
                   </div>
                 ) : (
-                  dayItems.map((item) => (
-                    <ColorStripItem
-                      key={item.id}
-                      item={item}
-                      onSelectItem={onSelectItem}
-                      onDeleteItem={onDeleteItem}
-                      onToggleStatus={onToggleStatus}
-                      onStartClockifyTimer={onStartClockifyTimer}
-                      onQuickReschedule={onQuickReschedule}
-                    />
-                  ))
+                  <>
+                    {/* Tareas visibles inicialmente (hasta MAX_INITIAL_VISIBLE) */}
+                    <div className="shrink-0 space-y-1.5">
+                      {dayItems.slice(0, MAX_INITIAL_VISIBLE).map((item) => (
+                        <ColorStripItem
+                          key={item.id}
+                          item={item}
+                          onSelectItem={onSelectItem}
+                          onDeleteItem={onDeleteItem}
+                          onToggleStatus={onToggleStatus}
+                          onStartClockifyTimer={onStartClockifyTimer}
+                          onQuickReschedule={onQuickReschedule}
+                        />
+                      ))}
+                    </div>
+
+                    {/* Desplegable para tareas adicionales que no se ven en la pantalla inicial */}
+                    {dayItems.length > MAX_INITIAL_VISIBLE && (() => {
+                      const isExpanded = !!expandedDays[day.dateStr];
+                      const hiddenItems = dayItems.slice(MAX_INITIAL_VISIBLE);
+
+                      if (!isExpanded) {
+                        return (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleDayExpanded(day.dateStr);
+                            }}
+                            className="shrink-0 w-full py-1.5 px-2.5 rounded-lg border-2 border-[#D8CFF0] bg-[#F8F6FC] hover:bg-[#8E0E75] hover:border-[#8E0E75] hover:text-white text-[#8E0E75] text-[11px] font-black uppercase tracking-wider flex items-center justify-between transition-all cursor-pointer shadow-2xs group"
+                            title={`Desplegar ${hiddenItems.length} tareas adicionales de este día`}
+                          >
+                            <span className="flex items-center gap-1.5">
+                              <ChevronDown className="h-3.5 w-3.5 group-hover:translate-y-0.5 transition-transform" />
+                              <span>+{hiddenItems.length} más</span>
+                            </span>
+                            <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-white group-hover:bg-white/20 text-[#8E0E75] group-hover:text-white border border-[#D8CFF0] group-hover:border-transparent">
+                              Desplegar
+                            </span>
+                          </button>
+                        );
+                      }
+
+                      return (
+                        <div className="flex-1 min-h-0 flex flex-col space-y-1.5 mt-0.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleDayExpanded(day.dateStr);
+                            }}
+                            className="shrink-0 w-full py-1 px-2.5 rounded-lg border border-[#8E0E75]/30 bg-[#8E0E75]/10 hover:bg-[#8E0E75] text-[#8E0E75] hover:text-white text-[11px] font-black uppercase tracking-wider flex items-center justify-between transition-all cursor-pointer shadow-2xs group"
+                            title="Plegar tareas adicionales"
+                          >
+                            <span className="flex items-center gap-1.5">
+                              <ChevronUp className="h-3.5 w-3.5 group-hover:-translate-y-0.5 transition-transform" />
+                              <span>Plegar lista</span>
+                            </span>
+                            <span className="text-[10px] font-bold opacity-80">
+                              {hiddenItems.length} adicionales
+                            </span>
+                          </button>
+
+                          {/* Contenedor desplegado con scroll interno que llega HASTA ABAJO DEL TODO de la página */}
+                          <div className="flex-1 min-h-0 overflow-y-auto pr-1 rounded-xl border border-[#D8CFF0] bg-[#F8F6FC]/70 p-1.5 shadow-2xs space-y-1.5">
+                            {hiddenItems.map((item) => (
+                              <ColorStripItem
+                                key={item.id}
+                                item={item}
+                                onSelectItem={onSelectItem}
+                                onDeleteItem={onDeleteItem}
+                                onToggleStatus={onToggleStatus}
+                                onStartClockifyTimer={onStartClockifyTimer}
+                                onQuickReschedule={onQuickReschedule}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Espacio inferior clicable cuando hay pocas tareas */}
+                    {dayItems.length <= MAX_INITIAL_VISIBLE && (
+                      <div
+                        onClick={() => onOpenCreateModal(day.dateStr)}
+                        className="flex-1 min-h-4 cursor-pointer"
+                        title={`Añadir tarea en ${day.dayName} ${day.dayNumber}`}
+                      />
+                    )}
+                  </>
                 )}
               </div>
             );
@@ -1143,9 +1234,9 @@ function DayView({
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-y-auto p-4 space-y-4">
       {/* Resumen Superior del Día */}
-      <div className="p-3 bg-[#F8F6FC] border border-[#D8CFF0] rounded-sm flex flex-wrap items-center justify-between gap-3">
+      <div className="p-3 bg-[#F8F6FC] border border-[#D8CFF0] rounded-lg flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-sm bg-[#8E0E75] text-white">
+          <div className="p-2 rounded-xl bg-[#8E0E75] text-white">
             <CalendarIcon className="h-5 w-5" />
           </div>
           <div>
@@ -1159,16 +1250,16 @@ function DayView({
         </div>
 
         <div className="flex items-center gap-2 text-xs font-bold">
-          <span className="px-2.5 py-1 rounded-sm bg-amber-50 text-amber-800 border border-amber-200">
+          <span className="px-3 py-1.5 rounded-lg bg-amber-50 text-amber-800 border border-amber-200">
             {pendingItems.length} Pendientes
           </span>
-          <span className="px-2.5 py-1 rounded-sm bg-emerald-50 text-emerald-800 border border-emerald-200">
+          <span className="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200">
             {doneItems.length} Hechas
           </span>
           <button
             type="button"
             onClick={() => onOpenCreateModal(selectedDate)}
-            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-sm bg-[#8E0E75] text-white hover:bg-[#700B5C] transition-all cursor-pointer font-extrabold uppercase"
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#8E0E75] text-white hover:bg-[#700B5C] transition-all cursor-pointer font-extrabold uppercase"
           >
             <Plus className="h-3.5 w-3.5" />
             <span>Añadir Tarea en este Día</span>
@@ -1183,7 +1274,7 @@ function DayView({
         </h4>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
           {dayItems.length === 0 ? (
-            <div className="col-span-full py-6 text-center bg-[#F8F6FC] rounded-sm border border-dashed border-[#D8CFF0] text-xs text-slate-500">
+            <div className="col-span-full py-6 text-center bg-[#F8F6FC] rounded-xl border border-dashed border-[#D8CFF0] text-xs text-slate-500">
               No hay tareas agendadas para hoy. Haz clic en "Añadir Tarea en este Día".
             </div>
           ) : (
@@ -1207,7 +1298,7 @@ function DayView({
         <h4 className="text-[11px] font-extrabold uppercase tracking-wider text-[#4A4A4A]">
           Cronograma Horario (08:00 - 20:00)
         </h4>
-        <div className="border border-[#D8CFF0] rounded-sm divide-y divide-[#EAE4F5] bg-white">
+        <div className="border border-[#D8CFF0] rounded-lg divide-y divide-[#EAE4F5] bg-white">
           {hours.map((hourStr) => {
             const hourPrefix = hourStr.slice(0, 2);
             const hourItems = dayItems.filter((it) => it.startTime && it.startTime.startsWith(hourPrefix));
@@ -1436,7 +1527,7 @@ function YearView({
           return (
             <div
               key={mName}
-              className="p-3 bg-[#F8F6FC]/60 border border-[#D8CFF0] rounded-sm hover:border-[#8E0E75] hover:bg-white transition-all space-y-2 shadow-2xs"
+              className="p-3 bg-[#F8F6FC]/60 border border-[#D8CFF0] rounded-lg hover:border-[#8E0E75] hover:bg-white transition-all space-y-2 shadow-2xs"
             >
               {/* Título de Mes Clicable */}
               <div className="flex items-center justify-between">

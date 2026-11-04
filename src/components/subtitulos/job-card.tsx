@@ -18,7 +18,8 @@ import {
   Tag,
   ShieldAlert,
   Shield,
-  ExternalLink
+  ExternalLink,
+  ArrowRight
 } from 'lucide-react';
 import { SubtitulosJob } from '@/types/subtitulos';
 import { parseSubtitulosError } from '@/lib/subtitulos-error-parser';
@@ -394,7 +395,7 @@ export function JobCard({
               {/* Recomendación paso a paso y acciones */}
               <div className="p-3.5 rounded-xl bg-white/95 border border-rose-200 text-xs text-rose-950 space-y-2.5">
                 <p className="font-semibold text-[#292929] leading-relaxed">
-                  👉 <strong>¿Qué debes hacer ahora?</strong> {parsed.recommendation}
+                  <ArrowRight className="h-3.5 w-3.5 inline mr-1 text-[#8E0E75]" /><strong>¿Qué debes hacer ahora?</strong> {parsed.recommendation}
                 </p>
 
                 {parsed.actionUrl && (

@@ -48,7 +48,7 @@ export default function LoginPage() {
       }
 
       if (result.user) {
-        router.push('/hub');
+        window.location.href = '/hub';
       }
     } finally {
       setIsSubmitting(false);
@@ -67,7 +67,7 @@ export default function LoginPage() {
         return;
       }
       if (result.user) {
-        router.push('/hub');
+        window.location.href = '/hub';
       }
     } finally {
       setIsSubmitting(false);
@@ -76,13 +76,13 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-[#F8F6FC] flex flex-col justify-center items-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md bg-white border border-[#D8CFF0] rounded-sm shadow-xl p-8 space-y-6">
+      <div className="w-full max-w-md bg-white border border-[#D8CFF0] rounded-2xl shadow-xl p-8 sm:p-10 space-y-6">
         {/* Cabecera con Logotipo de "La Abuela" */}
         <div className="text-center space-y-3">
           <div className="flex justify-center">
-            <div className="h-16 w-16 relative rounded-full bg-white border border-[#D8CFF0] p-1 shadow-xs">
+            <div className="h-16 w-16 relative rounded-full bg-white border border-[#D8CFF0] p-2.5 shadow-xs">
               <Image
-                src="/logo.png"
+                src="/isotipo.svg"
                 alt="Brain Up Grup"
                 fill
                 sizes="64px"
@@ -127,7 +127,7 @@ export default function LoginPage() {
 
         {/* Mensaje de Error o Estado Pendiente */}
         {errorMessage && (
-          <div className="p-3.5 rounded-sm bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2.5">
+          <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2.5">
             <AlertCircle className="h-4 w-4 text-rose-600 shrink-0 mt-0.5" />
             <span className="leading-relaxed">{errorMessage}</span>
           </div>
@@ -210,7 +210,7 @@ export default function LoginPage() {
                   </div>
                 </div>
               </div>
-              <span className="text-xs font-black uppercase px-2.5 py-1 rounded-sm bg-white group-hover:bg-white/20 text-[#8E0E75] group-hover:text-white border border-[#D8CFF0] group-hover:border-transparent shrink-0 shadow-2xs">
+              <span className="text-xs font-black uppercase px-3 py-1 rounded-lg bg-white group-hover:bg-white/20 text-[#8E0E75] group-hover:text-white border border-[#D8CFF0] group-hover:border-transparent shrink-0 shadow-2xs">
                 Entrar
               </span>
             </button>
@@ -235,7 +235,7 @@ export default function LoginPage() {
                   </div>
                 </div>
               </div>
-              <span className="text-xs font-black uppercase px-2.5 py-1 rounded-sm bg-white group-hover:bg-white/20 text-emerald-700 group-hover:text-white border border-[#D8CFF0] group-hover:border-transparent shrink-0 shadow-2xs">
+              <span className="text-xs font-black uppercase px-3 py-1 rounded-lg bg-white group-hover:bg-white/20 text-emerald-700 group-hover:text-white border border-[#D8CFF0] group-hover:border-transparent shrink-0 shadow-2xs">
                 Entrar
               </span>
             </button>
@@ -244,7 +244,7 @@ export default function LoginPage() {
             <button
               type="button"
               disabled={isSubmitting}
-              onClick={() => handleQuickLogin('appadmin@brainupgrup.com', 'fn.5loDnrTTfI2z!')}
+              onClick={() => handleQuickLogin('appadmin@brainupgrup.com', 'BrainUp2026!')}
               className="w-full flex items-center justify-between p-2.5 rounded-md border-2 border-[#D8CFF0] bg-[#F8F6FC] hover:bg-[#191654] hover:border-[#191654] hover:text-white group transition-all text-left cursor-pointer disabled:opacity-50 shadow-2xs hover:shadow-md hover:scale-[1.01] active:scale-[0.99]"
             >
               <div className="flex items-center gap-3">
@@ -260,7 +260,7 @@ export default function LoginPage() {
                   </div>
                 </div>
               </div>
-              <span className="text-xs font-black uppercase px-2.5 py-1 rounded-sm bg-white group-hover:bg-white/20 text-[#191654] group-hover:text-white border border-[#D8CFF0] group-hover:border-transparent shrink-0 shadow-2xs">
+              <span className="text-xs font-black uppercase px-3 py-1 rounded-lg bg-white group-hover:bg-white/20 text-[#191654] group-hover:text-white border border-[#D8CFF0] group-hover:border-transparent shrink-0 shadow-2xs">
                 Entrar
               </span>
             </button>

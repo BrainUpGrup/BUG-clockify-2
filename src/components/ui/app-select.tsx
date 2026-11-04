@@ -164,7 +164,7 @@ export function AppSelect({
         aria-controls={listId}
         aria-label={ariaLabel}
         aria-activedescendant={isOpen && !showSearch && activeIndex >= 0 ? `${baseId}-opt-${activeIndex}` : undefined}
-        className={`w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-sm border text-sm font-semibold text-left transition-all outline-none focus-visible:ring-2 focus-visible:ring-[#8E0E75]/30 ${
+        className={`w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl border text-sm font-semibold text-left transition-all outline-none focus-visible:ring-2 focus-visible:ring-[#8E0E75]/30 ${
           disabled
             ? 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed opacity-60'
             : isOpen
@@ -183,7 +183,7 @@ export function AppSelect({
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 right-0 top-full mt-1.5 z-50 rounded-sm border border-[#D8CFF0] bg-white shadow-xl shadow-[#191654]/10">
+        <div className="absolute left-0 right-0 top-full mt-1.5 z-50 rounded-xl border border-[#D8CFF0] bg-white shadow-xl shadow-[#191654]/10">
           {showSearch && (
             <div className="p-1.5 border-b border-[#EAE4F5]">
               <div className="relative">
@@ -200,7 +200,7 @@ export function AppSelect({
                   role="searchbox"
                   aria-controls={listId}
                   aria-activedescendant={activeIndex >= 0 ? `${baseId}-opt-${activeIndex}` : undefined}
-                  className="w-full pl-8 pr-2 py-2 text-sm rounded-sm border border-[#D8CFF0] outline-none focus:border-[#8E0E75]"
+                  className="w-full pl-8 pr-2 py-2 text-sm rounded-lg border border-[#D8CFF0] outline-none focus:border-[#8E0E75]"
                 />
               </div>
             </div>
@@ -224,7 +224,7 @@ export function AppSelect({
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => handleSelect(option.value)}
                     onMouseEnter={() => setActiveIndex(index)}
-                    className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-sm text-sm font-semibold text-left cursor-pointer ${
+                    className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg text-sm font-semibold text-left cursor-pointer ${
                       isSelected
                         ? 'bg-[#8E0E75] text-white font-bold'
                         : isActive

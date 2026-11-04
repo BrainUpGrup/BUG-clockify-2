@@ -113,7 +113,7 @@ export function KeyboardShortcutsModal() {
   const categories: ShortcutCategory[] = [
     {
       id: 'clockify',
-      title: 'Control Horario (Clockify)',
+      title: 'Tiempo (Control Horario)',
       iconName: 'Clock',
       items: [
         {
@@ -182,11 +182,11 @@ export function KeyboardShortcutsModal() {
         },
         {
           keys: ['Alt', '2'],
-          description: 'Ir a Clockify (Horas por Cliente / Coordinación)',
+          description: 'Ir a Tiempo (Horas por Cliente / Coordinación)',
         },
         {
           keys: ['Alt', '3'],
-          description: 'Ir a TaskFlow (Calendario y Post-its)',
+          description: 'Ir a Agenda (Calendario y Post-its)',
         },
         {
           keys: ['Alt', '4'],
@@ -194,7 +194,7 @@ export function KeyboardShortcutsModal() {
         },
         {
           keys: ['Alt', '5'],
-          description: 'Ir a Subtitulado de Vídeos',
+          description: 'Ir a Brain Up Subtitulado',
         },
         {
           keys: ['?'],
@@ -204,7 +204,7 @@ export function KeyboardShortcutsModal() {
     },
     {
       id: 'taskflow',
-      title: 'TaskFlow, Calendario y Modales',
+      title: 'Agenda, Calendario y Modales',
       iconName: 'CheckSquare',
       items: [
         {
@@ -399,7 +399,7 @@ export function KeyboardShortcutsModal() {
                 No se encontraron atajos para &quot;{searchQuery}&quot;
               </h3>
               <p className="text-xs sm:text-sm text-[#4A4A4A]">
-                Prueba a buscar con otra palabra clave como <em>Enter</em>, <em>Clockify</em>, <em>330</em> o <em>Alt</em>.
+                Prueba a buscar con otra palabra clave como <em>Enter</em>, <em>Tiempo</em>, <em>330</em> o <em>Alt</em>.
               </p>
               <button
                 type="button"

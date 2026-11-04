@@ -68,69 +68,116 @@ ALTER TABLE public.channels ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.channel_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 
--- Canales: los usuarios pueden ver canales públicos ('group' o 'client') o aquellos donde son miembros
+-- Canales: los usuarios activos pueden ver canales públicos ('group' o 'client') o aquellos donde son miembros
 CREATE POLICY "Ver canales permitidos" ON public.channels
     FOR SELECT USING (
-        type IN ('group', 'client')
-        OR EXISTS (
-            SELECT 1 FROM public.channel_members 
-            WHERE channel_members.channel_id = channels.id 
-            AND channel_members.user_id = auth.uid()
+        auth.uid() IS NOT NULL
+        AND EXISTS (
+            SELECT 1 FROM public.profiles
+            WHERE id = auth.uid() AND status = 'active'
         )
-        OR public.is_coordinator()
+        AND (
+            type IN ('group', 'client')
+            OR EXISTS (
+                SELECT 1 FROM public.channel_members 
+                WHERE channel_members.channel_id = channels.id 
+                AND channel_members.user_id = auth.uid()
+            )
+            OR public.is_coordinator()
+        )
     );
 
 CREATE POLICY "Crear canales miembros autenticados" ON public.channels
-    FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+    FOR INSERT WITH CHECK (
+        auth.uid() IS NOT NULL
+        AND EXISTS (
+            SELECT 1 FROM public.profiles
+            WHERE id = auth.uid() AND status = 'active'
+        )
+    );
 
 CREATE POLICY "Actualizar canales coordinadores o creador" ON public.channels
     FOR UPDATE USING (
-        created_by = auth.uid() 
-        OR public.is_coordinator()
+        (created_by = auth.uid() OR public.is_coordinator())
+        AND EXISTS (
+            SELECT 1 FROM public.profiles
+            WHERE id = auth.uid() AND status = 'active'
+        )
     );
 
 -- Miembros de Canal:
 CREATE POLICY "Ver miembros de canales accesibles" ON public.channel_members
     FOR SELECT USING (
-        user_id = auth.uid()
-        OR EXISTS (
-            SELECT 1 FROM public.channels 
-            WHERE channels.id = channel_members.channel_id 
-            AND channels.type IN ('group', 'client')
+        auth.uid() IS NOT NULL
+        AND EXISTS (
+            SELECT 1 FROM public.profiles
+            WHERE id = auth.uid() AND status = 'active'
         )
-        OR public.is_coordinator()
+        AND (
+            user_id = auth.uid()
+            OR EXISTS (
+                SELECT 1 FROM public.channels 
+                WHERE channels.id = channel_members.channel_id 
+                AND channels.type IN ('group', 'client')
+            )
+            OR public.is_coordinator()
+        )
     );
 
 CREATE POLICY "Insertar membresía propia o coordinador" ON public.channel_members
     FOR INSERT WITH CHECK (
-        user_id = auth.uid() 
-        OR public.is_coordinator()
+        auth.uid() IS NOT NULL
+        AND EXISTS (
+            SELECT 1 FROM public.profiles
+            WHERE id = auth.uid() AND status = 'active'
+        )
+        AND (
+            user_id = auth.uid() 
+            OR public.is_coordinator()
+        )
     );
 
 CREATE POLICY "Actualizar last_read_at propio" ON public.channel_members
-    FOR UPDATE USING (user_id = auth.uid());
+    FOR UPDATE USING (
+        user_id = auth.uid()
+        AND EXISTS (
+            SELECT 1 FROM public.profiles
+            WHERE id = auth.uid() AND status = 'active'
+        )
+    );
 
 -- Mensajes:
 CREATE POLICY "Ver mensajes de canales autorizados" ON public.messages
     FOR SELECT USING (
-        EXISTS (
-            SELECT 1 FROM public.channels 
-            WHERE channels.id = messages.channel_id 
-            AND (
-                channels.type IN ('group', 'client')
-                OR EXISTS (
-                    SELECT 1 FROM public.channel_members 
-                    WHERE channel_members.channel_id = channels.id 
-                    AND channel_members.user_id = auth.uid()
+        auth.uid() IS NOT NULL
+        AND EXISTS (
+            SELECT 1 FROM public.profiles
+            WHERE id = auth.uid() AND status = 'active'
+        )
+        AND (
+            EXISTS (
+                SELECT 1 FROM public.channels 
+                WHERE channels.id = messages.channel_id 
+                AND (
+                    channels.type IN ('group', 'client')
+                    OR EXISTS (
+                        SELECT 1 FROM public.channel_members 
+                        WHERE channel_members.channel_id = channels.id 
+                        AND channel_members.user_id = auth.uid()
+                    )
                 )
             )
+            OR public.is_coordinator()
         )
-        OR public.is_coordinator()
     );
 
 CREATE POLICY "Enviar mensajes a canales" ON public.messages
     FOR INSERT WITH CHECK (
         sender_id = auth.uid()
+        AND EXISTS (
+            SELECT 1 FROM public.profiles
+            WHERE id = auth.uid() AND status = 'active'
+        )
         AND EXISTS (
             SELECT 1 FROM public.channels 
             WHERE channels.id = messages.channel_id
@@ -139,15 +186,27 @@ CREATE POLICY "Enviar mensajes a canales" ON public.messages
 
 CREATE POLICY "Actualizar mensajes propios o marcar revisado/fijado" ON public.messages
     FOR UPDATE USING (
-        sender_id = auth.uid()
-        OR assigned_to = auth.uid()
-        OR public.is_coordinator()
+        EXISTS (
+            SELECT 1 FROM public.profiles
+            WHERE id = auth.uid() AND status = 'active'
+        )
+        AND (
+            sender_id = auth.uid()
+            OR assigned_to = auth.uid()
+            OR public.is_coordinator()
+        )
     );
 
 CREATE POLICY "Eliminar mensajes propios o coordinador" ON public.messages
     FOR DELETE USING (
-        sender_id = auth.uid()
-        OR public.is_coordinator()
+        EXISTS (
+            SELECT 1 FROM public.profiles
+            WHERE id = auth.uid() AND status = 'active'
+        )
+        AND (
+            sender_id = auth.uid()
+            OR public.is_coordinator()
+        )
     );
 
 -- 6. DATOS SEMILLA INICIALES (GRUPOS GENERALES DE BRAIN UP)

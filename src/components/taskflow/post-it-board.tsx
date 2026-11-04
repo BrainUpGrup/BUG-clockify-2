@@ -24,6 +24,7 @@ import {
 } from '@/types/postit';
 import { useNotifications } from '@/context/notifications-context';
 import { removeWithUndo } from '@/lib/feedback';
+import { AppCalendar } from '@/components/ui/app-calendar';
 
 interface PostItBoardProps {
   postIts: PostItItem[];
@@ -59,6 +60,18 @@ export function PostItBoard({
       syncPostItReminders(postIts);
     }
   }, [postIts, syncPostItReminders]);
+
+  // Cerrar modal al pulsar Escape (Ergonomía de Teclado)
+  useEffect(() => {
+    if (!isModalOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isModalOpen]);
 
   // Abrir modal para crear
   const handleOpenCreate = () => {
@@ -238,9 +251,9 @@ export function PostItBoard({
     <div className="flex-1 flex flex-col min-h-0 bg-[#F4F1F8] p-3 overflow-hidden">
       
       {/* Barra Superior del Mural */}
-      <div className="shrink-0 bg-white border border-[#D8CFF0] rounded-sm p-3 shadow-xs flex flex-wrap items-center justify-between gap-3 mb-3">
+      <div className="shrink-0 bg-white border border-[#D8CFF0] rounded-2xl p-3 shadow-xs flex flex-wrap items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-sm bg-[#FEF08A] text-[#713F12] border border-[#FDE047]">
+          <div className="p-2 rounded-xl bg-[#FEF08A] text-[#713F12] border border-[#FDE047]">
             <StickyNote className="h-5 w-5" />
           </div>
           <div>
@@ -259,7 +272,7 @@ export function PostItBoard({
         {/* Filtro por Color y Botón Crear */}
         <div className="flex items-center gap-2">
           {/* Swatches de Filtro */}
-          <div className="hidden sm:flex items-center gap-1 bg-[#F8F6FC] p-1 rounded-sm border border-[#D8CFF0]">
+          <div className="hidden sm:flex items-center gap-1 bg-[#F8F6FC] p-1 rounded-lg border border-[#D8CFF0]">
             <button
               type="button"
               onClick={() => setSelectedColorFilter('all')}
@@ -291,7 +304,7 @@ export function PostItBoard({
           <button
             type="button"
             onClick={handleOpenCreate}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-[#8E0E75] hover:bg-[#700B5C] text-white text-[11px] font-extrabold uppercase tracking-wider shadow-xs transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#8E0E75] hover:bg-[#700B5C] text-white text-[11px] font-extrabold uppercase tracking-wider shadow-xs transition-all cursor-pointer"
           >
             <Plus className="h-3.5 w-3.5" />
             <span>Nuevo Post-it</span>
@@ -302,7 +315,7 @@ export function PostItBoard({
       {/* Rejilla de Post-its (Mural) */}
       <div className="flex-1 overflow-y-auto pr-1">
         {filteredPostIts.length === 0 ? (
-          <div className="h-full min-h-[320px] flex flex-col items-center justify-center p-8 bg-white border border-dashed border-[#D8CFF0] rounded-sm text-center">
+          <div className="h-full min-h-[320px] flex flex-col items-center justify-center p-8 bg-white border border-dashed border-[#D8CFF0] rounded-xl text-center">
             <div className="p-3 rounded-full bg-yellow-50 text-yellow-600 border border-yellow-200 mb-2">
               <StickyNote className="h-8 w-8" />
             </div>
@@ -313,7 +326,7 @@ export function PostItBoard({
             <button
               type="button"
               onClick={handleOpenCreate}
-              className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-[#8E0E75] text-white text-xs font-extrabold uppercase tracking-wider hover:bg-[#700B5C] cursor-pointer"
+              className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#8E0E75] text-white text-xs font-extrabold uppercase tracking-wider hover:bg-[#700B5C] cursor-pointer"
             >
               <Plus className="h-3.5 w-3.5" />
               <span>Crear mi primer Post-it</span>
@@ -328,7 +341,7 @@ export function PostItBoard({
               return (
                 <div
                   key={item.id}
-                  className={`relative flex flex-col justify-between rounded-sm border ${cfg.bg} ${cfg.border} p-3.5 shadow-xs hover:shadow-md transition-all select-none group min-h-[220px] ${
+                  className={`relative flex flex-col justify-between rounded-xl border ${cfg.bg} ${cfg.border} p-3.5 shadow-xs hover:shadow-md transition-all select-none group min-h-[220px] ${
                     item.isCompleted ? 'opacity-65' : ''
                   }`}
                 >
@@ -444,13 +457,18 @@ export function PostItBoard({
         )}
       </div>
 
-      {/* Modal de Creación / Edición de Post-it */}
+      {/* Modal de Creación / Edición de Post-it (Zero-Scroll & 2 Columnas) */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-xs">
-          <div className="w-full max-w-lg bg-white rounded-sm border border-[#D8CFF0] shadow-2xl overflow-hidden flex flex-col">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-xs"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsModalOpen(false);
+          }}
+        >
+          <div className="w-full max-w-3xl bg-white rounded-md border border-[#D8CFF0] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             
             {/* Cabecera del modal */}
-            <div className="px-4 py-2.5 bg-[#8E0E75] text-white flex items-center justify-between">
+            <div className="px-4 py-2.5 bg-[#8E0E75] text-white flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
                 <StickyNote className="h-4 w-4" />
                 <h3 className="text-xs font-black uppercase tracking-wider">
@@ -461,169 +479,175 @@ export function PostItBoard({
                 type="button"
                 onClick={() => setIsModalOpen(false)}
                 className="p-1 rounded-xs hover:bg-white/20 transition-colors cursor-pointer"
+                aria-label="Cerrar modal"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            {/* Formulario */}
-            <form onSubmit={handleSave} className="p-4 space-y-3">
-              
-              {/* Título del Post-it */}
-              <div>
-                <label className="block text-[11px] font-black uppercase tracking-wider text-[#292929] mb-1">
-                  Título o Asunto del Recordatorio *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="ej. Entrega de informe mensual / Recordatorio cita médica"
-                  className="w-full px-2.5 py-1.5 text-xs rounded-sm border border-[#D8CFF0] focus:border-[#8E0E75] focus:outline-none"
-                />
-              </div>
+            {/* Formulario 2 Columnas Compacto (DM-15 Zero-Scroll) */}
+            <form onSubmit={handleSave} className="p-3.5 flex flex-col overflow-y-auto">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5">
+                
+                {/* Columna Izquierda: Datos del Post-It */}
+                <div className="md:col-span-6 space-y-2.5">
+                  <div>
+                    <label className="block text-[11px] font-black uppercase tracking-wider text-[#292929] mb-1">
+                      Título o Asunto del Recordatorio *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      autoFocus
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      placeholder="ej. Entrega de informe mensual"
+                      className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-[#D8CFF0] focus:border-[#8E0E75] focus:outline-none"
+                    />
+                  </div>
 
-              {/* Contenido / Nota */}
-              <div>
-                <label className="block text-[11px] font-black uppercase tracking-wider text-[#292929] mb-1">
-                  Contenido de la Nota adhesiva
-                </label>
-                <textarea
-                  rows={2}
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  placeholder="Escribe aquí los detalles del recordatorio..."
-                  className="w-full px-2.5 py-1.5 text-xs rounded-sm border border-[#D8CFF0] focus:border-[#8E0E75] focus:outline-none resize-none"
-                />
-              </div>
+                  <div>
+                    <label className="block text-[11px] font-black uppercase tracking-wider text-[#292929] mb-1">
+                      Contenido de la Nota adhesiva
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={content}
+                      onChange={(e) => setContent(e.target.value)}
+                      placeholder="Escribe aquí los detalles del recordatorio..."
+                      className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-[#D8CFF0] focus:border-[#8E0E75] focus:outline-none resize-none"
+                    />
+                  </div>
 
-              {/* Color del Post-it */}
-              <div>
-                <label className="block text-[11px] font-black uppercase tracking-wider text-[#292929] mb-1">
-                  Color del Post-it
-                </label>
-                <div className="flex items-center gap-2">
-                  {(Object.keys(POSTIT_COLORS) as PostItColor[]).map((cKey) => {
-                    const cfg = POSTIT_COLORS[cKey];
-                    return (
+                  <div>
+                    <label className="block text-[11px] font-black uppercase tracking-wider text-[#292929] mb-1">
+                      Color del Post-it
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      {(Object.keys(POSTIT_COLORS) as PostItColor[]).map((cKey) => {
+                        const cfg = POSTIT_COLORS[cKey];
+                        return (
+                          <button
+                            key={cKey}
+                            type="button"
+                            onClick={() => setColor(cKey)}
+                            className={`flex-1 py-1 px-1 rounded-xs border text-[11px] font-bold text-center cursor-pointer transition-all ${cfg.bg} ${cfg.border} ${
+                              color === cKey ? 'ring-2 ring-[#8E0E75] scale-105 shadow-xs' : 'opacity-70 hover:opacity-100'
+                            }`}
+                          >
+                            {cfg.name.split(' ')[0]}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Fecha y Hora con AppCalendar in-app */}
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <div>
+                      <label className="block text-[11px] font-black uppercase tracking-wider text-[#292929] mb-1">
+                        Fecha Límite *
+                      </label>
+                      <AppCalendar
+                        value={targetDate}
+                        onChange={setTargetDate}
+                        className="w-full"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-black uppercase tracking-wider text-[#292929] mb-1">
+                        Hora Estimada
+                      </label>
+                      <div className="flex items-center rounded-lg border border-[#D8CFF0] px-2 py-1 bg-white focus-within:border-[#8E0E75]">
+                        <Clock className="h-3.5 w-3.5 text-[#8E0E75] mr-1.5 shrink-0" />
+                        <input
+                          type="text"
+                          value={targetTime}
+                          onChange={(e) => setTargetTime(e.target.value)}
+                          placeholder="10:00"
+                          className="w-full text-xs font-mono tabular-nums focus:outline-none bg-transparent"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Columna Derecha: Notificaciones y Avisos */}
+                <div className="md:col-span-6 flex flex-col justify-between space-y-2.5 bg-[#F8F6FC] p-3 rounded-xl border border-[#D8CFF0]">
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[11px] font-black uppercase tracking-wider text-[#292929] flex items-center gap-1.5">
+                        <Bell className="h-3.5 w-3.5 text-[#8E0E75]" />
+                        <span>Avisos Programados</span>
+                      </label>
+                      <span className="text-[11px] text-[#8E0E75] font-bold">
+                        {selectedReminders.length} activo(s)
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-[#4A4A4A] mb-2 leading-tight">
+                      Selecciona cuándo recibir avisos en el panel lateral antes de la fecha límite:
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {PRESET_REMINDERS.map((preset) => {
+                        const isChecked = selectedReminders.some((r) => r.offsetMinutes === preset.offsetMinutes);
+                        return (
+                          <button
+                            key={preset.offsetMinutes}
+                            type="button"
+                            onClick={() => togglePresetReminder(preset)}
+                            className={`px-2 py-1.5 rounded-xs border text-[11px] font-bold text-left flex items-center justify-between transition-all cursor-pointer ${
+                              isChecked
+                                ? 'bg-[#8E0E75] text-white border-[#8E0E75]'
+                                : 'bg-white text-[#292929] border-[#D8CFF0] hover:border-[#8E0E75]'
+                            }`}
+                          >
+                            <span>{preset.label}</span>
+                            {isChecked && <Check className="h-3 w-3 shrink-0" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="mt-2.5 flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        min="1"
+                        max="365"
+                        value={customDays}
+                        onChange={(e) => setCustomDays(e.target.value)}
+                        placeholder="X días antes..."
+                        className="w-28 px-2 py-1 text-xs rounded-xs border border-[#D8CFF0] focus:border-[#8E0E75] focus:outline-none bg-white"
+                      />
                       <button
-                        key={cKey}
                         type="button"
-                        onClick={() => setColor(cKey)}
-                        className={`flex-1 py-1 px-1.5 rounded-xs border text-[11px] font-bold text-center cursor-pointer transition-all ${cfg.bg} ${cfg.border} ${
-                          color === cKey ? 'ring-2 ring-[#8E0E75] scale-105 shadow-xs' : 'opacity-70 hover:opacity-100'
-                        }`}
+                        onClick={handleAddCustomReminder}
+                        className="px-2.5 py-1 rounded-xs bg-white hover:bg-[#8E0E75] hover:text-white border border-[#D8CFF0] text-[11px] font-extrabold uppercase transition-all cursor-pointer"
                       >
-                        {cfg.name.split(' ')[0]}
+                        + Añadir
                       </button>
-                    );
-                  })}
+                    </div>
+                  </div>
+
+                  {/* Botones de acción alineados */}
+                  <div className="pt-2.5 border-t border-[#D8CFF0] flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsModalOpen(false)}
+                      className="px-3.5 py-2 rounded-xl border border-[#D8CFF0] bg-white text-[#292929] text-xs font-bold hover:bg-slate-50 cursor-pointer"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-2 rounded-xl bg-[#8E0E75] hover:bg-[#700B5C] text-white text-xs font-extrabold uppercase tracking-wider cursor-pointer shadow-xs"
+                    >
+                      {editingPostIt ? 'Guardar Cambios' : 'Crear Post-it'}
+                    </button>
+                  </div>
                 </div>
+
               </div>
-
-              {/* Fecha y Hora Objetivo */}
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-[11px] font-black uppercase tracking-wider text-[#292929] mb-1">
-                    Fecha Objetivo / Límite *
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={targetDate}
-                    onChange={(e) => setTargetDate(e.target.value)}
-                    className="w-full px-2.5 py-1.5 text-xs rounded-sm border border-[#D8CFF0] focus:border-[#8E0E75] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-black uppercase tracking-wider text-[#292929] mb-1">
-                    Hora Estimada
-                  </label>
-                  <input
-                    type="time"
-                    value={targetTime}
-                    onChange={(e) => setTargetTime(e.target.value)}
-                    className="w-full px-2.5 py-1.5 text-xs rounded-sm border border-[#D8CFF0] focus:border-[#8E0E75] focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              {/* Configuración de Notificaciones Automáticas */}
-              <div className="pt-2 border-t border-[#D8CFF0]">
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-[11px] font-black uppercase tracking-wider text-[#292929] flex items-center gap-1.5">
-                    <Bell className="h-3.5 w-3.5 text-[#8E0E75]" />
-                    <span>Notificaciones Automáticas Programadas</span>
-                  </label>
-                  <span className="text-[11px] text-[#8E0E75] font-bold">
-                    {selectedReminders.length} seleccionada(s)
-                  </span>
-                </div>
-                <p className="text-[11px] text-[#4A4A4A] mb-2">
-                  Selecciona cuándo quieres que te lleguen las notificaciones en el panel lateral antes de la fecha límite:
-                </p>
-
-                {/* Checkboxes de recordatorios predefinidos */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-                  {PRESET_REMINDERS.map((preset) => {
-                    const isChecked = selectedReminders.some((r) => r.offsetMinutes === preset.offsetMinutes);
-                    return (
-                      <button
-                        key={preset.offsetMinutes}
-                        type="button"
-                        onClick={() => togglePresetReminder(preset)}
-                        className={`px-2 py-1.5 rounded-xs border text-[11px] font-bold text-left flex items-center justify-between transition-all cursor-pointer ${
-                          isChecked
-                            ? 'bg-[#8E0E75] text-white border-[#8E0E75]'
-                            : 'bg-[#F8F6FC] text-[#292929] border-[#D8CFF0] hover:border-[#8E0E75]'
-                        }`}
-                      >
-                        <span>{preset.label}</span>
-                        {isChecked && <Check className="h-3 w-3 shrink-0" />}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Añadir personalizado */}
-                <div className="mt-2 flex items-center gap-1.5">
-                  <input
-                    type="number"
-                    min="1"
-                    max="365"
-                    value={customDays}
-                    onChange={(e) => setCustomDays(e.target.value)}
-                    placeholder="X días antes..."
-                    className="w-28 px-2 py-1 text-xs rounded-xs border border-[#D8CFF0] focus:border-[#8E0E75] focus:outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddCustomReminder}
-                    className="px-2.5 py-1 rounded-xs bg-[#F8F6FC] hover:bg-[#8E0E75] hover:text-white border border-[#D8CFF0] text-[11px] font-extrabold uppercase transition-all cursor-pointer"
-                  >
-                    + Añadir
-                  </button>
-                </div>
-              </div>
-
-              {/* Botones de acción */}
-              <div className="pt-3 border-t border-[#D8CFF0] flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-3 py-1.5 rounded-sm border border-[#D8CFF0] text-[#292929] text-xs font-bold hover:bg-slate-50 cursor-pointer"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-1.5 rounded-sm bg-[#8E0E75] hover:bg-[#700B5C] text-white text-xs font-extrabold uppercase tracking-wider cursor-pointer shadow-xs"
-                >
-                  {editingPostIt ? 'Guardar Cambios' : 'Crear Post-it'}
-                </button>
-              </div>
-
             </form>
           </div>
         </div>

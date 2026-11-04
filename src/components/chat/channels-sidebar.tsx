@@ -77,7 +77,7 @@ export function ChannelsSidebar({
             placeholder="Ir a canal o compañero..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-8 pr-2.5 py-1 text-xs rounded-sm bg-white/10 hover:bg-white/15 focus:bg-white/20 text-white placeholder-white/40 border border-transparent focus:border-white/30 outline-none transition-all"
+            className="w-full pl-8 pr-2.5 py-1 text-xs rounded-lg bg-white/10 hover:bg-white/15 focus:bg-white/20 text-white placeholder-white/40 border border-transparent focus:border-white/30 outline-none transition-all"
           />
         </div>
       </div>
@@ -90,7 +90,7 @@ export function ChannelsSidebar({
           <button
             type="button"
             onClick={onSelectSummary}
-            className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-sm transition-all cursor-pointer ${
+            className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg transition-all cursor-pointer ${
               isSummaryActive
                 ? 'bg-white/25 text-white font-extrabold shadow-xs ring-1 ring-white/30'
                 : 'text-white/80 hover:bg-white/10 hover:text-white font-medium'
@@ -146,7 +146,7 @@ export function ChannelsSidebar({
                       key={channel.id}
                       type="button"
                       onClick={() => onSelectChannel(channel.id)}
-                      className={`w-full flex items-center justify-between px-2.5 py-1 rounded-sm text-left transition-all cursor-pointer ${
+                      className={`w-full flex items-center justify-between px-2.5 py-1 rounded-lg text-left transition-all cursor-pointer ${
                         isActive
                           ? 'bg-white/25 text-white font-extrabold shadow-xs ring-1 ring-white/30'
                           : 'text-white/80 hover:bg-white/10 hover:text-white font-medium'
@@ -200,7 +200,7 @@ export function ChannelsSidebar({
                     key={channel.id}
                     type="button"
                     onClick={() => onSelectChannel(channel.id)}
-                    className={`w-full flex items-center justify-between px-2.5 py-1 rounded-sm text-left transition-all cursor-pointer ${
+                    className={`w-full flex items-center justify-between px-2.5 py-1 rounded-lg text-left transition-all cursor-pointer ${
                       isActive
                         ? 'bg-white/25 text-white font-extrabold shadow-xs ring-1 ring-white/30'
                         : 'text-white/80 hover:bg-white/10 hover:text-white font-medium'
@@ -253,7 +253,7 @@ export function ChannelsSidebar({
                     key={channel.id}
                     type="button"
                     onClick={() => onSelectChannel(channel.id)}
-                    className={`w-full flex items-center justify-between px-2.5 py-1 rounded-sm text-left transition-all cursor-pointer ${
+                    className={`w-full flex items-center justify-between px-2.5 py-1 rounded-lg text-left transition-all cursor-pointer ${
                       isActive
                         ? 'bg-white/25 text-white font-extrabold shadow-xs ring-1 ring-white/30'
                         : 'text-white/80 hover:bg-white/10 hover:text-white font-medium'

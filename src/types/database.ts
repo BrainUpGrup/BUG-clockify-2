@@ -10,6 +10,7 @@ export interface Profile {
   role: UserRole;
   status?: ProfileStatus; // 'active' | 'pending' | 'rejected'
   department?: string;
+  avatar_url?: string;
   created_at: string;
 }
 
@@ -52,6 +53,7 @@ export interface Database {
           full_name: string;
           email: string;
           role?: UserRole;
+          avatar_url?: string;
           created_at?: string;
         };
         Update: {
@@ -59,6 +61,7 @@ export interface Database {
           full_name?: string;
           email?: string;
           role?: UserRole;
+          avatar_url?: string;
           created_at?: string;
         };
         Relationships: [];

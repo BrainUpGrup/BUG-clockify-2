@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { subtitulosClient, SubtitulosApiError } from '@/lib/subtitulos-client';
+import { requireActiveUser } from '@/lib/api-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,7 +10,10 @@ interface RouteContext {
   };
 }
 
-export async function POST(_req: NextRequest, { params }: RouteContext) {
+export async function POST(req: NextRequest, { params }: RouteContext) {
+  const { errorResponse } = await requireActiveUser(req);
+  if (errorResponse) return errorResponse;
+
   try {
     const job = await subtitulosClient.approveJob(params.id);
     return NextResponse.json(job, { status: 202 });

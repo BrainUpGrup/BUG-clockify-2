@@ -22,10 +22,15 @@ export function AppShell({ children }: AppShellProps) {
   const isExcluded = pathname === '/login' || pathname === '/floating-timer' || pathname === '/';
   const showNavbar = !isExcluded && !!user;
 
+  // En vistas con diseno Zero-Scroll de alta densidad como Taskflow, fijar altura exacta sin scroll global de ventana
+  const isZeroScrollApp = pathname?.startsWith('/apps/taskflow');
+
   return (
-    <div className="min-h-screen flex flex-col w-full bg-[var(--hub-bg,#F8F6FC)]">
+    <div className={`w-full bg-gradient-to-b from-[#F8F5FC] via-[#ECE4F4] to-[var(--hub-bg,#DDD2EA)] flex flex-col min-w-0 max-w-full overflow-x-hidden ${
+      isZeroScrollApp ? 'h-screen max-h-screen overflow-hidden' : 'min-h-screen'
+    }`}>
       {showNavbar && <Navbar />}
-      <div className="flex-1 flex flex-col w-full">
+      <div className={`flex-1 flex flex-col w-full min-w-0 max-w-full ${isZeroScrollApp ? 'min-h-0 overflow-hidden' : ''}`}>
         {children}
       </div>
     </div>

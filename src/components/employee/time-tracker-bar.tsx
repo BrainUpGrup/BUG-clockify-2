@@ -548,7 +548,7 @@ export function TimeTrackerBar({
             {showCompanyStatsPop && (
               <div 
                 ref={companyPopRef} 
-                className="absolute left-0 sm:left-auto top-full mt-2 w-[300px] sm:w-[360px] bg-white rounded-sm border-2 border-[#8E0E75] shadow-2xl p-4 z-50 animate-in fade-in zoom-in-95 duration-150"
+                className="absolute left-0 sm:left-auto top-full mt-2 w-[300px] sm:w-[360px] bg-white rounded-xl border-2 border-[#8E0E75] shadow-2xl p-4 z-50 animate-in fade-in zoom-in-95 duration-150"
               >
                 <div className="flex items-center justify-between pb-2 mb-3 border-b border-[#EAE4F5]">
                   <div className="flex items-center gap-1.5 text-xs font-black uppercase text-[#8E0E75] truncate max-w-[280px]">
@@ -566,19 +566,19 @@ export function TimeTrackerBar({
 
                 <div className="space-y-3">
                   {/* Hoy en empresa */}
-                  <div className="bg-[#FAF8FD] p-2.5 rounded-sm border border-[#D8CFF0] flex justify-between items-center">
+                  <div className="bg-[#FAF8FD] p-2.5 rounded-lg border border-[#D8CFF0] flex justify-between items-center">
                     <span className="text-[11px] font-bold text-[#4A4A4A]">Hoy en este cliente:</span>
                     <strong className="text-sm font-black text-[#8E0E75] font-mono tabular-nums">{formatMinutes(todayCompanyMinutes)}</strong>
                   </div>
 
                   {/* Semana en empresa */}
-                  <div className="bg-[#FAF8FD] p-2.5 rounded-sm border border-[#D8CFF0] flex justify-between items-center">
+                  <div className="bg-[#FAF8FD] p-2.5 rounded-lg border border-[#D8CFF0] flex justify-between items-center">
                     <span className="text-[11px] font-bold text-[#4A4A4A]">Esta semana:</span>
                     <strong className="text-sm font-black text-[#191654] font-mono tabular-nums">{formatMinutes(weekCompanyMinutes)}</strong>
                   </div>
 
                   {/* Mes en empresa con cuota pactada */}
-                  <div className="bg-[#FAF8FD] p-2.5 rounded-sm border border-[#D8CFF0]">
+                  <div className="bg-[#FAF8FD] p-2.5 rounded-lg border border-[#D8CFF0]">
                     <div className="flex justify-between text-[11px] font-bold text-[#4A4A4A]">
                       <span>Acumulado del mes:</span>
                       <strong className="text-sm font-black text-[#065F46] font-mono tabular-nums">
@@ -594,7 +594,7 @@ export function TimeTrackerBar({
                             {quotaPercent}%
                           </span>
                         </div>
-                        <div className="h-1.5 w-full bg-slate-200 rounded-sm overflow-hidden">
+                        <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
                           <div 
                             className={`h-full ${quotaPercent > 100 ? 'bg-red-500' : 'bg-emerald-500'}`} 
                             style={{ width: `${Math.min(100, quotaPercent)}%` }} 
@@ -764,7 +764,7 @@ export function TimeTrackerBar({
                 >
                   <Play className="h-5 w-5 sm:h-6 sm:w-6 fill-current" />
                   <span>Iniciar</span>
-                  <kbd className="hidden 2xl:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-white/20 text-white border border-white/30 ml-1">
+                  <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-white/20 text-white border border-white/30 ml-1">
                     Ctrl ↵
                   </kbd>
                 </button>
@@ -777,7 +777,7 @@ export function TimeTrackerBar({
                 >
                   <Square className="h-5 w-5 sm:h-6 sm:w-6 fill-current" />
                   <span>{isSubmitting ? '...' : 'Parar'}</span>
-                  <kbd className="hidden 2xl:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-white/20 text-white border border-white/30 ml-1">
+                  <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-white/20 text-white border border-white/30 ml-1">
                     Ctrl ↵
                   </kbd>
                 </button>
@@ -791,7 +791,7 @@ export function TimeTrackerBar({
               >
                 <Plus className="h-5 w-5 sm:h-6 sm:w-6" />
                 <span>{isSubmitting ? '...' : 'Añadir'}</span>
-                <kbd className="hidden 2xl:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-white/20 text-white border border-white/30 ml-1">
+                <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-white/20 text-white border border-white/30 ml-1">
                   Ctrl ↵
                 </kbd>
               </button>

@@ -18,10 +18,20 @@ import {
   ChevronDown, 
   MoreVertical,
   UserCheck,
-  Calendar
+  Calendar,
+  Paperclip,
+  Image as ImageIcon,
+  FileVideo,
+  Download,
+  Play,
+  Maximize2,
+  FileText
 } from 'lucide-react';
-import { Channel, ChatMessage } from '@/types/chat';
+import { Channel, ChatMessage, ChatAttachment } from '@/types/chat';
+import { compressImageForChat, generateVideoPoster, formatFileSize, getAttachmentType } from '@/lib/chat-attachments';
 import { Profile } from '@/types/database';
+import { AppSelect, SelectOption } from '@/components/ui/app-select';
+import { UserAvatar } from '@/components/ui/user-avatar';
 
 interface ChatViewProps {
   channel: Channel;
@@ -32,8 +42,9 @@ interface ChatViewProps {
     content: string,
     isActionItem: boolean,
     assignedTo?: string | null,
-    priority?: 'normal' | 'urgent'
-  ) => void;
+    priority?: 'normal' | 'urgent',
+    attachments?: ChatAttachment[]
+  ) => void | Promise<void>;
   onToggleCompleteActionItem: (messageId: string, currentStatus: boolean) => void;
   onTogglePinMessage: (messageId: string, currentStatus: boolean) => void;
   onConvertToTask: (messageId: string, assignedTo: string, assignedName: string) => void;
@@ -57,6 +68,26 @@ export function ChatView({
   const [showPinnedDrawer, setShowPinnedDrawer] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState<string | null>(null);
 
+  // Estados para subida y procesamiento de adjuntos (fotos y vídeos)
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pendingAttachment, setPendingAttachment] = useState<{
+    file: File;
+    type: 'image' | 'video' | 'file';
+    previewUrl?: string;
+    posterUrl?: string;
+  } | null>(null);
+  const [isProcessingAttachment, setIsProcessingAttachment] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  // Estado para modal visor de medios (lightbox de imagen o reproductor de vídeo)
+  const [selectedMedia, setSelectedMedia] = useState<{
+    type: 'image' | 'video';
+    url: string;
+    name: string;
+    size: number;
+  } | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll al final con cada mensaje nuevo
@@ -67,18 +98,97 @@ export function ChatView({
   const channelTasks = messages.filter((m) => m.is_action_item);
   const channelPinned = messages.filter((m) => m.is_pinned);
 
-  const handleSend = (e: React.FormEvent) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadError(null);
+    setIsProcessingAttachment(true);
+    const fileType = getAttachmentType(file.type, file.name);
+
+    try {
+      if (fileType === 'image') {
+        const { file: compressedFile, dataUrl } = await compressImageForChat(file);
+        setPendingAttachment({
+          file: compressedFile,
+          type: 'image',
+          previewUrl: dataUrl,
+        });
+      } else if (fileType === 'video') {
+        const poster = await generateVideoPoster(file);
+        setPendingAttachment({
+          file,
+          type: 'video',
+          posterUrl: poster || undefined,
+        });
+      } else {
+        setPendingAttachment({
+          file,
+          type: 'file',
+        });
+      }
+    } catch (err) {
+      console.error('Error procesando archivo:', err);
+      setUploadError('No se pudo procesar el archivo seleccionado');
+    } finally {
+      setIsProcessingAttachment(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleClearPendingAttachment = () => {
+    setPendingAttachment(null);
+    setUploadError(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputText.trim()) return;
+    if (!inputText.trim() && !pendingAttachment) return;
+
+    let uploadedAttachments: ChatAttachment[] | undefined;
+
+    if (pendingAttachment) {
+      setIsUploading(true);
+      try {
+        const formData = new FormData();
+        formData.append('file', pendingAttachment.file);
+        formData.append('channelId', channel.id);
+        formData.append('title', pendingAttachment.file.name);
+        if (pendingAttachment.posterUrl) {
+          formData.append('posterUrl', pendingAttachment.posterUrl);
+        }
+
+        const res = await fetch('/api/slack/files/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await res.json();
+        if (data.ok && data.attachment) {
+          uploadedAttachments = [data.attachment];
+        } else {
+          throw new Error(data.error || 'Error al subir el archivo');
+        }
+      } catch (err: any) {
+        console.error('Error subiendo adjunto:', err);
+        setUploadError(err.message || 'Error al subir el archivo a Slack');
+        setIsUploading(false);
+        return;
+      }
+      setIsUploading(false);
+    }
 
     onSendMessage(
       inputText.trim(),
       isActionItem,
       isActionItem ? selectedAssignee : undefined,
-      taskPriority
+      taskPriority,
+      uploadedAttachments
     );
 
     setInputText('');
+    setPendingAttachment(null);
     setIsActionItem(false);
     setTaskPriority('normal');
   };
@@ -189,12 +299,15 @@ export function ChatView({
             return (
               <div
                 key={msg.id}
-                className="group relative flex items-start gap-3 p-2 rounded-sm hover:bg-[#F8F6FC] transition-colors"
+                className="group relative flex items-start gap-3 p-2 rounded-lg hover:bg-[#F8F6FC] transition-colors"
               >
                 {/* Avatar */}
-                <div className="h-8 w-8 rounded-full bg-[#191654] text-white text-xs font-bold flex items-center justify-center shrink-0 ring-1 ring-white/50">
-                  {initials}
-                </div>
+                <UserAvatar
+                  src="/abuela-avatar.png"
+                  name={msg.sender_name}
+                  size="sm"
+                  className="ring-1 ring-[#D8CFF0]"
+                />
 
                 {/* Contenido Principal */}
                 <div className="flex-1 min-w-0 space-y-1">
@@ -218,7 +331,7 @@ export function ChatView({
 
                   {/* Texto ordinario o Tarjeta de Tarea Accionable */}
                   {msg.is_action_item ? (
-                    <div className="rounded-sm border-l-4 border-l-[#8E0E75] bg-[#F8F6FC] border border-[#D8CFF0] p-3 space-y-2 max-w-xl">
+                    <div className="rounded-2xl border-l-4 border-l-[#8E0E75] bg-[#F8F6FC] border border-[#D8CFF0] p-3 space-y-2 max-w-xl">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-1.5">
                           <CheckCircle2 className="h-3.5 w-3.5 text-[#8E0E75]" />
@@ -265,10 +378,125 @@ export function ChatView({
                       {msg.content}
                     </p>
                   )}
+
+                  {/* Adjuntos del Mensaje: Fotos y Vídeos */}
+                  {msg.attachments && msg.attachments.length > 0 && (
+                    <div className="pt-2 flex flex-wrap gap-3">
+                      {msg.attachments.map((att) => {
+                        if (att.type === 'image') {
+                          return (
+                            <div
+                              key={att.id}
+                              className="group/img relative rounded-2xl overflow-hidden border-2 border-[#D0C4EB] bg-[#F8F6FC] shadow-2xs hover:shadow-md transition-all max-w-xs sm:max-w-sm"
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={att.url}
+                                alt={att.name}
+                                className="w-full max-h-64 object-cover cursor-pointer hover:opacity-95 transition-opacity"
+                                onClick={() => setSelectedMedia({ type: 'image', url: att.url, name: att.name, size: att.size })}
+                              />
+                              <div className="p-2 bg-white/95 border-t border-[#EAE4F5] flex items-center justify-between text-[11px] gap-2">
+                                <span className="font-bold text-[#292929] truncate" title={att.name}>
+                                  {att.name}
+                                </span>
+                                <span className="font-mono tabular-nums text-slate-500 shrink-0">
+                                  {formatFileSize(att.size)}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        if (att.type === 'video') {
+                          return (
+                            <div
+                              key={att.id}
+                              className="w-full max-w-md rounded-2xl border-2 border-[#D0C4EB] bg-[#FAF8FD] p-3 shadow-2xs hover:shadow-md transition-all space-y-2"
+                            >
+                              <div className="flex items-center gap-3">
+                                {/* Miniatura / Póster del vídeo */}
+                                <div
+                                  onClick={() => setSelectedMedia({ type: 'video', url: att.url, name: att.name, size: att.size })}
+                                  className="relative h-18 w-28 sm:h-20 sm:w-32 rounded-xl bg-slate-900 border border-[#D8CFF0] overflow-hidden shrink-0 flex items-center justify-center cursor-pointer group/vid shadow-2xs"
+                                  title="Reproducir vídeo"
+                                >
+                                  {att.poster_url ? (
+                                    /* eslint-disable-next-line @next/next/no-img-element */
+                                    <img src={att.poster_url} alt="" className="h-full w-full object-cover group-hover/vid:scale-105 transition-transform" />
+                                  ) : (
+                                    <FileVideo className="h-7 w-7 text-white/70" />
+                                  )}
+                                  <div className="absolute inset-0 bg-black/35 flex items-center justify-center group-hover/vid:bg-black/20 transition-colors">
+                                    <div className="h-8 w-8 rounded-full bg-white/95 text-[#8E0E75] flex items-center justify-center shadow-md">
+                                      <Play className="h-4 w-4 fill-[#8E0E75] translate-x-0.5" />
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Metadatos y acciones */}
+                                <div className="flex-1 min-w-0 space-y-1.5">
+                                  <div className="flex items-center gap-1.5 text-xs font-black text-[#191654]">
+                                    <FileVideo className="h-3.5 w-3.5 text-[#8E0E75] shrink-0" />
+                                    <span className="truncate" title={att.name}>{att.name}</span>
+                                  </div>
+                                  <p className="text-[11px] font-mono tabular-nums text-slate-500 font-medium">
+                                    {formatFileSize(att.size)} · Vídeo en Slack
+                                  </p>
+
+                                  <div className="flex items-center gap-2 pt-0.5">
+                                    {/* Botón Descargar (Zero-DOM-Bloat) */}
+                                    <a
+                                      href={`${att.url}${att.url.includes('?') ? '&' : '?'}download=1`}
+                                      download={att.name}
+                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-[#D8CFF0] text-[#8E0E75] hover:bg-[#8E0E75] hover:text-white text-[11px] font-bold uppercase tracking-wider transition-all shadow-2xs"
+                                    >
+                                      <Download className="h-3 w-3" />
+                                      <span>Descargar</span>
+                                    </a>
+
+                                    {/* Botón Ver */}
+                                    <button
+                                      type="button"
+                                      onClick={() => setSelectedMedia({ type: 'video', url: att.url, name: att.name, size: att.size })}
+                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#8E0E75] text-white hover:bg-[#700B5C] text-[11px] font-bold uppercase tracking-wider transition-all shadow-xs cursor-pointer"
+                                    >
+                                      <Play className="h-3 w-3 fill-white" />
+                                      <span>Ver</span>
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        // Archivo genérico
+                        return (
+                          <div
+                            key={att.id}
+                            className="inline-flex items-center gap-2 p-2.5 rounded-xl border border-[#D8CFF0] bg-white shadow-2xs text-xs font-medium"
+                          >
+                            <FileText className="h-4 w-4 text-[#8E0E75]" />
+                            <span className="font-bold text-[#292929] max-w-xs truncate">{att.name}</span>
+                            <span className="text-[11px] font-mono text-slate-400">({formatFileSize(att.size)})</span>
+                            <a
+                              href={`${att.url}${att.url.includes('?') ? '&' : '?'}download=1`}
+                              download={att.name}
+                              className="p-1 rounded-md text-[#8E0E75] hover:bg-[#F8F6FC] transition-colors"
+                              title="Descargar archivo"
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                            </a>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 {/* Barra Flotante de Acciones Rápidas en Hover (Slack Style) */}
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute right-2 top-2 bg-white border border-[#D8CFF0] rounded-sm shadow-xs flex items-center p-0.5 gap-0.5 z-10">
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute right-2 top-2 bg-white border border-[#D8CFF0] rounded-xl shadow-xs flex items-center p-0.5 gap-0.5 z-10">
                   {/* Fijar / Desfijar */}
                   <button
                     type="button"
@@ -294,7 +522,7 @@ export function ChatView({
 
                 {/* Modal Rápido de Conversión en Tarea */}
                 {showAssignModal === msg.id && (
-                  <div className="absolute right-2 top-10 bg-white border border-[#8E0E75] p-3 rounded-sm shadow-xl z-20 w-64 space-y-2 animate-in fade-in duration-150">
+                  <div className="absolute right-2 top-10 bg-white border border-[#8E0E75] p-3 rounded-2xl shadow-xl z-20 w-64 space-y-2 animate-in fade-in duration-150">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-black uppercase text-[#8E0E75]">
                         Asignar Tarea A:
@@ -376,7 +604,7 @@ export function ChatView({
                 channelTasks.map((task) => (
                   <div
                     key={task.id}
-                    className="p-2.5 rounded-sm bg-white border border-[#D8CFF0] space-y-1.5 shadow-2xs"
+                    className="p-2.5 rounded-xl bg-white border border-[#D8CFF0] space-y-1.5 shadow-2xs"
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-bold text-[#8E0E75]">
@@ -433,7 +661,7 @@ export function ChatView({
                 channelPinned.map((msg) => (
                   <div
                     key={msg.id}
-                    className="p-2.5 rounded-sm bg-white border border-[#D8CFF0] space-y-1 shadow-2xs"
+                    className="p-2.5 rounded-xl bg-white border border-[#D8CFF0] space-y-1 shadow-2xs"
                   >
                     <div className="flex items-center justify-between text-[11px] text-slate-400">
                       <span className="font-bold text-[#191654]">{msg.sender_name}</span>
@@ -460,7 +688,7 @@ export function ChatView({
 
       {/* 5. CAJA DE ENVÍO DE MENSAJES INTELIGENTE (ESTILO SLACK) */}
       <footer className="p-3 border-t border-[#D8CFF0] bg-white shrink-0">
-        <form onSubmit={handleSend} className="rounded-sm border border-[#D8CFF0] focus-within:border-[#8E0E75] focus-within:ring-1 focus-within:ring-[#8E0E75] transition-all bg-white shadow-2xs">
+        <form onSubmit={handleSend} className="rounded-2xl border border-[#D8CFF0] focus-within:border-[#8E0E75] focus-within:ring-1 focus-within:ring-[#8E0E75] transition-all bg-white shadow-2xs">
           
           {/* Fila Superior de Configuración: Toggle de Tarea Accionable */}
           {isActionItem && (
@@ -470,16 +698,33 @@ export function ChatView({
                   <CheckCircle2 className="h-3 w-3" />
                   <span>Crear como Tarea para:</span>
                 </span>
-                <select
-                  value={selectedAssignee}
-                  onChange={(e) => setSelectedAssignee(e.target.value)}
-                  className="px-2 py-0.5 rounded-xs bg-white border border-[#D8CFF0] text-xs font-bold text-[#292929] outline-none"
-                >
-                  <option value="current_user">A mí (Alejandro Ramos)</option>
-                  <option value="user-albert-1">Albert Barceló (Coordinación)</option>
-                  <option value="user-denilson-1">Denilson Diseñador</option>
-                  <option value="team-all">Todo el Equipo</option>
-                </select>
+                {(() => {
+                  const assigneeOptions: SelectOption[] = [
+                    { value: 'current_user', label: `A mí (${currentUser?.full_name || 'Yo'})` },
+                    ...(profiles && profiles.length > 0
+                      ? profiles
+                          .filter((p) => p.id !== currentUser?.id)
+                          .map((p) => ({
+                            value: p.id,
+                            label: `${p.full_name} (${p.role === 'coordinator' ? 'Coordinación' : p.role === 'admin' ? 'Admin' : 'Equipo'})`,
+                          }))
+                      : [
+                          { value: 'user-albert-1', label: 'Albert Barceló (Coordinación)' },
+                          { value: 'user-denilson-1', label: 'Denilson Diseñador' },
+                        ]),
+                    { value: 'team-all', label: 'Todo el Equipo' },
+                  ];
+
+                  return (
+                    <AppSelect
+                      value={selectedAssignee}
+                      onChange={(val) => setSelectedAssignee(val)}
+                      options={assigneeOptions}
+                      className="w-56 text-xs font-bold"
+                      ariaLabel="Asignar tarea a"
+                    />
+                  );
+                })()}
               </div>
 
               <div className="flex items-center gap-2">
@@ -502,6 +747,60 @@ export function ChatView({
                   Cancelar
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* Previsualización de Adjunto Pendiente */}
+          {pendingAttachment && (
+            <div className="p-2.5 bg-[#FAF8FD] border-b border-[#D8CFF0] flex items-center justify-between gap-3 animate-in fade-in duration-150">
+              <div className="flex items-center gap-2.5 min-w-0">
+                {pendingAttachment.type === 'image' ? (
+                  <div className="h-10 w-10 rounded-lg overflow-hidden border border-[#D8CFF0] shrink-0 bg-slate-100 flex items-center justify-center">
+                    {pendingAttachment.previewUrl ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={pendingAttachment.previewUrl} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <ImageIcon className="h-5 w-5 text-[#8E0E75]" />
+                    )}
+                  </div>
+                ) : (
+                  <div className="h-10 w-14 rounded-lg overflow-hidden border border-[#D8CFF0] shrink-0 bg-slate-900 flex items-center justify-center relative">
+                    {pendingAttachment.posterUrl ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={pendingAttachment.posterUrl} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <FileVideo className="h-5 w-5 text-white/80" />
+                    )}
+                    <Play className="h-3 w-3 fill-white text-white absolute" />
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-[#292929] truncate max-w-xs sm:max-w-md">
+                    {pendingAttachment.file.name}
+                  </p>
+                  <p className="text-[11px] font-mono tabular-nums text-slate-500">
+                    {formatFileSize(pendingAttachment.file.size)} · {pendingAttachment.type === 'image' ? 'Fotografía optimizada' : 'Vídeo'}
+                    {isProcessingAttachment && ' (Procesando miniatura...)'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleClearPendingAttachment}
+                className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-white transition-colors cursor-pointer"
+                title="Quitar archivo adjunto"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
+          {uploadError && (
+            <div className="px-3 py-1.5 bg-red-50 border-b border-red-200 text-red-700 text-xs font-medium flex items-center justify-between">
+              <span>{uploadError}</span>
+              <button type="button" onClick={() => setUploadError(null)} className="text-red-500 hover:text-red-700">
+                <X className="h-3.5 w-3.5" />
+              </button>
             </div>
           )}
 
@@ -548,21 +847,120 @@ export function ChatView({
               >
                 <AtSign className="h-4 w-4" />
               </button>
+
+              {/* Botón Adjuntar Foto / Vídeo para Slack */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept="image/*,video/mp4,video/webm,video/quicktime"
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading || isProcessingAttachment}
+                className="p-2 rounded-md hover:bg-white text-slate-500 hover:text-[#8E0E75] border border-transparent hover:border-[#D8CFF0] transition-colors cursor-pointer disabled:opacity-40"
+                title="Adjuntar fotografía o vídeo para Slack"
+              >
+                <Paperclip className="h-4 w-4" />
+              </button>
             </div>
 
             {/* Botón de Envío Grande y Visual */}
             <button
               type="submit"
-              disabled={!inputText.trim()}
+              disabled={(!inputText.trim() && !pendingAttachment) || isUploading || isProcessingAttachment}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-[#8E0E75] hover:bg-[#700B5C] disabled:opacity-40 text-white text-xs sm:text-sm font-black uppercase tracking-wider transition-all cursor-pointer shadow-md shadow-[#8E0E75]/25 hover:shadow-lg hover:shadow-[#8E0E75]/35 hover:scale-105 active:scale-95"
             >
-              <span>Enviar</span>
-              <Send className="h-4 w-4" />
+              {isUploading ? (
+                <>
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  <span>Subiendo...</span>
+                </>
+              ) : (
+                <>
+                  <span>Enviar</span>
+                  <Send className="h-4 w-4" />
+                </>
+              )}
             </button>
           </div>
 
         </form>
       </footer>
+
+      {/* 6. MODAL VISOR DE MEDIOS (LIGHTBOX DE IMAGEN Y REPRODUCTOR DE VÍDEO SEGURO) */}
+      {selectedMedia && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setSelectedMedia(null)}
+        >
+          <div
+            className="relative max-w-4xl w-full bg-[#191654] rounded-2xl overflow-hidden border-2 border-[#D0C4EB]/40 shadow-2xl flex flex-col max-h-[90vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Barra Superior del Visor */}
+            <div className="px-4 py-3 bg-black/40 border-b border-white/10 flex items-center justify-between text-white">
+              <div className="flex items-center gap-2 min-w-0">
+                {selectedMedia.type === 'video' ? (
+                  <FileVideo className="h-4 w-4 text-[#D8CFF0] shrink-0" />
+                ) : (
+                  <ImageIcon className="h-4 w-4 text-[#D8CFF0] shrink-0" />
+                )}
+                <span className="text-xs font-bold truncate max-w-xs sm:max-w-md">
+                  {selectedMedia.name}
+                </span>
+                <span className="text-[11px] font-mono text-white/60 shrink-0">
+                  ({formatFileSize(selectedMedia.size)})
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <a
+                  href={`${selectedMedia.url}${selectedMedia.url.includes('?') ? '&' : '?'}download=1`}
+                  download={selectedMedia.name}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-bold uppercase tracking-wider transition-colors"
+                  title="Descargar archivo en su tamaño original"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  <span>Descargar</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setSelectedMedia(null)}
+                  className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                  title="Cerrar visor"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Contenido Visual */}
+            <div className="flex-1 flex items-center justify-center p-3 sm:p-5 bg-black/60 overflow-hidden min-h-[300px]">
+              {selectedMedia.type === 'image' ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={selectedMedia.url}
+                  alt={selectedMedia.name}
+                  className="max-h-[75vh] max-w-full object-contain rounded-lg shadow-lg"
+                />
+              ) : (
+                <video
+                  src={selectedMedia.url}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="max-h-[75vh] max-w-full rounded-lg shadow-lg outline-none"
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

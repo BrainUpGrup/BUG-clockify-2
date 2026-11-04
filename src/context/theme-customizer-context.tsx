@@ -26,7 +26,7 @@ export interface ThemePreset {
 
 // Valores por defecto institucionales de Brain Up ("La Abuela")
 export const DEFAULT_THEME_LAYERS: LayerThemeConfig = {
-  bg: '#F8F6FC',
+  bg: '#DDD2EA',
   header: '#FFFFFF',
   card1: '#FFFFFF',
   card2: '#FFFFFF',
@@ -40,7 +40,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     name: 'Original Brain Up ("La Abuela")',
     description: 'Estética oficial con Lila Ciruela corporativo, blanco nítido y acentos índigo.',
     config: {
-      bg: '#F8F6FC',
+      bg: '#DDD2EA',
       header: '#FFFFFF',
       card1: '#FFFFFF',
       card2: '#FFFFFF',
@@ -132,6 +132,10 @@ export function ThemeLayersProvider({ children }: { children: ReactNode }) {
       const stored = localStorage.getItem(STORAGE_KEY_THEME);
       if (stored) {
         const parsed = JSON.parse(stored);
+        // Si tenía el color casi-blanco anterior (#F8F6FC o #FFFFFF), actualizar al nuevo tono diferencial #EFEBF6
+        if (parsed.bg === '#F8F6FC' || parsed.bg === '#FFFFFF' || parsed.bg === '#EFEBF6') {
+          parsed.bg = '#DDD2EA';
+        }
         setLayers({ ...DEFAULT_THEME_LAYERS, ...parsed });
       }
     } catch (e) {

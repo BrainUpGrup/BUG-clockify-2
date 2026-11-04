@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { subtitulosClient, SubtitulosApiError } from '@/lib/subtitulos-client';
+import { requireActiveUser } from '@/lib/api-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,7 +10,10 @@ interface RouteContext {
   };
 }
 
-export async function GET(_req: NextRequest, { params }: RouteContext) {
+export async function GET(req: NextRequest, { params }: RouteContext) {
+  const { errorResponse } = await requireActiveUser(req);
+  if (errorResponse) return errorResponse;
+
   try {
     const job = await subtitulosClient.getJob(params.id);
     return NextResponse.json(job);
@@ -22,7 +26,10 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
   }
 }
 
-export async function DELETE(_req: NextRequest, { params }: RouteContext) {
+export async function DELETE(req: NextRequest, { params }: RouteContext) {
+  const { errorResponse } = await requireActiveUser(req);
+  if (errorResponse) return errorResponse;
+
   try {
     await subtitulosClient.deleteJob(params.id);
     return new NextResponse(null, { status: 204 });

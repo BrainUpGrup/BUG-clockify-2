@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import Link from 'next/link';
 import { 
   FileSpreadsheet, 
   FileText, 
@@ -15,11 +16,42 @@ import {
   TrendingUp,
   Briefcase,
   Layers,
-  ArrowRight
+  ArrowRight,
+  CheckSquare,
+  ExternalLink,
+  Plus
 } from 'lucide-react';
 import { Company, Profile, TimeEntry } from '@/types/database';
 import { formatMinutes } from '@/lib/utils';
 import { AppSelect } from '@/components/ui/app-select';
+import { TaskFlowItem } from '@/lib/calendar-export';
+import { getStoredTaskFlowItems, getUpcomingDeliverablesForCompany } from '@/lib/taskflow-data';
+
+function formatDeliverableDate(dateStr: string): { label: string; relative: string; isPast: boolean; isToday: boolean } {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const target = new Date(y, m - 1, d);
+  target.setHours(0, 0, 0, 0);
+
+  const diffTime = target.getTime() - today.getTime();
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+  const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  const monthNamesShort = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  const label = `${dayNames[target.getDay()]} ${d} ${monthNamesShort[m - 1]}`;
+
+  if (diffDays < 0) {
+    return { label, relative: `Vencida (${Math.abs(diffDays)}d)`, isPast: true, isToday: false };
+  } else if (diffDays === 0) {
+    return { label, relative: 'Hoy', isPast: false, isToday: true };
+  } else if (diffDays === 1) {
+    return { label, relative: 'Mañana', isPast: false, isToday: false };
+  } else {
+    return { label, relative: `En ${diffDays} días`, isPast: false, isToday: false };
+  }
+}
 
 interface MonthlyReportsProps {
   entries: TimeEntry[];
@@ -49,6 +81,22 @@ export function MonthlyReports({
 }: MonthlyReportsProps) {
   // Pestaña de perspectiva estadística: 'general' | 'company' | 'employee'
   const [statsView, setStatsView] = useState<'general' | 'company' | 'employee'>('general');
+
+  // Sincronización en tiempo real de TaskFlow para interconexión de entregables
+  const [taskflowItems, setTaskflowItems] = useState<TaskFlowItem[]>([]);
+
+  useEffect(() => {
+    const loadItems = () => {
+      setTaskflowItems(getStoredTaskFlowItems());
+    };
+    loadItems();
+    window.addEventListener('storage', loadItems);
+    window.addEventListener('bug_taskflow_updated', loadItems);
+    return () => {
+      window.removeEventListener('storage', loadItems);
+      window.removeEventListener('bug_taskflow_updated', loadItems);
+    };
+  }, []);
 
   // Estados de carga para Code-Splitting dinámico de exportaciones
   const [isExportingPdf, setIsExportingPdf] = useState(false);
@@ -199,6 +247,22 @@ export function MonthlyReports({
     };
   }, [currentCompany, companyEntries, employees]);
 
+  // Entregables agendados en TaskFlow para este cliente en los próximos 15 días
+  const companyUpcomingDeliverables = useMemo(() => {
+    if (!currentCompany || !taskflowItems.length) return [];
+    return getUpcomingDeliverablesForCompany(
+      taskflowItems,
+      currentCompany.id,
+      currentCompany.name,
+      15
+    );
+  }, [currentCompany, taskflowItems]);
+
+  // Suma de horas estimadas en los entregables agendados
+  const totalUpcomingEstimatedHours = useMemo(() => {
+    return companyUpcomingDeliverables.reduce((acc, it) => acc + (it.estimatedHours || 0), 0);
+  }, [companyUpcomingDeliverables]);
+
   // Empleado seleccionado actualmente
   const currentEmployee = useMemo(() => {
     return employees.find((e) => e.id === selectedEmployeeId) || employees[0];
@@ -319,14 +383,14 @@ export function MonthlyReports({
   return (
     <div className="w-full space-y-6">
       {/* Panel Superior: Selector de Perspectiva Estadística y Filtros de Fecha */}
-      <div className="w-full rounded-sm border border-[#D8CFF0] bg-white p-5 shadow-sm">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between pb-4 mb-4 border-b border-[#EAE4F5] gap-4">
+      <div className="w-full rounded-2xl border-2 border-[#D0C4EB] bg-white p-5 shadow-md shadow-[#191654]/6">
+        <div className="flex flex-col 2xl:flex-row 2xl:items-center justify-between pb-4 mb-4 border-b border-[#EAE4F5] gap-4">
           {/* Pestañas de las 3 Perspectivas de Estadísticas */}
-          <div className="flex flex-wrap items-center gap-2 p-1.5 rounded-lg bg-[#F8F6FC] border-2 border-[#D8CFF0] shadow-2xs">
+          <div className="flex flex-wrap items-center gap-2 p-1.5 rounded-2xl bg-[#F8F6FC] border-2 border-[#D8CFF0] shadow-2xs">
             <button
               type="button"
               onClick={() => setStatsView('general')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md text-xs sm:text-sm uppercase tracking-tight font-extrabold transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm uppercase tracking-tight font-extrabold transition-all cursor-pointer ${
                 statsView === 'general'
                   ? 'bg-[#8E0E75] text-white shadow-sm'
                   : 'text-[#4A4A4A] hover:text-[#8E0E75]'
@@ -338,7 +402,7 @@ export function MonthlyReports({
             <button
               type="button"
               onClick={() => setStatsView('company')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md text-xs sm:text-sm uppercase tracking-tight font-extrabold transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm uppercase tracking-tight font-extrabold transition-all cursor-pointer ${
                 statsView === 'company'
                   ? 'bg-[#8E0E75] text-white shadow-sm'
                   : 'text-[#4A4A4A] hover:text-[#8E0E75]'
@@ -350,7 +414,7 @@ export function MonthlyReports({
             <button
               type="button"
               onClick={() => setStatsView('employee')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md text-xs sm:text-sm uppercase tracking-tight font-extrabold transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm uppercase tracking-tight font-extrabold transition-all cursor-pointer ${
                 statsView === 'employee'
                   ? 'bg-[#8E0E75] text-white shadow-sm'
                   : 'text-[#4A4A4A] hover:text-[#8E0E75]'
@@ -362,12 +426,12 @@ export function MonthlyReports({
           </div>
 
           {/* Botones de Exportación Personalizados por Vista (Grandes y Visuales) */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap shrink-0">
             <button
               type="button"
               onClick={handleExportPDF}
               disabled={isExportingPdf}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-md border-2 border-[#8E0E75] bg-white text-[#8E0E75] text-xs sm:text-sm font-extrabold uppercase tracking-tight hover:bg-[#8E0E75] hover:text-white active:scale-95 shadow-sm hover:shadow-md hover:scale-105 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 border-[#8E0E75] bg-white text-[#8E0E75] text-xs sm:text-sm font-extrabold uppercase tracking-tight hover:bg-[#8E0E75] hover:text-white active:scale-95 shadow-sm hover:shadow-md hover:scale-105 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               title="Descargar informe en plantilla PDF nativa con gráficos"
             >
               {isExportingPdf ? (
@@ -389,7 +453,7 @@ export function MonthlyReports({
               type="button"
               onClick={handleExportExcel}
               disabled={isExportingExcel}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-md bg-[#3BB54A] text-white text-xs sm:text-sm font-extrabold uppercase tracking-tight hover:bg-[#32993E] active:scale-95 shadow-md shadow-[#3BB54A]/30 hover:shadow-lg hover:scale-105 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#3BB54A] text-white text-xs sm:text-sm font-extrabold uppercase tracking-tight hover:bg-[#32993E] active:scale-95 shadow-md shadow-[#3BB54A]/30 hover:shadow-lg hover:scale-105 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               title="Descargar plantilla Excel estructurada con sentido humano"
             >
               {isExportingExcel ? (
@@ -490,7 +554,7 @@ export function MonthlyReports({
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Buscar texto en descripciones..."
-                  className="w-full px-4 py-2.5 pl-9 rounded-sm border border-[#D8CFF0] bg-white text-xs text-[#292929] placeholder:text-slate-400 focus:border-[#8E0E75] outline-none"
+                  className="w-full px-4 py-2.5 pl-9 rounded-xl border border-[#D8CFF0] bg-white text-xs text-[#292929] placeholder:text-slate-400 focus:border-[#8E0E75] outline-none"
                 />
                 <Search className="h-4 w-4 text-[#8E0E75] absolute left-3 top-1/2 -translate-y-1/2" />
               </div>
@@ -507,7 +571,7 @@ export function MonthlyReports({
           {/* Tarjetas KPI de Resumen General */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* KPI 1: Horas Totales */}
-            <div className="rounded-sm border border-[#D8CFF0] bg-white p-4 shadow-sm">
+            <div className="rounded-xl border border-[#D8CFF0] bg-white p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold uppercase tracking-tight text-[#4A4A4A]">
                   Horas Totales Agencia
@@ -523,7 +587,7 @@ export function MonthlyReports({
             </div>
 
             {/* KPI 2: Horas en Cuotas */}
-            <div className="rounded-sm border border-[#D8CFF0] bg-white p-4 shadow-sm">
+            <div className="rounded-xl border border-[#D8CFF0] bg-white p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold uppercase tracking-tight text-[#4A4A4A]">
                   Horas en Cuotas
@@ -541,7 +605,7 @@ export function MonthlyReports({
             </div>
 
             {/* KPI 3: Horas Puntuales */}
-            <div className="rounded-sm border border-[#D8CFF0] bg-white p-4 shadow-sm">
+            <div className="rounded-xl border border-[#D8CFF0] bg-white p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold uppercase tracking-tight text-[#4A4A4A]">
                   Horas Puntuales / Extras
@@ -559,7 +623,7 @@ export function MonthlyReports({
             </div>
 
             {/* KPI 4: Salud de Cuotas */}
-            <div className="rounded-sm border border-[#D8CFF0] bg-white p-4 shadow-sm">
+            <div className="rounded-xl border border-[#D8CFF0] bg-white p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold uppercase tracking-tight text-[#4A4A4A]">
                   Salud de Cuotas
@@ -580,8 +644,8 @@ export function MonthlyReports({
           </div>
 
           {/* Gráfico y Panel de Seguimiento de Cuotas con Alertas de Horas Faltantes / Sobrantes */}
-          <div className="w-full rounded-sm border border-[#D8CFF0] bg-white p-6 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#EAE4F5] gap-2">
+          <div className="w-full rounded-2xl border-2 border-[#D0C4EB] bg-white p-6 shadow-md shadow-[#191654]/6 space-y-4">
+            <div className="flex flex-col 2xl:flex-row 2xl:items-center justify-between pb-3 border-b border-[#EAE4F5] gap-3">
               <div>
                 <h3 className="font-extrabold uppercase tracking-tight text-sm text-[#292929] flex items-center gap-2">
                   <Clock className="h-4 w-4 text-[#8E0E75]" />
@@ -626,7 +690,7 @@ export function MonthlyReports({
             {/* Listado interactivo de Clientes Cuota */}
             <div className="space-y-4">
               {generalStats.quotasBreakdown.length === 0 ? (
-                <div className="p-8 text-center text-xs text-[#4A4A4A] bg-[#F8F6FC] rounded-sm border border-[#D8CFF0]">
+                <div className="p-8 text-center text-xs text-[#4A4A4A] bg-[#F8F6FC] rounded-xl border border-[#D8CFF0]">
                   No hay clientes con cuota pactada registrados para este período.
                 </div>
               ) : (
@@ -641,11 +705,11 @@ export function MonthlyReports({
                 return (
                   <div
                     key={item.company.id}
-                    className="p-4 rounded-sm border border-[#EAE4F5] bg-[#F8F6FC]/60 hover:bg-[#F8F6FC] transition-colors"
+                    className="p-4 rounded-xl border border-[#EAE4F5] bg-[#F8F6FC]/60 hover:bg-[#F8F6FC] transition-colors"
                   >
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-2.5">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-sm bg-white border border-[#D8CFF0] text-[#8E0E75]">
+                        <div className="p-2 rounded-lg bg-white border border-[#D8CFF0] text-[#8E0E75]">
                           <Building2 className="h-4 w-4" />
                         </div>
                         <div>
@@ -661,7 +725,7 @@ export function MonthlyReports({
                       {/* Badge Destacado: Rojo para faltantes, Verde para exacto, Lila para sobrantes */}
                       <div className="shrink-0">
                         {isFaltan && (
-                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-sm bg-red-50 border border-red-300 text-red-700 text-xs font-bold badge-pop">
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-red-50 border border-red-300 text-red-700 text-xs font-bold badge-pop">
                             <AlertTriangle className="h-3.5 w-3.5 text-red-600" />
                             <span>
                               {isMonthInProgress ? 'Retrasada' : 'Cuota no cumplida'} · faltan {formatMinutes(Math.abs(item.deltaMin))}
@@ -669,19 +733,19 @@ export function MonthlyReports({
                           </div>
                         )}
                         {isOnPace && (
-                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-sm bg-amber-50 border border-amber-300 text-amber-800 text-xs font-bold badge-pop">
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-50 border border-amber-300 text-amber-800 text-xs font-bold badge-pop">
                             <Clock className="h-3.5 w-3.5 text-amber-600" />
                             <span>En ritmo · faltan {formatMinutes(Math.abs(item.deltaMin))}</span>
                           </div>
                         )}
                         {isSobran && (
-                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-sm bg-[#8E0E75]/10 border border-[#8E0E75]/40 text-[#8E0E75] text-xs font-bold uppercase tracking-tight badge-pop">
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#8E0E75]/10 border border-[#8E0E75]/40 text-[#8E0E75] text-xs font-bold uppercase tracking-tight badge-pop">
                             <TrendingUp className="h-3.5 w-3.5 text-[#8E0E75]" />
                             <span>Horas sobrantes: {formatMinutes(item.deltaMin)}</span>
                           </div>
                         )}
                         {isExacto && (
-                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-sm bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold uppercase tracking-tight badge-pop">
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold uppercase tracking-tight badge-pop">
                             <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
                             <span>Cuota cumplida al milímetro</span>
                           </div>
@@ -746,7 +810,7 @@ export function MonthlyReports({
           </div>
 
           {/* Tabla Resumen de Dedicación General por Empresa */}
-          <div className="w-full rounded-sm border border-[#D8CFF0] bg-white overflow-hidden shadow-sm">
+          <div className="w-full rounded-2xl border-2 border-[#D0C4EB] bg-white overflow-hidden shadow-md shadow-[#191654]/6">
             <div className="px-6 py-4 bg-[#F8F6FC] border-b border-[#EAE4F5] flex items-center justify-between">
               <div>
                 <h4 className="font-extrabold uppercase tracking-tight text-sm text-[#292929]">
@@ -799,7 +863,7 @@ export function MonthlyReports({
                         </td>
                         <td className="px-6 py-3.5 text-center">
                           <span
-                            className={`px-2 py-0.5 rounded-sm text-[11px] font-bold uppercase tracking-tight border ${
+                            className={`px-2.5 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-tight border ${
                               c.client_type === 'cuota'
                                 ? 'bg-[#8E0E75]/10 text-[#8E0E75] border-[#8E0E75]/30'
                                 : 'bg-[#191654]/10 text-[#191654] border-[#191654]/30'
@@ -829,19 +893,19 @@ export function MonthlyReports({
                               const diff = cuotaMin - targetM;
                               if (diff < 0) {
                                 return (
-                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-sm bg-red-50 text-red-700 border border-red-300 font-extrabold text-[11px]">
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-md bg-red-50 text-red-700 border border-red-300 font-extrabold text-[11px]">
                                     Faltan {formatMinutes(Math.abs(diff))}
                                   </span>
                                 );
                               } else if (diff > 0) {
                                 return (
-                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-sm bg-[#8E0E75]/10 text-[#8E0E75] border border-[#8E0E75]/40 font-extrabold text-[11px]">
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-md bg-[#8E0E75]/10 text-[#8E0E75] border border-[#8E0E75]/40 font-extrabold text-[11px]">
                                     Sobran {formatMinutes(diff)}
                                   </span>
                                 );
                               } else {
                                 return (
-                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-sm bg-emerald-50 text-emerald-800 border border-emerald-300 font-extrabold text-[11px]">
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-300 font-extrabold text-[11px]">
                                     Al milímetro
                                   </span>
                                 );
@@ -867,10 +931,10 @@ export function MonthlyReports({
       {statsView === 'company' && currentCompany && currentCompanyStats && (
         <div className="space-y-6">
           {/* Ficha Principal de la Empresa */}
-          <div className="w-full rounded-sm border border-[#D8CFF0] bg-white p-6 shadow-sm space-y-5">
+          <div className="w-full rounded-2xl border-2 border-[#D0C4EB] bg-white p-6 shadow-md shadow-[#191654]/6 space-y-5">
             <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-[#EAE4F5] gap-3">
               <div className="flex items-center gap-3">
-                <div className="p-3 rounded-sm bg-[#F8F6FC] text-[#8E0E75] border border-[#D8CFF0]">
+                <div className="p-3 rounded-xl bg-[#F8F6FC] text-[#8E0E75] border border-[#D8CFF0]">
                   <Building2 className="h-6 w-6" />
                 </div>
                 <div>
@@ -879,7 +943,7 @@ export function MonthlyReports({
                   </h3>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span
-                      className={`px-2 py-0.5 rounded-sm text-[11px] font-extrabold uppercase tracking-wider border ${
+                      className={`px-2.5 py-0.5 rounded-md text-[11px] font-extrabold uppercase tracking-wider border ${
                         currentCompany.client_type === 'cuota'
                           ? 'bg-[#8E0E75]/10 text-[#8E0E75] border-[#8E0E75]/30'
                           : 'bg-[#191654]/10 text-[#191654] border-[#191654]/30'
@@ -902,7 +966,7 @@ export function MonthlyReports({
                     const done = targetMin + currentCompanyStats.deltaMin;
                     const onPace = isMonthInProgress && targetMin > 0 && (done / targetMin) * 100 >= expectedPercent - 10;
                     return (
-                      <div className={`p-3 rounded-sm border animate-in fade-in duration-200 ${onPace ? 'bg-amber-50 border-amber-300 text-amber-900' : 'bg-red-50 border-red-300 text-red-800'}`}>
+                      <div className={`p-3.5 rounded-xl border animate-in fade-in duration-200 ${onPace ? 'bg-amber-50 border-amber-300 text-amber-900' : 'bg-red-50 border-red-300 text-red-800'}`}>
                         <div className={`flex items-center gap-2 font-bold text-sm ${onPace ? 'text-amber-800' : 'text-red-700'}`}>
                           {onPace ? <Clock className="h-4 w-4 text-amber-600" /> : <AlertTriangle className="h-4 w-4 text-red-600" />}
                           <span>
@@ -918,7 +982,7 @@ export function MonthlyReports({
                   })()}
 
                   {currentCompanyStats.deltaMin > 0 && (
-                    <div className="p-3 rounded-sm bg-[#8E0E75]/10 border border-[#8E0E75]/40 text-[#8E0E75] animate-in fade-in duration-200">
+                    <div className="p-3.5 rounded-xl bg-[#8E0E75]/10 border border-[#8E0E75]/40 text-[#8E0E75] animate-in fade-in duration-200">
                       <div className="flex items-center gap-2 font-extrabold text-sm uppercase tracking-wider">
                         <TrendingUp className="h-4 w-4 text-[#8E0E75]" />
                         <span>HORAS SOBRANTES: {formatMinutes(currentCompanyStats.deltaMin)}</span>
@@ -930,7 +994,7 @@ export function MonthlyReports({
                   )}
 
                   {currentCompanyStats.deltaMin === 0 && (
-                    <div className="p-3 rounded-sm bg-emerald-50 border border-emerald-300 text-emerald-800 animate-in fade-in duration-200">
+                    <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 animate-in fade-in duration-200">
                       <div className="flex items-center gap-2 font-extrabold text-sm uppercase tracking-wider text-emerald-700">
                         <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                         <span>CUOTA CUMPLIDA AL MILÍMETRO</span>
@@ -948,7 +1012,7 @@ export function MonthlyReports({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {currentCompany.client_type === 'cuota' ? (
                 <>
-                  <div className="p-3.5 rounded-sm bg-[#F8F6FC] border border-[#D8CFF0]">
+                  <div className="p-4 rounded-xl bg-[#F8F6FC] border border-[#D8CFF0]">
                     <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#4A4A4A] block">
                       Cuota Mensual Pactada
                     </span>
@@ -956,7 +1020,7 @@ export function MonthlyReports({
                       {currentCompany.monthly_hours_quota}h 00m
                     </span>
                   </div>
-                  <div className="p-3.5 rounded-sm bg-[#F8F6FC] border border-[#D8CFF0]">
+                  <div className="p-4 rounded-xl bg-[#F8F6FC] border border-[#D8CFF0]">
                     <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#4A4A4A] block">
                       Horas Imputadas a Cuota
                     </span>
@@ -964,7 +1028,7 @@ export function MonthlyReports({
                       {formatMinutes(currentCompanyStats.cuotaMin)}
                     </span>
                   </div>
-                  <div className="p-3.5 rounded-sm bg-[#F8F6FC] border border-[#D8CFF0]">
+                  <div className="p-4 rounded-xl bg-[#F8F6FC] border border-[#D8CFF0]">
                     <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#4A4A4A] block">
                       Horas Puntuales / Extras
                     </span>
@@ -972,7 +1036,7 @@ export function MonthlyReports({
                       {formatMinutes(currentCompanyStats.puntualMin)}
                     </span>
                   </div>
-                  <div className="p-3.5 rounded-sm bg-[#F8F6FC] border border-[#D8CFF0]">
+                  <div className="p-4 rounded-xl bg-[#F8F6FC] border border-[#D8CFF0]">
                     <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#4A4A4A] block">
                       Total Trabajo General
                     </span>
@@ -983,7 +1047,7 @@ export function MonthlyReports({
                 </>
               ) : (
                 <>
-                  <div className="p-3.5 rounded-sm bg-[#F8F6FC] border border-[#D8CFF0] sm:col-span-2">
+                  <div className="p-4 rounded-xl bg-[#F8F6FC] border border-[#D8CFF0] sm:col-span-2">
                     <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#4A4A4A] block">
                       Total Horas Puntuales Imputadas
                     </span>
@@ -991,7 +1055,7 @@ export function MonthlyReports({
                       {formatMinutes(currentCompanyStats.totalMin)} ({(currentCompanyStats.totalMin / 60).toFixed(2)} hrs)
                     </span>
                   </div>
-                  <div className="p-3.5 rounded-sm bg-[#F8F6FC] border border-[#D8CFF0] sm:col-span-2">
+                  <div className="p-4 rounded-xl bg-[#F8F6FC] border border-[#D8CFF0] sm:col-span-2">
                     <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#4A4A4A] block">
                       Nº de Tareas Registradas
                     </span>
@@ -1012,7 +1076,7 @@ export function MonthlyReports({
                 {currentCompanyStats.workers.map((w) => (
                   <div
                     key={w.employee.id}
-                    className="p-3 rounded-sm border border-[#EAE4F5] bg-white flex items-center justify-between"
+                    className="p-3.5 rounded-xl border border-[#EAE4F5] bg-white shadow-2xs flex items-center justify-between"
                   >
                     <div className="flex items-center gap-2.5">
                       <div className="h-8 w-8 rounded-full bg-gradient-to-r from-[#191654] to-[#8E0E75] text-white font-extrabold flex items-center justify-center text-xs">
@@ -1034,8 +1098,189 @@ export function MonthlyReports({
             </div>
           </div>
 
+          {/* ========================================================================= */}
+          {/* ENTREGABLES AGENDADOS EN TASKFLOW (Próximos 15 días)                      */}
+          {/* ========================================================================= */}
+          <div className="w-full rounded-2xl border-2 border-[#D0C4EB] bg-white p-6 shadow-md shadow-[#191654]/6 space-y-4">
+            
+            {/* Cabecera del Bloque */}
+            <div className="flex flex-col 2xl:flex-row 2xl:items-center justify-between pb-3 border-b border-[#EAE4F5] gap-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-[#F8F6FC] text-[#8E0E75] border border-[#D8CFF0]">
+                  <CheckSquare className="h-5 w-5" />
+                </div>
+                <div>
+                  <h4 className="font-extrabold uppercase tracking-tight text-sm text-[#292929] flex items-center gap-2">
+                    <span>ENTREGABLES AGENDADOS (TASKFLOW):</span>
+                    <span className="text-[#8E0E75]">PRÓXIMOS 15 DÍAS</span>
+                  </h4>
+                  <p className="text-xs text-[#4A4A4A] font-light">
+                    Tareas y reuniones planificadas para <strong className="text-[#292929]">{currentCompany.name}</strong> con fecha y responsables asignados
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-[#F8F6FC] text-[#8E0E75] border border-[#D8CFF0]">
+                  {companyUpcomingDeliverables.length} {companyUpcomingDeliverables.length === 1 ? 'entregable' : 'entregables'}
+                </span>
+                <Link
+                  href="/apps/taskflow"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border border-[#D8CFF0] bg-white hover:border-[#8E0E75] text-[#8E0E75] text-xs font-bold transition-all shadow-2xs hover:scale-105"
+                  title="Abrir la Agenda completa en TaskFlow"
+                >
+                  <span>Abrir Agenda</span>
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+            </div>
+
+            {/* Cruce Inteligente de Cuota: Comparar horas de cuota restantes con horas estimadas en agenda */}
+            {currentCompany.client_type === 'cuota' && (() => {
+              const targetMin = (currentCompany.monthly_hours_quota || 0) * 60;
+              const remainingMin = Math.max(0, targetMin - currentCompanyStats.cuotaMin);
+              const neededMin = Math.round(totalUpcomingEstimatedHours * 60);
+              const isOverQuotaRisk = neededMin > remainingMin;
+              const gapMin = neededMin - remainingMin;
+
+              return (
+                <div className={`p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                  isOverQuotaRisk
+                    ? 'bg-amber-50/80 border-amber-300 text-amber-950'
+                    : 'bg-emerald-50/80 border-emerald-300 text-emerald-950'
+                }`}>
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg shrink-0 ${isOverQuotaRisk ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                      {isOverQuotaRisk ? <AlertTriangle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold">
+                        {isOverQuotaRisk ? (
+                          <span>Riesgo de superar la cuota mensual: <strong className="text-amber-800">Déficit previsto de {formatMinutes(gapMin)}</strong></span>
+                        ) : (
+                          <span>Cuota bajo control: <strong className="text-emerald-700">Bolsa suficiente</strong> para los entregables previstos</span>
+                        )}
+                      </p>
+                      <p className="text-[11px] text-[#4A4A4A] mt-0.5">
+                        Cuota disponible restante: <strong className="text-[#8E0E75]">{formatMinutes(remainingMin)}</strong> | Carga estimada agendada (15 días): <strong className="text-[#292929]">{totalUpcomingEstimatedHours}h</strong> ({companyUpcomingDeliverables.length} entregables).
+                      </p>
+                    </div>
+                  </div>
+
+                  {isOverQuotaRisk && (
+                    <span className="shrink-0 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md bg-amber-200 text-amber-900 border border-amber-300">
+                      Revisar ampliación
+                    </span>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Listado de Entregables */}
+            {companyUpcomingDeliverables.length === 0 ? (
+              <div className="p-8 text-center rounded-xl bg-[#F8F6FC] border border-dashed border-[#D8CFF0] space-y-2">
+                <p className="text-xs font-bold text-[#4A4A4A]">
+                  No hay entregables ni reuniones pendientes agendadas para {currentCompany.name} en los próximos 15 días.
+                </p>
+                <p className="text-[11px] text-slate-500">
+                  Planifica nuevas tareas en la Agenda para asignar responsables y estimar tiempos.
+                </p>
+                <div className="pt-1">
+                  <Link
+                    href="/apps/taskflow"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#8E0E75] text-white text-xs font-bold hover:bg-[#700B5C] transition-all shadow-xs"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>Crear Tarea en TaskFlow</span>
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                {companyUpcomingDeliverables.map((task) => {
+                  const dateInfo = formatDeliverableDate(task.date);
+                  return (
+                    <div
+                      key={task.id}
+                      className="p-3.5 rounded-xl border border-[#D8CFF0] bg-white hover:border-[#8E0E75] hover:shadow-xs transition-all flex flex-col justify-between space-y-3 group"
+                    >
+                      {/* Cabecera de la tarjeta: Fecha relativa + Tipo y Horario */}
+                      <div className="flex items-center justify-between gap-1.5">
+                        <span
+                          className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider border ${
+                            dateInfo.isPast
+                              ? 'bg-rose-50 text-rose-700 border-rose-300'
+                              : dateInfo.isToday
+                              ? 'bg-amber-100 text-amber-900 border-amber-300'
+                              : 'bg-[#F8F6FC] text-[#8E0E75] border-[#D8CFF0]'
+                          }`}
+                        >
+                          {dateInfo.relative} · {dateInfo.label}
+                        </span>
+
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${
+                            task.type === 'meeting'
+                              ? 'bg-purple-100 text-[#8E0E75] border border-purple-200'
+                              : 'bg-blue-50 text-blue-700 border border-blue-200'
+                          }`}
+                        >
+                          {task.type === 'meeting' ? 'Reunión' : 'Entregable'}
+                        </span>
+                      </div>
+
+                      {/* Título de la tarea con tira de color */}
+                      <div className="flex items-start gap-2.5">
+                        <div
+                          className="w-1.5 self-stretch rounded-full shrink-0 min-h-[1.5rem]"
+                          style={{ backgroundColor: task.customColor || '#8E0E75' }}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <h5 className="font-bold text-xs text-[#292929] group-hover:text-[#8E0E75] transition-colors leading-snug">
+                            {task.title}
+                          </h5>
+                          {task.description && (
+                            <p className="text-[11px] text-[#4A4A4A] line-clamp-1 mt-0.5">
+                              {task.description}
+                            </p>
+                          )}
+                          {task.startTime && (
+                            <p className="text-[10px] text-[#8E0E75] font-bold mt-1">
+                              Horario: {task.startTime}{task.endTime ? ` - ${task.endTime}` : ''}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Pie de tarjeta: Responsables + Horas estimadas */}
+                      <div className="flex items-center justify-between pt-2 border-t border-[#F0EBF8] text-[11px]">
+                        <div className="flex items-center gap-1.5 text-[#4A4A4A] truncate max-w-[65%]">
+                          <Users className="h-3.5 w-3.5 text-[#8E0E75] shrink-0" />
+                          <span className="truncate font-semibold text-[#292929]">
+                            {task.assignees && task.assignees.length > 0
+                              ? task.assignees.join(', ')
+                              : 'Sin asignar'}
+                          </span>
+                        </div>
+
+                        {task.estimatedHours ? (
+                          <span className="font-mono font-bold text-[#8E0E75] bg-[#F8F6FC] px-1.5 py-0.5 rounded-md border border-[#D8CFF0] text-[10px]">
+                            {task.estimatedHours}h est.
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-slate-400">Sin estimación</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+          </div>
+
           {/* Listado Cronológico de Tareas para este Cliente */}
-          <div className="w-full rounded-sm border border-[#D8CFF0] bg-white overflow-hidden shadow-sm">
+          <div className="w-full rounded-2xl border-2 border-[#D0C4EB] bg-white overflow-hidden shadow-md shadow-[#191654]/6">
             <div className="px-6 py-4 bg-[#F8F6FC] border-b border-[#EAE4F5] flex items-center justify-between">
               <div>
                 <h4 className="font-extrabold uppercase tracking-tight text-sm text-[#292929]">
@@ -1074,7 +1319,7 @@ export function MonthlyReports({
                         </td>
                         <td className="px-6 py-3.5 text-center whitespace-nowrap">
                           <span
-                            className={`px-2 py-0.5 rounded-sm text-[11px] font-extrabold uppercase tracking-wider border ${
+                            className={`px-2.5 py-0.5 rounded-md text-[11px] font-extrabold uppercase tracking-wider border ${
                               e.compute_type === 'cuota'
                                 ? 'bg-[#8E0E75]/10 text-[#8E0E75] border-[#8E0E75]/30'
                                 : 'bg-[#191654]/10 text-[#191654] border-[#191654]/30'
@@ -1100,7 +1345,7 @@ export function MonthlyReports({
       )}
 
       {statsView === 'company' && (!currentCompany || !currentCompanyStats) && (
-        <div className="w-full p-12 text-center text-xs text-[#4A4A4A] bg-white rounded-sm border border-[#D8CFF0]">
+        <div className="w-full p-12 text-center text-xs text-[#4A4A4A] bg-white rounded-2xl border border-[#D8CFF0]">
           No hay empresas registradas para mostrar estadísticas. Puedes dar de alta una empresa desde la pestaña &quot;Gestión de Empresas&quot;.
         </div>
       )}
@@ -1111,7 +1356,7 @@ export function MonthlyReports({
       {statsView === 'employee' && currentEmployee && currentEmployeeStats && (
         <div className="space-y-6">
           {/* Ficha Individual del Trabajador */}
-          <div className="w-full rounded-sm border border-[#D8CFF0] bg-white p-6 shadow-sm space-y-5">
+          <div className="w-full rounded-2xl border-2 border-[#D0C4EB] bg-white p-6 shadow-md shadow-[#191654]/6 space-y-5">
             <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-[#EAE4F5] gap-3">
               <div className="flex items-center gap-3">
                 <div className="h-12 w-12 rounded-full bg-gradient-to-r from-[#191654] to-[#8E0E75] text-white font-extrabold flex items-center justify-center text-base shrink-0 shadow-sm">
@@ -1126,7 +1371,7 @@ export function MonthlyReports({
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="px-3 py-1 rounded-sm bg-[#F8F6FC] border border-[#D8CFF0] text-[#8E0E75] text-xs font-extrabold uppercase tracking-wider">
+                <span className="px-3 py-1 rounded-lg bg-[#F8F6FC] border border-[#D8CFF0] text-[#8E0E75] text-xs font-extrabold uppercase tracking-wider">
                   {currentEmployee.role === 'coordinator' ? 'Coordinador' : 'Trabajador'}
                 </span>
                 <span className="text-xs text-[#4A4A4A]">
@@ -1137,7 +1382,7 @@ export function MonthlyReports({
 
             {/* KPIs del Empleado */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="p-4 rounded-sm bg-[#F8F6FC] border border-[#D8CFF0]">
+              <div className="p-4 rounded-xl bg-[#F8F6FC] border border-[#D8CFF0]">
                 <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#4A4A4A] block">
                   Total Horas Registradas
                 </span>
@@ -1149,7 +1394,7 @@ export function MonthlyReports({
                 </span>
               </div>
 
-              <div className="p-4 rounded-sm bg-[#F8F6FC] border border-[#D8CFF0]">
+              <div className="p-4 rounded-xl bg-[#F8F6FC] border border-[#D8CFF0]">
                 <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#4A4A4A] block">
                   Dedicación a Clientes Cuota
                 </span>
@@ -1163,7 +1408,7 @@ export function MonthlyReports({
                 </span>
               </div>
 
-              <div className="p-4 rounded-sm bg-[#F8F6FC] border border-[#D8CFF0]">
+              <div className="p-4 rounded-xl bg-[#F8F6FC] border border-[#D8CFF0]">
                 <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#4A4A4A] block">
                   Dedicación a Trabajos Puntuales
                 </span>
@@ -1190,7 +1435,7 @@ export function MonthlyReports({
                     : 0;
 
                   return (
-                    <div key={idx} className="p-3 rounded-sm border border-[#EAE4F5] bg-white">
+                    <div key={idx} className="p-3.5 rounded-xl border border-[#EAE4F5] bg-white shadow-2xs">
                       <div className="flex items-center justify-between text-xs mb-1.5">
                         <div className="flex items-center gap-2">
                           <Building2 className="h-3.5 w-3.5 text-[#8E0E75]" />
@@ -1215,7 +1460,7 @@ export function MonthlyReports({
           </div>
 
           {/* Listado de Tareas del Empleado */}
-          <div className="w-full rounded-sm border border-[#D8CFF0] bg-white overflow-hidden shadow-sm">
+          <div className="w-full rounded-2xl border-2 border-[#D0C4EB] bg-white overflow-hidden shadow-md shadow-[#191654]/6">
             <div className="px-6 py-4 bg-[#F8F6FC] border-b border-[#EAE4F5] flex items-center justify-between">
               <div>
                 <h4 className="font-extrabold uppercase tracking-tight text-sm text-[#292929]">
@@ -1254,7 +1499,7 @@ export function MonthlyReports({
                         </td>
                         <td className="px-6 py-3.5 text-center whitespace-nowrap">
                           <span
-                            className={`px-2 py-0.5 rounded-sm text-[11px] font-extrabold uppercase tracking-wider border ${
+                            className={`px-2.5 py-0.5 rounded-md text-[11px] font-extrabold uppercase tracking-wider border ${
                               e.compute_type === 'cuota'
                                 ? 'bg-[#8E0E75]/10 text-[#8E0E75] border-[#8E0E75]/30'
                                 : 'bg-[#191654]/10 text-[#191654] border-[#191654]/30'
@@ -1280,7 +1525,7 @@ export function MonthlyReports({
       )}
 
       {statsView === 'employee' && (!currentEmployee || !currentEmployeeStats) && (
-        <div className="w-full p-12 text-center text-xs text-[#4A4A4A] bg-white rounded-sm border border-[#D8CFF0]">
+        <div className="w-full p-12 text-center text-xs text-[#4A4A4A] bg-white rounded-2xl border border-[#D8CFF0]">
           No hay empleados registrados para mostrar estadísticas. Comparte el enlace de registro desde la pestaña &quot;Gestión de Usuarios&quot;.
         </div>
       )}

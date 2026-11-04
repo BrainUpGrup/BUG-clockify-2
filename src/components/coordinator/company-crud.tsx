@@ -76,9 +76,9 @@ export function CompanyCrud({
   return (
     <div className="w-full space-y-6">
       {/* Formulario de Alta de Empresa / Cliente con Datos Detallados */}
-      <div className="w-full rounded-sm border border-[#D8CFF0] bg-white p-6 shadow-sm">
+      <div className="w-full rounded-2xl border-2 border-[#D0C4EB] bg-white p-6 shadow-md shadow-[#191654]/6 transition-shadow hover:shadow-lg hover:shadow-[#191654]/10">
         <div className="flex items-center gap-3 mb-4">
-          <div className="p-2.5 rounded-sm bg-[#F8F6FC] text-[#8E0E75] border border-[#D8CFF0]">
+          <div className="p-2.5 rounded-xl bg-[#F8F6FC] text-[#8E0E75] border border-[#D8CFF0]">
             <Building2 className="h-5 w-5" />
           </div>
           <div>
@@ -103,7 +103,7 @@ export function CompanyCrud({
                 value={newCompanyName}
                 onChange={(e) => setNewCompanyName(e.target.value)}
                 placeholder="ej. BrandStudio SL, InnovaTech..."
-                className="w-full px-4 py-2.5 rounded-sm border border-[#D8CFF0] bg-white text-sm text-[#292929] placeholder:text-slate-400 focus:border-[#8E0E75] focus:ring-2 focus:ring-[#8E0E75]/15 outline-none transition-all"
+                className="w-full px-4 py-2.5 rounded-xl border border-[#D8CFF0] bg-white text-sm text-[#292929] placeholder:text-slate-400 focus:border-[#8E0E75] focus:ring-2 focus:ring-[#8E0E75]/15 outline-none transition-all"
                 required
               />
             </div>
@@ -113,11 +113,11 @@ export function CompanyCrud({
               <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#292929] mb-1.5">
                 Tipo de Relación Comercial
               </label>
-              <div className="flex items-center rounded-sm bg-[#F8F6FC] p-1 border border-[#D8CFF0]">
+              <div className="flex items-center rounded-xl bg-[#F8F6FC] p-1 border border-[#D8CFF0]">
                 <button
                   type="button"
                   onClick={() => setClientType('cuota')}
-                  className={`flex-1 py-1.5 text-xs font-extrabold uppercase tracking-wider rounded-sm transition-all cursor-pointer ${
+                  className={`flex-1 py-1.5 text-xs font-extrabold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
                     clientType === 'cuota'
                       ? 'bg-[#8E0E75] text-white shadow-xs'
                       : 'text-[#4A4A4A] hover:text-[#8E0E75]'
@@ -128,7 +128,7 @@ export function CompanyCrud({
                 <button
                   type="button"
                   onClick={() => setClientType('puntual')}
-                  className={`flex-1 py-1.5 text-xs font-extrabold uppercase tracking-wider rounded-sm transition-all cursor-pointer ${
+                  className={`flex-1 py-1.5 text-xs font-extrabold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
                     clientType === 'puntual'
                       ? 'bg-[#191654] text-white shadow-xs'
                       : 'text-[#4A4A4A] hover:text-[#191654]'
@@ -154,7 +154,7 @@ export function CompanyCrud({
                       value={monthlyQuota}
                       onChange={(e) => setMonthlyQuota(e.target.value)}
                       placeholder="ej. 15"
-                      className="w-full px-3 py-2 rounded-sm border border-[#D8CFF0] bg-white text-sm font-extrabold font-mono tabular-nums text-[#8E0E75] focus:border-[#8E0E75] outline-none"
+                      className="w-full px-3 py-2 rounded-xl border border-[#D8CFF0] bg-white text-sm font-extrabold font-mono tabular-nums text-[#8E0E75] focus:border-[#8E0E75] outline-none"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#4A4A4A]">
                       h / mes
@@ -181,7 +181,7 @@ export function CompanyCrud({
           </div>
 
           {showAdvanced && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 rounded-sm bg-[#F8F6FC] border border-[#D8CFF0]">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 rounded-xl bg-[#F8F6FC] border border-[#D8CFF0]">
               <div>
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-[#4A4A4A] mb-1">
                   NIF / CIF
@@ -191,7 +191,7 @@ export function CompanyCrud({
                   value={cif}
                   onChange={(e) => setCif(e.target.value)}
                   placeholder="ej. B-87654321"
-                  className="w-full px-3 py-2 rounded-sm border border-[#D8CFF0] bg-white text-xs text-[#292929] focus:border-[#8E0E75] outline-none"
+                  className="w-full px-3 py-2 rounded-lg border border-[#D8CFF0] bg-white text-xs text-[#292929] focus:border-[#8E0E75] outline-none"
                 />
               </div>
               <div>
@@ -203,7 +203,7 @@ export function CompanyCrud({
                   value={contactName}
                   onChange={(e) => setContactName(e.target.value)}
                   placeholder="ej. Laura Gómez (Dir. Marketing)"
-                  className="w-full px-3 py-2 rounded-sm border border-[#D8CFF0] bg-white text-xs text-[#292929] focus:border-[#8E0E75] outline-none"
+                  className="w-full px-3 py-2 rounded-lg border border-[#D8CFF0] bg-white text-xs text-[#292929] focus:border-[#8E0E75] outline-none"
                 />
               </div>
               <div>
@@ -215,7 +215,7 @@ export function CompanyCrud({
                   value={contactEmail}
                   onChange={(e) => setContactEmail(e.target.value)}
                   placeholder="ej. contacto@empresa.com"
-                  className="w-full px-3 py-2 rounded-sm border border-[#D8CFF0] bg-white text-xs text-[#292929] focus:border-[#8E0E75] outline-none"
+                  className="w-full px-3 py-2 rounded-lg border border-[#D8CFF0] bg-white text-xs text-[#292929] focus:border-[#8E0E75] outline-none"
                 />
               </div>
             </div>
@@ -225,7 +225,7 @@ export function CompanyCrud({
             <button
               type="submit"
               disabled={isCreatingCompany || !newCompanyName.trim()}
-              className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-sm bg-[#8E0E75] text-white text-xs font-extrabold uppercase tracking-wider hover:bg-[#700B5C] active:scale-95 disabled:opacity-50 transition-all shadow-md shadow-[#8E0E75]/25 cursor-pointer"
+              className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-[#8E0E75] text-white text-xs font-extrabold uppercase tracking-wider hover:bg-[#700B5C] active:scale-95 disabled:opacity-50 transition-all shadow-md shadow-[#8E0E75]/25 cursor-pointer"
             >
               <Plus className="h-4 w-4" />
               <span>{isCreatingCompany ? 'Creando...' : 'Guardar Empresa'}</span>
@@ -235,8 +235,8 @@ export function CompanyCrud({
       </div>
 
       {/* Listado Líquido de Empresas */}
-      <div className="w-full rounded-sm border border-[#D8CFF0] bg-white overflow-hidden shadow-sm">
-        <div className="px-6 py-4 bg-[#F8F6FC] border-b border-[#EAE4F5] flex items-center justify-between">
+      <div className="w-full rounded-2xl border-2 border-[#D0C4EB] bg-white overflow-hidden shadow-md shadow-[#191654]/6 transition-shadow hover:shadow-lg hover:shadow-[#191654]/10">
+        <div className="px-6 py-4 bg-[#F8F6FC] border-b border-[#D8CFF0] flex items-center justify-between">
           <div>
             <h4 className="font-extrabold uppercase tracking-tight text-sm text-[#292929]">
               EMPRESAS Y CLIENTES <span className="text-[#8E0E75]">REGISTRADOS</span> ({companies.length})
@@ -271,7 +271,7 @@ export function CompanyCrud({
                   const totalCompanyMinutes = companyEntries.reduce((sum, e) => sum + e.duration_minutes, 0);
 
                   return (
-                    <tr key={company.id} className="hover:bg-[#F8F6FC]/60 transition-colors">
+                    <tr key={company.id} className="hover:bg-[#F8F6FC] transition-colors border-b border-[#F0EAF8] last:border-b-0">
                       <td className="px-6 py-3.5">
                         <div className="flex items-center gap-2">
                           <Building2 className="h-4 w-4 text-[#8E0E75]" />
@@ -285,7 +285,7 @@ export function CompanyCrud({
                       </td>
                       <td className="px-6 py-3.5 text-center">
                         <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-sm text-[11px] font-extrabold uppercase tracking-wider border ${
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-extrabold uppercase tracking-wider border ${
                             company.client_type === 'cuota'
                               ? 'bg-[#8E0E75]/10 text-[#8E0E75] border-[#8E0E75]/30'
                               : 'bg-[#191654]/10 text-[#191654] border-[#191654]/30'
@@ -323,7 +323,7 @@ export function CompanyCrud({
                       </td>
                       <td className="px-6 py-3.5 text-center">
                         <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-sm text-[11px] font-extrabold uppercase tracking-wider border ${
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-extrabold uppercase tracking-wider border ${
                             company.is_active
                               ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
                               : 'bg-red-50 text-red-700 border-red-300'
@@ -340,7 +340,7 @@ export function CompanyCrud({
                           <button
                             type="button"
                             onClick={() => onToggleCompanyStatus(company.id, company.is_active)}
-                            className="p-1.5 rounded-sm border border-[#D8CFF0] bg-white text-[#4A4A4A] hover:bg-[#F8F6FC] hover:text-[#8E0E75] transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg border border-[#D8CFF0] bg-white text-[#4A4A4A] hover:bg-[#F8F6FC] hover:text-[#8E0E75] transition-colors cursor-pointer"
                             title={company.is_active ? 'Archivar Empresa' : 'Reactivar Empresa'}
                           >
                             <Archive className="h-4 w-4" />
@@ -357,7 +357,7 @@ export function CompanyCrud({
                               if (ok) onDeleteCompany(company.id);
                             }}
                             aria-label={`Eliminar empresa ${company.name}`}
-                            className="p-1.5 rounded-sm border border-rose-200 bg-white text-rose-500 hover:bg-rose-50 hover:text-rose-700 transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg border border-rose-200 bg-white text-rose-500 hover:bg-rose-50 hover:text-rose-700 transition-colors cursor-pointer"
                             title="Eliminar Empresa"
                           >
                             <Trash2 className="h-4 w-4" />

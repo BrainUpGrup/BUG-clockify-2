@@ -117,7 +117,7 @@ export function KanbanBoard({
               const itemId = e.dataTransfer.getData('text/plain');
               if (itemId) onChangeStatus(itemId, col.id);
             }}
-            className={`bg-white border border-[#D8CFF0] ${col.borderAccent} border-t-3 rounded-sm shadow-xs flex flex-col min-h-[500px] transition-all ${
+            className={`bg-white border border-[#D8CFF0] ${col.borderAccent} border-t-4 rounded-2xl shadow-xs flex flex-col min-h-[500px] transition-all ${
               isTarget ? 'ring-2 ring-[#8E0E75] bg-[#8E0E75]/5' : ''
             }`}
           >
@@ -128,7 +128,7 @@ export function KanbanBoard({
                   {col.title}
                 </span>
               </div>
-              <span className={`px-2 py-0.5 rounded-sm text-[11px] font-extrabold font-mono ${col.countStyle}`}>
+              <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-extrabold font-mono ${col.countStyle}`}>
                 {columnItems.length}
               </span>
             </div>
@@ -158,7 +158,7 @@ export function KanbanBoard({
                         e.dataTransfer.setData('text/plain', item.id);
                         e.dataTransfer.effectAllowed = 'move';
                       }}
-                      className={`rounded-sm border p-3.5 shadow-2xs transition-all space-y-2.5 cursor-grab active:cursor-grabbing hover:shadow-sm ${
+                      className={`rounded-xl border p-3.5 shadow-2xs transition-all space-y-2.5 cursor-grab active:cursor-grabbing hover:shadow-sm ${
                         isDone
                           ? 'bg-emerald-50/20 border-emerald-200'
                           : item.priority === 'alta'
@@ -170,7 +170,7 @@ export function KanbanBoard({
                       <div className="flex items-center justify-between gap-1 text-[11px]">
                         <div className="flex items-center gap-1">
                           <span
-                            className={`px-1.5 py-0.5 rounded-sm font-extrabold uppercase tracking-wider border flex items-center gap-1 ${
+                            className={`px-2 py-0.5 rounded-md font-extrabold uppercase tracking-wider border flex items-center gap-1 ${
                               isMeeting
                                 ? 'bg-[#8E0E75]/10 text-[#8E0E75] border-[#8E0E75]/30'
                                 : 'bg-slate-100 text-[#4A4A4A] border-slate-300'
@@ -181,7 +181,7 @@ export function KanbanBoard({
                           </span>
 
                           <span
-                            className={`px-1.5 py-0.5 rounded-sm font-extrabold uppercase tracking-wider border ${
+                            className={`px-2 py-0.5 rounded-md font-extrabold uppercase tracking-wider border ${
                               item.priority === 'alta'
                                 ? 'bg-red-50 text-red-700 border-red-300'
                                 : item.priority === 'media'
@@ -280,7 +280,7 @@ export function KanbanBoard({
                           <button
                             type="button"
                             onClick={() => onSelectItem(item)}
-                            className="p-1 rounded-sm text-slate-400 hover:text-[#8E0E75] cursor-pointer"
+                            className="p-1 rounded-lg text-slate-400 hover:text-[#8E0E75] cursor-pointer"
                             title="Editar detalles"
                           >
                             <Edit2 className="h-3 w-3" />
@@ -288,7 +288,7 @@ export function KanbanBoard({
                           <button
                             type="button"
                             onClick={() => onDeleteItem(item.id)}
-                            className="p-1 rounded-sm text-slate-400 hover:text-red-600 cursor-pointer"
+                            className="p-1 rounded-lg text-slate-400 hover:text-red-600 cursor-pointer"
                             title="Eliminar"
                           >
                             <Trash2 className="h-3 w-3" />
@@ -303,7 +303,7 @@ export function KanbanBoard({
                             <button
                               type="button"
                               onClick={() => onChangeStatus(item.id, getPrevStatus(col.id))}
-                              className="p-1 rounded-sm border border-[#D8CFF0] hover:bg-[#F8F6FC] text-[#4A4A4A] cursor-pointer"
+                              className="p-1 rounded-lg border border-[#D8CFF0] hover:bg-[#F8F6FC] text-[#4A4A4A] cursor-pointer"
                               title="Mover a etapa anterior"
                             >
                               <MoveLeft className="h-3 w-3" />
@@ -316,14 +316,14 @@ export function KanbanBoard({
                             <button
                               type="button"
                               onClick={() => onChangeStatus(item.id, getNextStatus(col.id))}
-                              className="px-2 py-0.5 rounded-sm bg-[#8E0E75] text-white text-[11px] font-extrabold uppercase tracking-wider hover:bg-[#700B5C] transition-all cursor-pointer flex items-center gap-1"
+                              className="px-2.5 py-1 rounded-lg bg-[#8E0E75] text-white text-[11px] font-extrabold uppercase tracking-wider hover:bg-[#700B5C] transition-all cursor-pointer flex items-center gap-1"
                               title="Avanzar etapa"
                             >
                               <span>Avanzar</span>
                               <MoveRight className="h-3 w-3" />
                             </button>
                           ) : (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-sm border border-emerald-200">
+                            <span className="inline-flex items-center gap-1 text-[11px] font-extrabold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">
                               <CheckCircle2 className="h-3 w-3" />
                               <span>Completada</span>
                             </span>

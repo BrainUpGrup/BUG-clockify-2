@@ -19,6 +19,7 @@ import {
 import { Profile, TimeEntry, UserRole } from '@/types/database';
 import { formatMinutes } from '@/lib/utils';
 import { confirmDialog } from '@/lib/feedback';
+import { UserAvatar } from '@/components/ui/user-avatar';
 
 interface UserManagementProps {
   employees: Profile[];
@@ -84,10 +85,10 @@ export function UserManagement({
   return (
     <div className="w-full space-y-6">
       {/* Panel Superior: Enlace de Empresa para el Registro de Empleados */}
-      <div className="w-full rounded-sm border border-[#D8CFF0] bg-white p-6 shadow-sm space-y-4">
+      <div className="w-full rounded-2xl border-2 border-[#D0C4EB] bg-white p-6 shadow-md shadow-[#191654]/6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#EAE4F5] gap-3">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-sm bg-[#F8F6FC] text-[#8E0E75] border border-[#D8CFF0]">
+            <div className="p-2.5 rounded-xl bg-[#F8F6FC] text-[#8E0E75] border border-[#D8CFF0]">
               <Link2 className="h-5 w-5" />
             </div>
             <div>
@@ -104,7 +105,7 @@ export function UserManagement({
             <button
               type="button"
               onClick={handleCopyLink}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-sm text-xs font-extrabold uppercase tracking-wider transition-all cursor-pointer shadow-xs ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all cursor-pointer shadow-xs ${
                 copied
                   ? 'bg-[#3BB54A] text-white shadow-[#3BB54A]/25'
                   : 'bg-[#8E0E75] text-white hover:bg-[#700B5C] shadow-[#8E0E75]/25 active:scale-95'
@@ -127,7 +128,7 @@ export function UserManagement({
               href={registerUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="p-2.5 rounded-sm border border-[#D8CFF0] bg-[#F8F6FC] text-[#8E0E75] hover:bg-white hover:border-[#8E0E75] transition-all cursor-pointer"
+              className="p-2.5 rounded-xl border border-[#D8CFF0] bg-[#F8F6FC] text-[#8E0E75] hover:bg-white hover:border-[#8E0E75] transition-all cursor-pointer"
               title="Abrir formulario de registro en nueva pestaña"
             >
               <ExternalLink className="h-4 w-4" />
@@ -142,7 +143,7 @@ export function UserManagement({
               type="text"
               readOnly
               value={registerUrl}
-              className="w-full px-4 py-2.5 pr-20 rounded-sm border border-[#D8CFF0] bg-[#F8F6FC] text-xs font-mono text-[#8E0E75] select-all outline-none"
+              className="w-full px-4 py-2.5 pr-20 rounded-xl border border-[#D8CFF0] bg-[#F8F6FC] text-xs font-mono text-[#8E0E75] select-all outline-none"
             />
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] uppercase font-bold text-[#4A4A4A] tracking-wider pointer-events-none">
               Link Oficial
@@ -152,10 +153,10 @@ export function UserManagement({
       </div>
 
       {/* Sección 1: Solicitudes Pendientes de Aprobación */}
-      <div className="w-full rounded-sm border border-[#D8CFF0] bg-white overflow-hidden shadow-sm">
+      <div className="w-full rounded-2xl border-2 border-[#D0C4EB] bg-white overflow-hidden shadow-md shadow-[#191654]/6">
         <div className="px-6 py-4 bg-[#F8F6FC] border-b border-[#EAE4F5] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2.5">
-            <div className="p-1.5 rounded-xs bg-amber-50 text-amber-700 border border-amber-200">
+            <div className="p-1.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200">
               <Clock className="h-4 w-4" />
             </div>
             <div>
@@ -168,7 +169,7 @@ export function UserManagement({
             </div>
           </div>
 
-          <span className="inline-flex items-center px-3 py-1 rounded-sm text-xs font-extrabold uppercase tracking-wider bg-amber-50 text-amber-800 border border-amber-300">
+          <span className="inline-flex items-center px-3 py-1 rounded-md text-xs font-extrabold uppercase tracking-wider bg-amber-50 text-amber-800 border border-amber-300">
             {pendingEmployees.length} {pendingEmployees.length === 1 ? 'pendiente' : 'pendientes'}
           </span>
         </div>
@@ -194,9 +195,12 @@ export function UserManagement({
                   <tr key={cand.id} className="hover:bg-amber-50/40 transition-colors">
                     <td className="px-6 py-3.5 font-bold text-[#292929]">
                       <div className="flex items-center gap-2.5">
-                        <div className="h-8 w-8 rounded-full bg-amber-100 text-amber-800 border border-amber-300 font-extrabold flex items-center justify-center text-xs shrink-0">
-                          {cand.full_name.charAt(0)}
-                        </div>
+                        <UserAvatar
+                          src={cand.avatar_url}
+                          name={cand.full_name}
+                          size="sm"
+                          className="ring-1 ring-amber-300"
+                        />
                         <span className="text-sm">{cand.full_name}</span>
                       </div>
                     </td>
@@ -221,7 +225,7 @@ export function UserManagement({
                           type="button"
                           disabled={processingId === cand.id}
                           onClick={() => handleApprove(cand.id)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-[#10B981] text-white text-xs font-extrabold uppercase tracking-wider hover:bg-[#059669] active:scale-95 disabled:opacity-50 transition-all shadow-xs cursor-pointer"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#10B981] text-white text-xs font-extrabold uppercase tracking-wider hover:bg-[#059669] active:scale-95 disabled:opacity-50 transition-all shadow-xs cursor-pointer"
                           title="Aceptar y activar cuenta de empleado"
                         >
                           <UserCheck className="h-3.5 w-3.5" />
@@ -231,7 +235,7 @@ export function UserManagement({
                           type="button"
                           disabled={processingId === cand.id}
                           onClick={() => handleReject(cand.id)}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-sm border border-red-300 bg-red-50 text-red-700 hover:bg-red-100 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-red-300 bg-red-50 text-red-700 hover:bg-red-100 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
                           title="Rechazar solicitud"
                         >
                           <UserX className="h-3.5 w-3.5" />
@@ -248,7 +252,7 @@ export function UserManagement({
       </div>
 
       {/* Sección 2: Empleados Activos de la Agencia */}
-      <div className="w-full rounded-sm border border-[#D8CFF0] bg-white overflow-hidden shadow-sm">
+      <div className="w-full rounded-2xl border-2 border-[#D0C4EB] bg-white overflow-hidden shadow-md shadow-[#191654]/6">
         <div className="px-6 py-4 bg-[#F8F6FC] border-b border-[#EAE4F5] flex items-center justify-between">
           <div>
             <h4 className="font-extrabold uppercase tracking-tight text-sm text-[#292929]">
@@ -288,9 +292,12 @@ export function UserManagement({
                   <tr key={emp.id} className="hover:bg-[#F8F6FC]/60 transition-colors">
                     <td className="px-6 py-3.5 font-bold text-[#292929]">
                       <div className="flex items-center gap-2.5">
-                        <div className="h-8 w-8 rounded-full bg-gradient-to-r from-[#191654] to-[#8E0E75] text-white font-extrabold flex items-center justify-center text-xs shrink-0">
-                          {emp.full_name.charAt(0)}
-                        </div>
+                        <UserAvatar
+                          src={emp.avatar_url}
+                          name={emp.full_name}
+                          size="sm"
+                          className="ring-1 ring-[#D8CFF0]"
+                        />
                         <div>
                           <span className="text-sm block">{emp.full_name}</span>
                           {emp.department && (
@@ -309,7 +316,7 @@ export function UserManagement({
                     </td>
                     <td className="px-6 py-3.5 text-center">
                       <span
-                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-sm text-[11px] font-extrabold uppercase tracking-wider border ${
+                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-extrabold uppercase tracking-wider border ${
                           emp.role === 'coordinator'
                             ? 'bg-[#8E0E75]/10 text-[#8E0E75] border-[#8E0E75]/30'
                             : 'bg-slate-100 text-[#4A4A4A] border-slate-200'
@@ -332,7 +339,7 @@ export function UserManagement({
                       </span>
                     </td>
                     <td className="px-6 py-3.5 text-center">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-sm bg-[#3BB54A]/10 text-[#3BB54A] border border-[#3BB54A]/30 text-[11px] font-extrabold uppercase tracking-wider">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-[#3BB54A]/10 text-[#3BB54A] border border-[#3BB54A]/30 text-[11px] font-extrabold uppercase tracking-wider">
                         Activo
                       </span>
                     </td>
@@ -351,7 +358,7 @@ export function UserManagement({
                               if (ok) onDeleteUser(emp.id);
                             }}
                             aria-label={`Dar de baja a ${emp.full_name}`}
-                            className="p-1.5 rounded-sm border border-rose-200 bg-white text-rose-500 hover:bg-rose-50 transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg border border-rose-200 bg-white text-rose-500 hover:bg-rose-50 transition-colors cursor-pointer"
                             title="Dar de baja usuario"
                           >
                             <Trash2 className="h-4 w-4" />
