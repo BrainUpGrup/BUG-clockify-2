@@ -48,7 +48,13 @@ export default function LoginPage() {
       }
 
       if (result.user) {
-        window.location.href = '/hub';
+        if (result.user.role === 'coordinator') {
+          window.location.href = '/dashboard/coordinator';
+        } else if (result.user.role === 'admin') {
+          window.location.href = '/dashboard/admin';
+        } else {
+          window.location.href = '/dashboard/employee';
+        }
       }
     } finally {
       setIsSubmitting(false);
@@ -67,7 +73,13 @@ export default function LoginPage() {
         return;
       }
       if (result.user) {
-        window.location.href = '/hub';
+        if (result.user.role === 'coordinator') {
+          window.location.href = '/dashboard/coordinator';
+        } else if (result.user.role === 'admin') {
+          window.location.href = '/dashboard/admin';
+        } else {
+          window.location.href = '/dashboard/employee';
+        }
       }
     } finally {
       setIsSubmitting(false);
@@ -103,23 +115,42 @@ export default function LoginPage() {
 
         {/* Sesión ya iniciada: ofrecer continuar o cambiar de cuenta */}
         {!isLoading && user && (
-          <div className="p-3.5 rounded-md bg-[#F8F6FC] border border-[#D8CFF0] text-sm text-[#292929] space-y-2.5">
-            <p>
-              Ya has entrado como <strong>{user.full_name}</strong> ({user.email}).
+          <div className="p-4 rounded-xl bg-[#F8F6FC] border-2 border-[#D8CFF0] text-sm text-[#292929] space-y-3">
+            <p className="text-xs">
+              Sesión iniciada como <strong className="text-[#8E0E75] font-bold">{user.full_name}</strong> ({user.email}).
             </p>
-            <div className="flex gap-2">
-              <Link
-                href="/hub"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#8E0E75] text-white text-sm font-bold hover:bg-[#700B5C]"
-              >
-                Ir al Hub <ArrowRight className="h-4 w-4" />
-              </Link>
+            <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={() => logout()}
-                className="px-3 py-1.5 rounded-md border border-[#D8CFF0] text-sm font-semibold text-[#4A4A4A] hover:bg-white cursor-pointer"
+                onClick={() => {
+                  if (user.role === 'coordinator') {
+                    window.location.href = '/dashboard/coordinator';
+                  } else if (user.role === 'admin') {
+                    window.location.href = '/dashboard/admin';
+                  } else {
+                    window.location.href = '/dashboard/employee';
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#8E0E75] text-white text-xs font-bold hover:bg-[#700B5C] shadow-xs cursor-pointer"
               >
-                Cambiar de cuenta
+                <span>
+                  {user.role === 'coordinator'
+                    ? 'Ir a Panel de Coordinación'
+                    : user.role === 'admin'
+                    ? 'Ir a Super Administración'
+                    : 'Ir a mi Control Horario'}
+                </span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  await logout();
+                  window.location.reload();
+                }}
+                className="px-3.5 py-2 rounded-xl border border-[#D8CFF0] text-xs font-bold text-[#4A4A4A] hover:bg-white hover:text-[#8E0E75] cursor-pointer"
+              >
+                Cerrar Sesión / Cambiar Cuenta
               </button>
             </div>
           </div>

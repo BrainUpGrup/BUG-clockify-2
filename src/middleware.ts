@@ -11,52 +11,67 @@ export async function middleware(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (
-    !supabaseUrl ||
-    !supabaseAnonKey ||
-    supabaseUrl.includes('your-project') ||
-    supabaseUrl.includes('tu-proyecto')
-  ) {
-    return response;
-  }
-
   let sessionUser: any = null;
 
-  // Refrescar cookies de sesión de Supabase
-  try {
-    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-      cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value;
+  if (
+    supabaseUrl &&
+    supabaseAnonKey &&
+    !supabaseUrl.includes('your-project') &&
+    !supabaseUrl.includes('tu-proyecto')
+  ) {
+    // Refrescar cookies de sesión de Supabase si existen
+    try {
+      const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+        cookies: {
+          get(name: string) {
+            return request.cookies.get(name)?.value;
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            request.cookies.set({ name, value, ...options });
+            response = NextResponse.next({
+              request: {
+                headers: request.headers,
+              },
+            });
+            response.cookies.set({ name, value, ...options });
+          },
+          remove(name: string, options: CookieOptions) {
+            request.cookies.set({ name, value: '', ...options });
+            response = NextResponse.next({
+              request: {
+                headers: request.headers,
+              },
+            });
+            response.cookies.set({ name, value: '', ...options });
+          },
         },
-        set(name: string, value: string, options: CookieOptions) {
-          request.cookies.set({ name, value, ...options });
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          });
-          response.cookies.set({ name, value, ...options });
-        },
-        remove(name: string, options: CookieOptions) {
-          request.cookies.set({ name, value: '', ...options });
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          });
-          response.cookies.set({ name, value: '', ...options });
-        },
-      },
-    });
+      });
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    sessionUser = user;
-  } catch {
-    // Si falla la verificación remota, continuar
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      sessionUser = user;
+    } catch {
+      // Si falla la verificación remota, continuar con verificación de cookie corporativa
+    }
   }
+
+  // Comprobar cookie de sesión corporativa (válida en local y producción)
+  const authCookie = request.cookies.get('bug_clockify_user')?.value;
+  let hasValidAuthCookie = false;
+  if (authCookie) {
+    try {
+      const decoded = decodeURIComponent(authCookie);
+      const parsed = JSON.parse(decoded);
+      if (parsed && (parsed.email || parsed.id)) {
+        hasValidAuthCookie = true;
+      }
+    } catch {
+      hasValidAuthCookie = false;
+    }
+  }
+
+  const isAuthenticated = !!sessionUser || hasValidAuthCookie;
 
   const pathname = request.nextUrl.pathname;
   const isProtectedRoute =
@@ -67,21 +82,11 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/perfil') ||
     pathname.startsWith('/floating-timer');
 
-  const isAuthRoute = pathname === '/login' || pathname === '/register';
-
-  // Permitir sesión mock solo en desarrollo local si existe cookie de prueba
-  const isDev = process.env.NODE_ENV === 'development';
-  const hasDevCookie = isDev && request.cookies.has('bug_clockify_user');
-
   // Interceptación perimetral de seguridad (Zero-Trust Edge Gate)
-  if (isProtectedRoute && !sessionUser && !hasDevCookie) {
+  if (isProtectedRoute && !isAuthenticated) {
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('redirectTo', pathname);
     return NextResponse.redirect(loginUrl);
-  }
-
-  if (isAuthRoute && sessionUser) {
-    return NextResponse.redirect(new URL('/hub', request.url));
   }
 
   return response;
