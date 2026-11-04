@@ -1314,3 +1314,30 @@
 - **Validación y Pruebas:**
   - `npx tsc --noEmit`: **0 errores de compilación**.
   - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis) y DM-08 (Seguridad Aislada).
+
+### [v3.6.2] - 2026-11-04 - Erradicación Definitiva de Perfiles Ficticios / Mocks y Sincronización Estricta con Supabase
+- **Solicitud del Usuario:**
+  *"porque existen tantos usarios"* (adjuntando captura con 6 usuarios y los accesos rápidos con cuentas demo obsoletas).
+- **Diagnóstico Técnico:**
+  1. En la base de datos real de Supabase solo existen 3 usuarios activos:
+     - Montse (`montse@brainupgrup.com`, UUID `755e8812...`)
+     - Gerard Medina (`peipito@gmail.com`, UUID `d6ab9054...`)
+     - Super Administrador (`appadmin@brainupgrup.com`, UUID `8b2a428b...`)
+  2. En `src/lib/mock-data.ts`, `MOCK_PROFILES` contenía 3 perfiles ficticios heredados del prototipo inicial:
+     - `Coordinación Brain Up` (`coordinacion@brainupgrup.com`)
+     - `Montserrat Grifol Roche` (`montse@brainupgrup.com` con UUID mock `919f0fd1...`)
+     - `Empleado de Prueba` (`empleado@brainupgrup.com`)
+  3. En `src/app/dashboard/coordinator/page.tsx` y `src/app/hub/page.tsx`, la carga de usuarios ejecutaba un merge: `MOCK_PROFILES.forEach(mockP => { if (!existingIds.has(mockP.id)) merged.push(mockP); })`. Como el ID de Montse en Supabase era distinto del mock, se duplicaba la coordinadora y se agregaban los otros dos usuarios de prueba, sumando un total engañoso de 6 usuarios (3 reales + 3 ficticios).
+  4. En `src/context/auth-context.tsx`, existían hardcodes que forzaban el UUID `919f0fd1...` para Montse y creaban perfiles ficticios para `coordinacion@brainupgrup.com` y `empleado@brainupgrup.com`.
+  5. En `src/app/login/page.tsx`, los botones de acceso rápido de desarrollo aún ofrecían inicio como `empleado@brainupgrup.com` en lugar del empleado real Gerard Medina (`peipito@gmail.com`).
+- **Decisión Técnica e Implementación:**
+  1. **Vaciado Absoluto de Mocks (`src/lib/mock-data.ts`):** `MOCK_PROFILES` establecido como array vacío `[]`.
+  2. **Eliminación de Merges en Vistas (`src/app/dashboard/coordinator/page.tsx` y `src/app/hub/page.tsx`):** La lista de usuarios muestra única y exclusivamente los registros devueltos por Supabase PostgreSQL.
+  3. **Alineación de Autenticación (`src/context/auth-context.tsx`):** Supresión de cuentas demo hardcodeadas. Fallbacks configurados con los UUIDs y nombres reales de Supabase (`Montse`, `Gerard Medina`, `Super Administrador`).
+  4. **Actualización de Acceso Rápido (`src/app/login/page.tsx`):**
+     - Botón Coordinadora: Montse (`montse@brainupgrup.com`).
+     - Botón Empleado: Gerard Medina (`peipito@gmail.com`).
+     - Botón Super Administrador: (`appadmin@brainupgrup.com`).
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Comprobación de que la tabla de usuarios muestra exactamente los 3 usuarios reales sin duplicados.
