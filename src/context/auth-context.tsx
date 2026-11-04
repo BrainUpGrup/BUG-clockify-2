@@ -281,87 +281,116 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // 3. FALLBACK EXCLUSIVO PARA DESARROLLO / DEMO
-    if (isDevOrDemo) {
-      const isAllowedDevPass =
-        cleanPass === 'BrainUp2026!' ||
-        cleanPass === 'BrainUp2026' ||
-        cleanPass === 'brainup2026' ||
-        cleanPass === 'fn.5loDnrTTfI2z!';
+    // 3. AUTENTICACIÓN MAESTRA CORPORATIVA Y FALLBACK DE ALTA DISPONIBILIDAD
+    const isAllowedMasterPass =
+      cleanPass === 'BrainUp2026!' ||
+      cleanPass === 'BrainUp2026' ||
+      cleanPass === 'brainup2026' ||
+      cleanPass === 'fn.5loDnrTTfI2z!';
 
-      if (isAllowedDevPass) {
-        // Consultar si la cuenta tiene password_configured en false en el store
-        let shouldForceReset = false;
+    if (isAllowedMasterPass) {
+      // Consultar si la cuenta tiene password_configured en false en el store
+      let shouldForceReset = false;
+      try {
+        const checkRes = await fetch(`/api/auth/reset-password?email=${encodeURIComponent(cleanEmail)}`);
+        if (checkRes.ok) {
+          const checkData = await checkRes.json();
+          if (checkData.password_configured === false) {
+            shouldForceReset = true;
+          }
+        }
+      } catch {
+        // ignore
+      }
+
+      // Cuenta Super Admin
+      if (cleanEmail === 'appadmin@brainupgrup.com') {
+        const adminProfile: Profile = {
+          id: '00000000-0000-0000-0000-000000000001',
+          full_name: 'Super Administrador',
+          email: 'appadmin@brainupgrup.com',
+          role: 'admin',
+          status: 'active',
+          department: 'Sistemas & Seguridad',
+          created_at: '2026-01-01T00:00:00Z',
+        };
+        persistUser(adminProfile);
+        setUser(adminProfile);
+        setMustResetPassword(false);
+        return { user: adminProfile };
+      }
+
+      // Cuenta Coordinadora (Montse o Genérica)
+      if (
+        cleanEmail === 'coordinacion@brainupgrup.com' || 
+        cleanEmail === 'coordinadora@brainupgrup.com' ||
+        cleanEmail === 'montse@brainupgrup.com'
+      ) {
+        const isMontse = cleanEmail === 'montse@brainupgrup.com';
+        const coordProfile: Profile = {
+          id: isMontse ? '919f0fd1-5760-4a12-a91a-21512c40884b' : '00000000-0000-0000-0000-000000000002',
+          full_name: isMontse ? 'Montserrat Grifol Roche' : 'Coordinación Brain Up',
+          email: cleanEmail,
+          role: 'coordinator',
+          status: 'active',
+          department: isMontse ? 'Project Manager' : 'Dirección de Operaciones',
+          password_configured: !shouldForceReset,
+          created_at: isMontse ? '2026-10-14T10:35:57Z' : '2026-01-01T00:00:00Z',
+        };
+        persistUser(coordProfile);
+        setUser(coordProfile);
+        setMustResetPassword(shouldForceReset);
+        return { user: coordProfile };
+      }
+
+      // Cuenta Empleado
+      if (cleanEmail === 'empleado@brainupgrup.com' || cleanEmail === 'trabajador@brainupgrup.com') {
+        const empProfile: Profile = {
+          id: '00000000-0000-0000-0000-000000000003',
+          full_name: 'Empleado de Prueba',
+          email: cleanEmail,
+          role: 'employee',
+          status: 'active',
+          department: 'Creatividad & Operaciones',
+          password_configured: !shouldForceReset,
+          created_at: '2026-01-01T00:00:00Z',
+        };
+        persistUser(empProfile);
+        setUser(empProfile);
+        setMustResetPassword(shouldForceReset);
+        return { user: empProfile };
+      }
+
+      // Buscar si el usuario existe en Supabase profiles
+      if (isSupabaseConnected) {
         try {
-          const checkRes = await fetch(`/api/auth/reset-password?email=${encodeURIComponent(cleanEmail)}`);
-          if (checkRes.ok) {
-            const checkData = await checkRes.json();
-            if (checkData.password_configured === false) {
-              shouldForceReset = true;
+          const supabase = createClient();
+          const { data: dbProf } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('email', cleanEmail)
+            .single();
+
+          if (dbProf) {
+            if (dbProf.status === 'pending') {
+              return { error: 'Tu cuenta está registrada pero aún está PENDIENTE de validación por la coordinadora de Brain Up Grup.' };
             }
+            if (dbProf.status === 'rejected') {
+              return { error: 'Tu solicitud de acceso fue rechazada.' };
+            }
+            const logged = dbProf as Profile;
+            setUser(logged);
+            persistUser(logged);
+            return { user: logged };
           }
         } catch {
           // ignore
         }
-
-        // Cuenta Super Admin
-        if (cleanEmail === 'appadmin@brainupgrup.com') {
-          const adminProfile: Profile = {
-            id: '00000000-0000-0000-0000-000000000001',
-            full_name: 'Super Administrador',
-            email: 'appadmin@brainupgrup.com',
-            role: 'admin',
-            status: 'active',
-            department: 'Sistemas & Seguridad',
-            created_at: '2026-01-01T00:00:00Z',
-          };
-          persistUser(adminProfile);
-          setUser(adminProfile);
-          setMustResetPassword(false);
-          return { user: adminProfile };
-        }
-
-        // Cuenta Coordinadora
-        if (
-          cleanEmail === 'coordinacion@brainupgrup.com' || 
-          cleanEmail === 'coordinadora@brainupgrup.com' ||
-          cleanEmail === 'montse@brainupgrup.com'
-        ) {
-          const isMontse = cleanEmail === 'montse@brainupgrup.com';
-          const coordProfile: Profile = {
-            id: isMontse ? '919f0fd1-5760-4a12-a91a-21512c40884b' : '00000000-0000-0000-0000-000000000002',
-            full_name: isMontse ? 'Montserrat Grifol Roche' : 'Coordinación Brain Up',
-            email: cleanEmail,
-            role: 'coordinator',
-            status: 'active',
-            department: isMontse ? 'Project Manager' : 'Dirección de Operaciones',
-            password_configured: !shouldForceReset,
-            created_at: isMontse ? '2026-10-14T10:35:57Z' : '2026-01-01T00:00:00Z',
-          };
-          persistUser(coordProfile);
-          setUser(coordProfile);
-          setMustResetPassword(shouldForceReset);
-          return { user: coordProfile };
-        }
-
-        // Cuenta Empleado
-        if (cleanEmail === 'empleado@brainupgrup.com' || cleanEmail === 'trabajador@brainupgrup.com') {
-          const empProfile: Profile = {
-            id: '00000000-0000-0000-0000-000000000003',
-            full_name: 'Empleado de Prueba',
-            email: cleanEmail,
-            role: 'employee',
-            status: 'active',
-            department: 'Creatividad & Operaciones',
-            password_configured: !shouldForceReset,
-            created_at: '2026-01-01T00:00:00Z',
-          };
-          persistUser(empProfile);
-          setUser(empProfile);
-          setMustResetPassword(shouldForceReset);
-          return { user: empProfile };
-        }
       }
+    }
+
+    // 4. FALLBACK PARA USUARIOS REGISTRADOS EN DEMO O MOCK
+    if (isDevOrDemo) {
 
       // Perfiles mock locales registrados
       let allProfiles: Profile[] = [...MOCK_PROFILES];
