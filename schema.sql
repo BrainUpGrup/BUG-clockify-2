@@ -16,8 +16,14 @@ create table if not exists public.profiles (
   status text not null check (status in ('active', 'pending', 'rejected')) default 'active',
   department text null default 'Creatividad & Operaciones',
   avatar_url text null default null,
+  password_configured boolean not null default true,
+  temp_password text null,
   created_at timestamptz not null default now()
 );
+
+-- Migración segura por si la tabla ya existía:
+alter table public.profiles add column if not exists password_configured boolean not null default true;
+alter table public.profiles add column if not exists temp_password text null;
 
 -- 2. TABLA: companies (Empresas / Clientes con Cuota y Ficha Detallada)
 create table if not exists public.companies (

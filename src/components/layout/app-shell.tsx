@@ -4,6 +4,7 @@ import React from 'react';
 import { usePathname } from 'next/navigation';
 import { Navbar } from '@/components/navbar';
 import { useAuth } from '@/context/auth-context';
+import { MandatoryPasswordResetModal } from '@/components/auth/mandatory-password-reset-modal';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -33,6 +34,7 @@ export function AppShell({ children }: AppShellProps) {
       <div className={`flex-1 flex flex-col w-full min-w-0 max-w-full ${isZeroScrollApp ? 'min-h-0 overflow-hidden' : ''}`}>
         {children}
       </div>
+      <MandatoryPasswordResetModal />
     </div>
   );
 }

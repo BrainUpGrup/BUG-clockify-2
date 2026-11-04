@@ -94,6 +94,14 @@ export default function SuperAdminDashboardPage() {
   // Feedback de copiado
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
+  // Modal de contraseña temporal (OTP de un solo uso)
+  const [resetModalData, setResetModalData] = useState<{
+    email: string;
+    fullName: string;
+    tempPassword: string;
+  } | null>(null);
+  const [isResettingId, setIsResettingId] = useState<string | null>(null);
+
   // Protección de ruta estricta: Solo 'admin' puede acceder
   useEffect(() => {
     if (!authLoading) {
@@ -477,6 +485,52 @@ export default function SuperAdminDashboardPage() {
     setTimeout(() => setCopiedKey(null), 2500);
   };
 
+  // Resetear contraseña de usuario generando clave temporal de un solo uso (OTP)
+  const handleResetUserPassword = async (targetProfile: Profile) => {
+    if (targetProfile.email === 'appadmin@brainupgrup.com') {
+      notify('No se puede resetear la cuenta maestra de Super Administrador con OTP.', { type: 'warning' });
+      return;
+    }
+
+    const ok = await confirmDialog({
+      title: `Resetear contraseña de ${targetProfile.full_name}`,
+      message: `Se generará una contraseña temporal de un solo uso para ${targetProfile.email} y se configurará en la base de datos como pendiente de reinicio (password_configured = false). En cuanto inicie sesión con esa cuenta se habilitará automáticamente la ventana de reinicio obligatorio de credenciales.`,
+      confirmLabel: 'Generar Clave de un Solo Uso',
+      danger: false,
+    });
+    if (!ok) return;
+
+    setIsResettingId(targetProfile.id);
+    try {
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'admin_reset',
+          email: targetProfile.email,
+          userId: targetProfile.id,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setResetModalData({
+          email: targetProfile.email,
+          fullName: targetProfile.full_name,
+          tempPassword: data.tempPassword,
+        });
+        notify('Contraseña temporal generada con éxito.', { type: 'success' });
+        await loadProfiles();
+      } else {
+        notify(data.error || 'Error al resetear contraseña.', { type: 'error' });
+      }
+    } catch {
+      notify('Error de red al conectar con el servicio de reseteo.', { type: 'error' });
+    } finally {
+      setIsResettingId(null);
+    }
+  };
+
   // Perfiles filtrados
   const filteredProfiles = useMemo(() => {
     return profiles.filter((p) => {
@@ -842,6 +896,22 @@ export default function SuperAdminDashboardPage() {
                                 >
                                   <Edit3 className="h-3.5 w-3.5" />
                                 </button>
+
+                                {!isMainAdmin && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleResetUserPassword(p)}
+                                    disabled={isResettingId === p.id}
+                                    className="p-1.5 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-800 transition-colors cursor-pointer disabled:opacity-50"
+                                    title="Resetear contraseña (Generar clave temporal OTP)"
+                                  >
+                                    {isResettingId === p.id ? (
+                                      <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                                    ) : (
+                                      <Key className="h-3.5 w-3.5" />
+                                    )}
+                                  </button>
+                                )}
 
                                 {!isMainAdmin && (
                                   <button
@@ -1235,6 +1305,103 @@ export default function SuperAdminDashboardPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* MODAL DE CONTRASEÑA TEMPORAL DE UN SOLO USO (OTP) */}
+      {resetModalData && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border-2 border-[#D0C4EB] rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-5 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-[#EAE4F5]">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-800">
+                  <Key className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold uppercase tracking-tight text-base text-[#292929]">
+                    CLAVE TEMPORAL <span className="text-[#8E0E75]">DE UN SOLO USO</span>
+                  </h3>
+                  <p className="text-[11px] text-[#4A4A4A]">
+                    Estado en base de datos: <span className="font-mono font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">password_configured = false</span>
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setResetModalData(null)}
+                className="text-[#4A4A4A] hover:text-[#292929] cursor-pointer"
+                title="Cerrar modal"
+              >
+                <XCircle className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Info de la cuenta */}
+              <div className="bg-[#F8F6FC] rounded-xl border border-[#D8CFF0] p-3 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold text-[#292929]">
+                    {resetModalData.fullName}
+                  </p>
+                  <p className="text-xs font-mono text-[#8E0E75] font-semibold">
+                    {resetModalData.email}
+                  </p>
+                </div>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md bg-white border border-[#D8CFF0] text-[#191654]">
+                  Reinicio Pendiente
+                </span>
+              </div>
+
+              {/* Caja de la Contraseña Temporal OTP */}
+              <div>
+                <label className="block text-xs font-extrabold uppercase tracking-wider text-[#292929] mb-1.5">
+                  Contraseña Temporal de un Solo Uso (OTP)
+                </label>
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-[#F8F6FC] border-2 border-[#D8CFF0]">
+                  <span className="font-mono text-base font-black text-[#8E0E75] tracking-widest flex-1 select-all">
+                    {resetModalData.tempPassword}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyText(resetModalData.tempPassword, 'otp_pass')}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#8E0E75] hover:bg-[#720B5E] text-white text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer shadow-xs"
+                  >
+                    {copiedKey === 'otp_pass' ? (
+                      <>
+                        <Check className="h-3.5 w-3.5" />
+                        <span>Copiada</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-3.5 w-3.5" />
+                        <span>Copiar Clave</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Explicación del flujo de seguridad */}
+              <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200/80 text-xs text-[#292929] space-y-1.5 leading-relaxed">
+                <div className="flex items-center gap-1.5 font-bold text-amber-900">
+                  <ShieldCheck className="h-4 w-4 text-amber-700 shrink-0" />
+                  <span>Flujo de Activación Automática:</span>
+                </div>
+                <p className="text-[11px] text-[#4A4A4A]">
+                  Entrega esta contraseña provisional a la usuaria. En cuanto inicie sesión con esta clave, el sistema detectará automáticamente <code className="font-mono bg-white px-1 py-0.5 rounded border border-amber-200">password_configured: false</code> y le desplegará de inmediato la ventana de reinicio obligatorio. No podrá acceder a ningún apartado hasta haber establecido su nueva contraseña definitiva.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => setResetModalData(null)}
+                  className="px-5 py-2 bg-[#8E0E75] hover:bg-[#720B5E] text-white rounded-xl text-xs font-extrabold uppercase tracking-wider cursor-pointer shadow-xs"
+                >
+                  Entendido y Cerrar
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

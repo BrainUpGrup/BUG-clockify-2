@@ -12,6 +12,8 @@ export interface Profile {
   department?: string;
   avatar_url?: string;
   created_at: string;
+  password_configured?: boolean; // false si requiere reinicio obligatorio de contraseña (OTP)
+  temp_password?: string; // Contraseña temporal de un solo uso
 }
 
 export interface Company {
