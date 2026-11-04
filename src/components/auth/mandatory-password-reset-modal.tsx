@@ -25,7 +25,12 @@ export function MandatoryPasswordResetModal() {
   const [errorMessage, setErrorMessage] = useState('');
 
   // Si no hay usuario o la contraseña ya está configurada, no renderizar
-  const isRequired = !!user && (user.password_configured === false || mustResetPassword);
+  const isLocallyDone =
+    typeof window !== 'undefined' &&
+    !!user?.email &&
+    localStorage.getItem(`bug_pwd_configured_${user.email}`) === 'true';
+
+  const isRequired = !!user && !isLocallyDone && (user.password_configured === false || mustResetPassword);
   if (!isRequired) {
     return null;
   }

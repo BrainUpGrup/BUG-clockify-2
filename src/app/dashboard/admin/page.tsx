@@ -519,6 +519,9 @@ export default function SuperAdminDashboardPage() {
           fullName: targetProfile.full_name,
           tempPassword: data.tempPassword,
         });
+        try {
+          localStorage.removeItem(`bug_pwd_configured_${targetProfile.email.toLowerCase()}`);
+        } catch {}
         notify('Contraseña temporal generada con éxito.', { type: 'success' });
         await loadProfiles();
       } else {

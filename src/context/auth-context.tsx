@@ -56,16 +56,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(parsed);
           persistUser(parsed);
 
-          if (parsed.password_configured === false) {
+          const wasLocallyConfigured = typeof window !== 'undefined' && localStorage.getItem(`bug_pwd_configured_${parsed.email}`) === 'true';
+          if (parsed.password_configured === false && !wasLocallyConfigured) {
             setMustResetPassword(true);
-          } else if (parsed.email) {
+          } else if (parsed.email && !wasLocallyConfigured) {
             // Comprobación de fondo si Super Admin marcó reset
             fetch(`/api/auth/reset-password?email=${encodeURIComponent(parsed.email)}`)
               .then((r) => r.json())
               .then((data) => {
                 if (data && data.password_configured === false && isMounted) {
-                  setMustResetPassword(true);
-                  setUser((prev) => (prev ? { ...prev, password_configured: false } : prev));
+                  const isNowConfigured = typeof window !== 'undefined' && localStorage.getItem(`bug_pwd_configured_${parsed.email}`) === 'true';
+                  if (!isNowConfigured) {
+                    setMustResetPassword(true);
+                    setUser((prev) => (prev ? { ...prev, password_configured: false } : prev));
+                  }
                 }
               })
               .catch(() => {});
@@ -281,26 +285,80 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // 3. AUTENTICACIÓN MAESTRA CORPORATIVA Y FALLBACK DE ALTA DISPONIBILIDAD
+    // 3. AUTENTICACIÓN POR BASE DE DATOS O CLAVE MAESTRA CORPORATIVA
     const isAllowedMasterPass =
       cleanPass === 'BrainUp2026!' ||
       cleanPass === 'BrainUp2026' ||
       cleanPass === 'brainup2026' ||
       cleanPass === 'fn.5loDnrTTfI2z!';
 
-    if (isAllowedMasterPass) {
-      // Consultar si la cuenta tiene password_configured en false en el store
-      let shouldForceReset = false;
+    let matchedDbProfile: (Profile & { custom_password?: string }) | null = null;
+    let isDbPassMatch = false;
+
+    if (isSupabaseConnected) {
       try {
-        const checkRes = await fetch(`/api/auth/reset-password?email=${encodeURIComponent(cleanEmail)}`);
-        if (checkRes.ok) {
-          const checkData = await checkRes.json();
-          if (checkData.password_configured === false) {
-            shouldForceReset = true;
+        const supabase = createClient();
+        const { data: dbProf } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('email', cleanEmail)
+          .maybeSingle();
+
+        if (dbProf) {
+          matchedDbProfile = dbProf as Profile & { custom_password?: string };
+          if (dbProf.custom_password && dbProf.custom_password === cleanPass) {
+            isDbPassMatch = true;
           }
         }
       } catch {
-        // ignore
+        // fallback
+      }
+    }
+
+    if (isAllowedMasterPass || isDbPassMatch) {
+      // Consultar si la cuenta tiene password_configured en false en el store
+      let shouldForceReset = false;
+      if (matchedDbProfile && typeof matchedDbProfile.password_configured === 'boolean') {
+        shouldForceReset = matchedDbProfile.password_configured === false;
+      } else {
+        try {
+          const checkRes = await fetch(`/api/auth/reset-password?email=${encodeURIComponent(cleanEmail)}`);
+          if (checkRes.ok) {
+            const checkData = await checkRes.json();
+            if (checkData.password_configured === false) {
+              shouldForceReset = true;
+            }
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      // Si el perfil existe en Supabase, iniciar sesión con sus datos exactos
+      if (matchedDbProfile) {
+        if (matchedDbProfile.status === 'pending') {
+          return { error: 'Tu cuenta está registrada pero aún está PENDIENTE de validación por la coordinadora.' };
+        }
+        if (matchedDbProfile.status === 'rejected') {
+          return { error: 'Tu solicitud de acceso fue rechazada.' };
+        }
+
+        const safeProfile: Profile = {
+          id: matchedDbProfile.id,
+          full_name: matchedDbProfile.full_name,
+          email: matchedDbProfile.email,
+          role: cleanEmail === 'appadmin@brainupgrup.com' ? 'admin' : matchedDbProfile.role,
+          status: matchedDbProfile.status,
+          department: matchedDbProfile.department,
+          avatar_url: matchedDbProfile.avatar_url,
+          password_configured: !shouldForceReset,
+          created_at: matchedDbProfile.created_at,
+        };
+
+        persistUser(safeProfile);
+        setUser(safeProfile);
+        setMustResetPassword(shouldForceReset);
+        return { user: safeProfile };
       }
 
       // Cuenta Super Admin
@@ -467,6 +525,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(updatedProfile);
       persistUser(updatedProfile);
       setMustResetPassword(false);
+
+      try {
+        localStorage.setItem(`bug_pwd_configured_${user.email}`, 'true');
+      } catch {}
 
       return { success: true };
     } catch (err: unknown) {

@@ -34,9 +34,42 @@ export async function GET(req: NextRequest) {
   }
 
   const cleanEmail = email.trim().toLowerCase();
-  const entry = getTempPasswordForEmail(cleanEmail);
+  const supabase = getSupabaseClient();
 
-  // Si existe entrada y password_configured es false, requerir reseteo
+  // 1. Prioridad: Consultar directamente en Supabase profiles (verdad única)
+  if (supabase) {
+    try {
+      const { data: dbProf } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('email', cleanEmail)
+        .maybeSingle();
+
+      if (dbProf) {
+        // Si la columna password_configured existe en Supabase y es explícitamente false
+        if (dbProf.password_configured === false) {
+          return NextResponse.json({
+            email: cleanEmail,
+            password_configured: false,
+            has_temp_password: !!dbProf.temp_password,
+          });
+        }
+        // Si la columna existe y es true, o no está marcada como false
+        if (dbProf.password_configured === true) {
+          return NextResponse.json({
+            email: cleanEmail,
+            password_configured: true,
+            has_temp_password: false,
+          });
+        }
+      }
+    } catch {
+      // Ignorar error si la columna aún no está en Supabase
+    }
+  }
+
+  // 2. Fallback: Almacenamiento local temporal en desarrollo
+  const entry = getTempPasswordForEmail(cleanEmail);
   const passwordConfigured = entry ? entry.password_configured : true;
 
   return NextResponse.json({
@@ -63,10 +96,10 @@ export async function POST(req: NextRequest) {
       const tempPass = generateReadableOTP();
       const targetUserId = userId || '';
 
-      // Guardar en almacenamiento persistente
+      // Guardar en almacenamiento persistente local
       setTempPasswordForUser(targetUserId, cleanEmail, tempPass);
 
-      // Intentar actualizar también en la base de datos Supabase si la columna existe
+      // Actualizar también en la base de datos Supabase
       if (supabase) {
         try {
           await supabase
@@ -92,7 +125,35 @@ export async function POST(req: NextRequest) {
 
     // 2. ACCIÓN: VERIFICAR CONTRASEÑA TEMPORAL AL INICIAR SESIÓN
     if (action === 'verify_temp_password') {
-      const candidatePass = body.password || '';
+      const candidatePass = (body.password || '').trim();
+
+      // Primero consultar en Supabase
+      if (supabase) {
+        try {
+          const { data: dbProf } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('email', cleanEmail)
+            .maybeSingle();
+
+          if (
+            dbProf &&
+            dbProf.password_configured === false &&
+            dbProf.temp_password &&
+            dbProf.temp_password.trim() === candidatePass
+          ) {
+            return NextResponse.json({
+              valid: true,
+              email: cleanEmail,
+              password_configured: false,
+            });
+          }
+        } catch {
+          // fallback
+        }
+      }
+
+      // Fallback a almacenamiento temporal
       const isValid = verifyTempPassword(cleanEmail, candidatePass);
 
       if (isValid) {
@@ -109,7 +170,7 @@ export async function POST(req: NextRequest) {
       }, { status: 401 });
     }
 
-    // 2. ACCIÓN: USUARIO CONFIGURA SU CONTRASEÑA DEFINITIVA (Pone password_configured = true)
+    // 3. ACCIÓN: USUARIO CONFIGURA SU CONTRASEÑA DEFINITIVA (Pone password_configured = true)
     if (action === 'update_password') {
       if (!newPassword || typeof newPassword !== 'string' || newPassword.trim().length < 6) {
         return NextResponse.json(
@@ -118,19 +179,34 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Marcar como configurada en almacenamiento persistente
+      const cleanNewPassword = newPassword.trim();
+
+      // Marcar como configurada en almacenamiento persistente local
       markPasswordConfigured(cleanEmail);
 
-      // Intentar actualizar en Supabase profiles si la columna existe
+      // Actualizar en Supabase profiles
       if (supabase) {
         try {
-          await supabase
+          // Intentar guardar con custom_password para login inmediato
+          const { error: fullUpdateErr } = await supabase
             .from('profiles')
             .update({
               password_configured: true,
               temp_password: null,
+              custom_password: cleanNewPassword,
             })
             .eq('email', cleanEmail);
+
+          if (fullUpdateErr) {
+            // Si la columna custom_password no existe aún, actualizar solo password_configured
+            await supabase
+              .from('profiles')
+              .update({
+                password_configured: true,
+                temp_password: null,
+              })
+              .eq('email', cleanEmail);
+          }
         } catch (dbErr) {
           console.warn('Aviso: Columna password_configured pendiente en Supabase profiles:', dbErr);
         }

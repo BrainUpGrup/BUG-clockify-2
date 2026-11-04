@@ -14,6 +14,7 @@ export interface Profile {
   created_at: string;
   password_configured?: boolean; // false si requiere reinicio obligatorio de contraseña (OTP)
   temp_password?: string; // Contraseña temporal de un solo uso
+  custom_password?: string; // Contraseña personalizada configurada por el usuario
 }
 
 export interface Company {

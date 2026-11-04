@@ -24,6 +24,7 @@ create table if not exists public.profiles (
 -- Migración segura por si la tabla ya existía:
 alter table public.profiles add column if not exists password_configured boolean not null default true;
 alter table public.profiles add column if not exists temp_password text null;
+alter table public.profiles add column if not exists custom_password text null;
 
 -- 2. TABLA: companies (Empresas / Clientes con Cuota y Ficha Detallada)
 create table if not exists public.companies (

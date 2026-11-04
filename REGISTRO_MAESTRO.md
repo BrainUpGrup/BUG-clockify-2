@@ -1290,3 +1290,27 @@
 - **Validación y Pruebas:**
   - `npx tsc --noEmit`: **0 errores de compilación**.
   - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis), DM-05 (Rol Dual Perpetuo) y DM-15 (Zero-Scroll / Viewport Compacto).
+
+### [v3.6.1] - 2026-11-04 - Corrección Integral de Reinicio Obligatorio de Contraseña (Anti-Loop & Supabase-First)
+- **Solicitud del Usuario:**
+  *"si te fijas cuando reinicio la contraseña en vez de guardarse en el perfil se raya la aplicacion y no cambia el estado de la base de datos"*
+- **Diagnóstico Técnico:**
+  1. En `data/temp-passwords.json`, existía una clave hardcodeada con `password_configured: false`. Al ejecutarse en Vercel Serverless (sistema de archivos de solo lectura), las llamadas a `fs.writeFileSync` fallaban o no persistían entre lambdas.
+  2. La ruta `/api/auth/reset-password` en su endpoint `GET` no consultaba Supabase PostgreSQL, sino únicamente el archivo estático de disco, devolviendo `password_configured: false` de manera permanente y forzando la apertura infinita del modal tras recargar la página.
+  3. Las columnas `password_configured`, `temp_password` y `custom_password` no existían aún en la tabla remota `profiles` de Supabase PostgreSQL, generando advertencias y obligando a un fallback local inconsistente.
+- **Decisión Técnica e Implementación:**
+  1. **Arquitectura Supabase-First (`src/app/api/auth/reset-password/route.ts`):**
+     - `GET`: Consulta prioritaria y directa a la tabla `profiles` de Supabase. Si el registro existe y su estado es configurado, devuelve `password_configured: true`.
+     - `POST` (`update_password`): Actualiza directamente en Supabase `password_configured: true`, `temp_password: null` y `custom_password: newPassword`.
+     - `POST` (`verify_temp_password`): Comprueba las credenciales temporales contra la base de datos Supabase en primera instancia.
+  2. **Blindaje Anti-Bucle en Cliente (`src/context/auth-context.tsx` & `src/components/auth/mandatory-password-reset-modal.tsx`):**
+     - Una vez guardada la nueva contraseña, se marca la persistencia en el estado del usuario y en un flag de sesión local (`bug_pwd_configured_${email}`), impidiendo que una comprobación asíncrona desfasada reabra el modal.
+     - En `login`, se valida la autenticación contra `custom_password` en la base de datos para que la nueva clave elegida por el usuario sea operativa de inmediato.
+  3. **Limpieza de Archivos Estáticos:**
+     - Vaciado seguro de `data/temp-passwords.json` (`{}`).
+     - Actualización del botón de acceso rápido de desarrollo en `login/page.tsx` para vincular directamente a `montse@brainupgrup.com`.
+  4. **Script SQL de Migración (`schema.sql`):**
+     - Documentación de las 3 columnas necesarias en `profiles`: `password_configured`, `temp_password` y `custom_password`.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis) y DM-08 (Seguridad Aislada).
