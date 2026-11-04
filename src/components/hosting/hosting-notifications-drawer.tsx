@@ -17,6 +17,7 @@ import {
   Check
 } from 'lucide-react';
 import { notify } from '@/lib/feedback';
+import { HostingRenewalConfirmModal } from '@/components/hosting/hosting-renewal-confirm-modal';
 
 interface HostingNotificationsDrawerProps {
   isOpen: boolean;
@@ -36,7 +37,7 @@ export function HostingNotificationsDrawer({
   onToggleNotificationStage,
 }: HostingNotificationsDrawerProps) {
   const [selectedStage, setSelectedStage] = useState<'all' | '7' | '15' | '30' | '60' | '90'>('all');
-  const [renewingId, setRenewingId] = useState<string | null>(null);
+  const [serviceToRenew, setServiceToRenew] = useState<HostingService | null>(null);
 
   if (!isOpen) return null;
 
@@ -56,18 +57,6 @@ export function HostingNotificationsDrawer({
   const count30 = alerts.filter((a) => a.daysRemaining > 15 && a.daysRemaining <= 30).length;
   const count60 = alerts.filter((a) => a.daysRemaining > 30 && a.daysRemaining <= 60).length;
   const count90 = alerts.filter((a) => a.daysRemaining > 60 && a.daysRemaining <= 90).length;
-
-  const handleRenew = async (serviceId: string) => {
-    setRenewingId(serviceId);
-    try {
-      await onRenewService(serviceId);
-      notify('Servicio renovado con éxito por 1 año.', { type: 'success' });
-    } catch {
-      notify('Error al renovar el servicio.', { type: 'error' });
-    } finally {
-      setRenewingId(null);
-    }
-  };
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-xs transition-opacity duration-200">
@@ -292,11 +281,10 @@ export function HostingNotificationsDrawer({
 
                       <button
                         type="button"
-                        disabled={renewingId === service.id}
-                        onClick={() => handleRenew(service.id)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#8E0E75] hover:bg-[#700B5C] text-white text-xs font-extrabold uppercase tracking-wider transition-all cursor-pointer shadow-xs disabled:opacity-50"
+                        onClick={() => setServiceToRenew(service)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#8E0E75] hover:bg-[#700B5C] text-white text-xs font-extrabold uppercase tracking-wider transition-all cursor-pointer shadow-xs hover:scale-105 active:scale-95"
                       >
-                        <RefreshCw className={`h-3.5 w-3.5 ${renewingId === service.id ? 'animate-spin' : ''}`} />
+                        <RefreshCw className="h-3.5 w-3.5" />
                         <span>Renovar (+1 año)</span>
                       </button>
                     </div>
@@ -321,6 +309,18 @@ export function HostingNotificationsDrawer({
           </button>
         </div>
       </div>
+
+      {/* Ventana Modal de Confirmación de Renovación */}
+      <HostingRenewalConfirmModal
+        isOpen={Boolean(serviceToRenew)}
+        onClose={() => setServiceToRenew(null)}
+        service={serviceToRenew}
+        onConfirm={async (id) => {
+          await onRenewService(id);
+          notify('Servicio renovado con éxito por 1 año.', { type: 'success' });
+        }}
+      />
     </div>
   );
 }
+

@@ -22,6 +22,7 @@ import { HostingNotificationsDrawer } from '@/components/hosting/hosting-notific
 import { HostingModal } from '@/components/hosting/hosting-modal';
 import { HostingEmailModal } from '@/components/hosting/hosting-email-modal';
 import { HostingImportModal } from '@/components/hosting/hosting-import-modal';
+import { HostingRenewalConfirmModal } from '@/components/hosting/hosting-renewal-confirm-modal';
 import { notify } from '@/lib/feedback';
 import { 
   Server, 
@@ -71,6 +72,7 @@ export default function HostingPage() {
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [emailServiceTarget, setEmailServiceTarget] = useState<{ service: HostingService; days: number } | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [renewalConfirmService, setRenewalConfirmService] = useState<HostingService | null>(null);
 
   // Protección de ruta
   useEffect(() => {
@@ -561,13 +563,10 @@ export default function HostingPage() {
                               <Mail className="h-4 w-4" />
                             </button>
 
-                            {/* Renovar +1 año */}
+                            {/* Renovar +1 año con ventana de confirmación */}
                             <button
                               type="button"
-                              onClick={async () => {
-                                await handleRenewService(service.id);
-                                notify(`Servicio ${service.name} renovado por 1 año.`, { type: 'success' });
-                              }}
+                              onClick={() => setRenewalConfirmService(service)}
                               className="px-2.5 py-1 rounded-lg bg-[#8E0E75] hover:bg-[#700B5C] text-white text-[11px] font-black uppercase tracking-tight transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
                               title="Extender fecha de vencimiento +1 año"
                             >
@@ -675,6 +674,18 @@ export default function HostingPage() {
         onClose={() => setIsImportModalOpen(false)}
         onImport={handleImportCSV}
       />
+
+      {/* Modal de Confirmación de Renovación */}
+      <HostingRenewalConfirmModal
+        isOpen={Boolean(renewalConfirmService)}
+        onClose={() => setRenewalConfirmService(null)}
+        service={renewalConfirmService}
+        onConfirm={async (id) => {
+          await handleRenewService(id);
+          notify(`Servicio ${renewalConfirmService?.name} renovado con éxito por 1 año.`, { type: 'success' });
+        }}
+      />
     </div>
   );
 }
+

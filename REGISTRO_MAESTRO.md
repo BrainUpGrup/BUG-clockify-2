@@ -1394,3 +1394,22 @@
 - **Validación y Pruebas:**
   - `npx tsc --noEmit`: **0 errores de compilación**.
   - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis), DM-02 (Controles In-App), DM-03 (100% Pantalla) y DM-15 (Zero-Scroll).
+
+### [v3.7.1] - 2026-11-04 - Ventana Modal de Confirmación de Renovación de Hosting
+- **Solicitud del Usuario:**
+  *"caudno le demos al boton de renovar que salga una ventana de seguro que quieres renovar ese hsoting?"*
+- **Diagnóstico Técnico:**
+  La acción de renovar servicio (+1 año) se ejecutaba de forma inmediata al hacer clic, con riesgo de pulsaciones accidentales que pudieran alterar prematuramente las fechas de vencimiento de dominios y servidores de clientes.
+- **Decisión Técnica e Implementación:**
+  1. **Nuevo Componente `HostingRenewalConfirmModal` (`src/components/hosting/hosting-renewal-confirm-modal.tsx`):**
+     - Ventana modal compacta corporativa (identidad "La Abuela", libre de emojis y sin scroll) que muestra:
+       - Pregunta destacada: *"¿Seguro que quieres renovar este servicio?"*
+       - Detalles del servicio: nombre, tipo (Hosting / Dominio), cliente y proveedor.
+       - Comparador visual de fechas: Vencimiento actual (en rojo) -> Nuevo vencimiento (+1 año en verde).
+       - Botón "Cancelar" y botón primario destacado "Sí, Renovar Servicio (+1 año)" con indicador de carga.
+  2. **Integración en Tabla y Panel de Alertas:**
+     - En la tabla principal ([`src/app/apps/hosting/page.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/app/apps/hosting/page.tsx)), el botón "Renovar" abre la ventana de confirmación antes de extender la fecha.
+     - En el panel lateral de avisos ([`src/components/hosting/hosting-notifications-drawer.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/components/hosting/hosting-notifications-drawer.tsx)), el botón "Renovar (+1 año)" también requiere confirmación explícita previa.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis) y DM-15 (Zero-Scroll).
