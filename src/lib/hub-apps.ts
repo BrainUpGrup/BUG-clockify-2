@@ -65,75 +65,15 @@ export const BRAIN_UP_HUB_APPS: HubApp[] = [
     isReady: true,
     version: '1.0.0',
   },
-  {
-    id: 'media_hub',
-    name: 'Brain Up Media Hub',
-    tagline: 'Biblioteca de Activos & Creatividades',
-    description: 'Repositorio centralizado de manuales de marca, logotipos en alta resolución, banners y creatividades oficiales para clientes.',
-    category: 'creatividad',
-    badge: 'Suite Brain Up',
-    iconName: 'Image',
-    route: '/apps/taskflow?tool=media_hub',
-    isReady: true,
-    version: '1.2.0',
-  },
-  {
-    id: 'crm',
-    name: 'Brain Up CRM',
-    tagline: 'Directorio de Clientes & Contactos VIP',
-    description: 'Gestión de interlocutores clave, historial de relaciones corporativas y fichas fiscales de cada cuenta de la agencia.',
-    category: 'gestion',
-    badge: 'Suite Brain Up',
-    iconName: 'Users',
-    route: '/apps/taskflow?tool=crm',
-    isReady: true,
-    version: '1.1.0',
-  },
-  {
-    id: 'billing',
-    name: 'Brain Up Facturación',
-    tagline: 'Presupuestos & Control de Facturación',
-    description: 'Seguimiento financiero de horas de cuota facturadas, trabajos puntuales extra y estado de cobros comerciales.',
-    category: 'administracion',
-    badge: 'Suite Brain Up',
-    iconName: 'Receipt',
-    route: '/apps/taskflow?tool=billing',
-    isReady: true,
-    version: '1.0.4',
-  },
-  {
-    id: 'knowledge',
-    name: 'Brain Up Wiki & SOPs',
-    tagline: 'Procedimientos Operativos & Guías Internas',
-    description: 'Base de conocimiento corporativa, metodologías de trabajo aprobadas y documentación de procesos para el equipo.',
-    category: 'gestion',
-    badge: 'Suite Brain Up',
-    iconName: 'BookOpen',
-    route: '/apps/taskflow?tool=knowledge',
-    isReady: true,
-    version: '1.3.1',
-  },
-  {
-    id: 'social',
-    name: 'Brain Up Social Planner',
-    tagline: 'Calendario Editorial & Contenidos',
-    description: 'Programación de publicaciones, parrilla mensual de redes sociales y aprobación de copys para campañas publicitarias.',
-    category: 'creatividad',
-    badge: 'Suite Brain Up',
-    iconName: 'Share2',
-    route: '/apps/taskflow?tool=social',
-    isReady: true,
-    version: '1.0.8',
-  },
 ];
 
 const STORAGE_KEY_PERMISSIONS = 'bug_hub_user_permissions';
 
 /**
  * Aplicaciones básicas por defecto para trabajadores que aún no tienen permisos personalizados configurados
- * Por defecto: Clockify + TaskFlow + Subtítulos
+ * Por defecto: Clockify + TaskFlow + Chat + Subtítulos
  */
-export const DEFAULT_EMPLOYEE_APPS: string[] = ['clockify', 'taskflow', 'subtitulos'];
+export const DEFAULT_EMPLOYEE_APPS: string[] = ['clockify', 'taskflow', 'chat', 'subtitulos'];
 
 /**
  * Obtiene el mapa de permisos guardado en localStorage

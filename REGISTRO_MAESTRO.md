@@ -1341,3 +1341,25 @@
 - **Validación y Pruebas:**
   - `npx tsc --noEmit`: **0 errores de compilación**.
   - Comprobación de que la tabla de usuarios muestra exactamente los 3 usuarios reales sin duplicados.
+
+### [v3.6.3] - 2026-11-04 - Depuración del Catálogo del HUB a Aplicaciones 100% Reales
+- **Solicitud del Usuario:**
+  *"elimina los botones de brain up hub, brain up CRM, Brain Up facturacion, Brain up wiki e sops y brain up social planner y deja solo als que sean aplciaciones reales aunque esten en mantenimiento"*
+- **Diagnóstico Técnico:**
+  El catálogo `BRAIN_UP_HUB_APPS` en `src/lib/hub-apps.ts` contenía 5 tarjetas de demostración / marcadores de posición (`media_hub`, `crm`, `billing`, `knowledge`, `social`) que enrutaban ficticiamente a `taskflow?tool=...`. Estas tarjetas se mostraban en el HUB (`/hub`), permitían ser fijadas en la barra superior como favoritas y poblaban innecesariamente columnas en la matriz de permisos de coordinación (`HubPermissionsMatrix`).
+- **Decisión Técnica e Implementación:**
+  1. **Purga del Catálogo Oficial (`src/lib/hub-apps.ts`):**
+     - Eliminación de `media_hub` (Brain Up Media Hub), `crm` (Brain Up CRM), `billing` (Brain Up Facturación), `knowledge` (Brain Up Wiki & SOPs) y `social` (Brain Up Social Planner).
+     - Conservación exclusiva de las 4 aplicaciones con funcionalidad real integrada:
+       1. **Brain Up Tiempo** (`clockify`): Control horario, cronómetro y cuotas de clientes.
+       2. **Brain Up Agenda** (`taskflow`): Calendario laboral L-V, gestión de proyectos y post-its.
+       3. **Brain Up Chat** (`chat`): Mensajería anti-ruido con canales de cliente y sincronización Slack.
+       4. **Brain Up Subtitulado** (`subtitulos`): Módulo Whisper large-v3 + Claude (en estado de mantenimiento oficial).
+  2. **Permisos Base (`DEFAULT_EMPLOYEE_APPS`):**
+     - Actualizado a `['clockify', 'taskflow', 'chat', 'subtitulos']`.
+  3. **Impacto en Vistas:**
+     - En el HUB (`/hub`), el grid ahora exhibe limpiamente las 4 aplicaciones reales.
+     - En la Matriz de Permisos (`/dashboard/coordinator`), las columnas se reducen a las 4 aplicaciones reales, optimizando el espacio horizontal conforme a DM-15 (Zero-Scroll).
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis) y DM-15 (Zero-Scroll).
