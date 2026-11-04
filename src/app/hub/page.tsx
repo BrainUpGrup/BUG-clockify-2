@@ -130,12 +130,7 @@ export default function BrainUpHubPage() {
             .select('*')
             .order('full_name');
           if (data && data.length > 0) {
-            const existingIds = new Set(data.map((p) => p.id));
-            const merged = [...data];
-            MOCK_PROFILES.forEach((mockP) => {
-              if (!existingIds.has(mockP.id)) merged.push(mockP);
-            });
-            setAllProfiles(merged as Profile[]);
+            setAllProfiles(data as Profile[]);
             return;
           }
         } catch (e) {

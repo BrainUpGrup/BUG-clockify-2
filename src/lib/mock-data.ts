@@ -5,35 +5,7 @@ import { Company, Profile, TimeEntry } from '@/types/database';
 
 export const MOCK_COMPANIES: Company[] = [];
 
-export const MOCK_PROFILES: Profile[] = [
-  {
-    id: '00000000-0000-0000-0000-000000000002',
-    full_name: 'Coordinación Brain Up',
-    email: 'coordinacion@brainupgrup.com',
-    role: 'coordinator',
-    status: 'active',
-    department: 'Dirección de Operaciones',
-    created_at: '2026-01-01T00:00:00Z',
-  },
-  {
-    id: '919f0fd1-5760-4a12-a91a-21512c40884b',
-    full_name: 'Montserrat Grifol Roche',
-    email: 'montse@brainupgrup.com',
-    role: 'coordinator',
-    status: 'active',
-    department: 'Project Manager',
-    created_at: '2026-10-14T10:35:57Z',
-  },
-  {
-    id: '00000000-0000-0000-0000-000000000003',
-    full_name: 'Empleado de Prueba',
-    email: 'empleado@brainupgrup.com',
-    role: 'employee',
-    status: 'active',
-    department: 'Creatividad & Operaciones',
-    created_at: '2026-01-01T00:00:00Z',
-  },
-];
+export const MOCK_PROFILES: Profile[] = [];
 
 export const MOCK_TIME_ENTRIES: TimeEntry[] = [];
 

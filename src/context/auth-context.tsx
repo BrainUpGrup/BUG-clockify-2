@@ -192,22 +192,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (!otpProfile) {
             if (cleanEmail === 'montse@brainupgrup.com') {
               otpProfile = {
-                id: '919f0fd1-5760-4a12-a91a-21512c40884b',
-                full_name: 'Montserrat Grifol Roche',
+                id: '755e8812-8e22-43f1-ac6f-f41ce5451fcf',
+                full_name: 'Montse',
                 email: cleanEmail,
                 role: 'coordinator',
                 status: 'active',
-                department: 'Project Manager',
+                department: 'Coordinación & Dirección',
                 created_at: '2026-10-14T10:35:57Z',
               };
-            } else if (cleanEmail === 'coordinacion@brainupgrup.com' || cleanEmail === 'coordinadora@brainupgrup.com') {
+            } else if (cleanEmail === 'peipito@gmail.com') {
               otpProfile = {
-                id: '00000000-0000-0000-0000-000000000002',
-                full_name: 'Coordinación Brain Up',
+                id: 'd6ab9054-ef6c-46ff-9483-441426e3cf8b',
+                full_name: 'Gerard Medina',
                 email: cleanEmail,
-                role: 'coordinator',
+                role: 'employee',
                 status: 'active',
-                department: 'Dirección de Operaciones',
+                department: 'Creatividad & Operaciones',
+                created_at: '2026-01-01T00:00:00Z',
+              };
+            } else if (cleanEmail === 'appadmin@brainupgrup.com') {
+              otpProfile = {
+                id: '8b2a428b-9fb2-4a26-b298-696f8510d770',
+                full_name: 'Super Administrador',
+                email: cleanEmail,
+                role: 'admin',
+                status: 'active',
+                department: 'Sistemas & Seguridad',
                 created_at: '2026-01-01T00:00:00Z',
               };
             } else {
@@ -364,7 +374,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Cuenta Super Admin
       if (cleanEmail === 'appadmin@brainupgrup.com') {
         const adminProfile: Profile = {
-          id: '00000000-0000-0000-0000-000000000001',
+          id: '8b2a428b-9fb2-4a26-b298-696f8510d770',
           full_name: 'Super Administrador',
           email: 'appadmin@brainupgrup.com',
           role: 'admin',
@@ -378,22 +388,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { user: adminProfile };
       }
 
-      // Cuenta Coordinadora (Montse o Genérica)
-      if (
-        cleanEmail === 'coordinacion@brainupgrup.com' || 
-        cleanEmail === 'coordinadora@brainupgrup.com' ||
-        cleanEmail === 'montse@brainupgrup.com'
-      ) {
-        const isMontse = cleanEmail === 'montse@brainupgrup.com';
+      // Cuenta Coordinadora Montse
+      if (cleanEmail === 'montse@brainupgrup.com') {
         const coordProfile: Profile = {
-          id: isMontse ? '919f0fd1-5760-4a12-a91a-21512c40884b' : '00000000-0000-0000-0000-000000000002',
-          full_name: isMontse ? 'Montserrat Grifol Roche' : 'Coordinación Brain Up',
+          id: '755e8812-8e22-43f1-ac6f-f41ce5451fcf',
+          full_name: 'Montse',
           email: cleanEmail,
           role: 'coordinator',
           status: 'active',
-          department: isMontse ? 'Project Manager' : 'Dirección de Operaciones',
+          department: 'Coordinación & Dirección',
           password_configured: !shouldForceReset,
-          created_at: isMontse ? '2026-10-14T10:35:57Z' : '2026-01-01T00:00:00Z',
+          created_at: '2026-10-14T10:35:57Z',
         };
         persistUser(coordProfile);
         setUser(coordProfile);
@@ -401,11 +406,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { user: coordProfile };
       }
 
-      // Cuenta Empleado
-      if (cleanEmail === 'empleado@brainupgrup.com' || cleanEmail === 'trabajador@brainupgrup.com') {
+      // Cuenta Empleado Gerard Medina
+      if (cleanEmail === 'peipito@gmail.com') {
         const empProfile: Profile = {
-          id: '00000000-0000-0000-0000-000000000003',
-          full_name: 'Empleado de Prueba',
+          id: 'd6ab9054-ef6c-46ff-9483-441426e3cf8b',
+          full_name: 'Gerard Medina',
           email: cleanEmail,
           role: 'employee',
           status: 'active',

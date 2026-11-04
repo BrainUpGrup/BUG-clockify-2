@@ -246,11 +246,11 @@ export default function LoginPage() {
               </span>
             </button>
 
-            {/* Empleado */}
+            {/* Empleado Gerard Medina */}
             <button
               type="button"
               disabled={isSubmitting}
-              onClick={() => handleQuickLogin('empleado@brainupgrup.com', 'BrainUp2026!')}
+              onClick={() => handleQuickLogin('peipito@gmail.com', 'BrainUp2026!')}
               className="w-full flex items-center justify-between p-2.5 rounded-md border-2 border-[#D8CFF0] bg-[#F8F6FC] hover:bg-[#10B981] hover:border-[#10B981] hover:text-white group transition-all text-left cursor-pointer disabled:opacity-50 shadow-2xs hover:shadow-md hover:scale-[1.01] active:scale-[0.99]"
             >
               <div className="flex items-center gap-3">
@@ -259,10 +259,10 @@ export default function LoginPage() {
                 </span>
                 <div>
                   <div className="text-xs font-black uppercase leading-tight text-[#191654] group-hover:text-white">
-                    Empleado / Trabajador
+                    Gerard Medina · Empleado
                   </div>
                   <div className="text-[11px] text-emerald-700 group-hover:text-white/80 font-mono mt-0.5">
-                    empleado@brainupgrup.com
+                    peipito@gmail.com
                   </div>
                 </div>
               </div>
