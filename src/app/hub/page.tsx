@@ -18,6 +18,7 @@ import {
   LayoutGrid, 
   Clock, 
   CheckSquare, 
+  BarChart3,
   Image, 
   Users, 
   Receipt, 
@@ -66,10 +67,10 @@ export default function BrainUpHubPage() {
           return;
         }
       }
-      setFavoriteAppIds([]);
+      setFavoriteAppIds(['clockify', 'taskflow', 'chat']);
     } catch (e) {
       console.warn('Error cargando apps favoritas:', e);
-      setFavoriteAppIds([]);
+      setFavoriteAppIds(['clockify', 'taskflow', 'chat']);
     }
   }, []);
 
@@ -341,7 +342,7 @@ export default function BrainUpHubPage() {
                     // Destino de Tiempo según si es coordinador o empleado
                     let targetHref = app.route;
                     if (app.id === 'clockify') {
-                      targetHref = user.role === 'coordinator' ? '/dashboard/coordinator' : '/dashboard/employee';
+                      targetHref = '/dashboard/employee';
                     }
 
                     return (
@@ -415,10 +416,34 @@ export default function BrainUpHubPage() {
                             </div>
                             <p className="text-sm sm:text-base font-extrabold text-[#8E0E75] mt-1.5">{app.tagline}</p>
                             <p className="text-sm sm:text-base text-[#4A4A4A] leading-relaxed mt-2.5 line-clamp-3">{app.description}</p>
-                            <span className="inline-flex items-center gap-2 mt-5 px-4 py-2 rounded-xl bg-[#F8F6FC] group-hover:bg-[#8E0E75] text-[#8E0E75] group-hover:text-white text-xs sm:text-sm font-black uppercase tracking-wider transition-all shadow-2xs">
+                            {app.id === 'clockify' && user.role === 'coordinator' ? (
+                              <div className="flex flex-wrap items-center gap-2.5 mt-5">
+                                <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#8E0E75] text-white text-xs sm:text-sm font-black uppercase tracking-wider transition-all shadow-2xs group-hover:bg-[#700B5C]">
+                                  <Clock className="h-4 w-4" />
+                                  <span>Mi Fichaje (Horas)</span>
+                                  <ArrowRight className="h-3.5 w-3.5" />
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    router.push('/dashboard/coordinator');
+                                  }}
+                                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border-2 border-[#D8CFF0] hover:border-[#8E0E75] hover:bg-[#F8F6FC] text-[#8E0E75] text-xs sm:text-sm font-black uppercase tracking-wider transition-all shadow-2xs cursor-pointer hover:scale-105 active:scale-95"
+                                  title="Acceder al panel de informes, cuotas y coordinación de equipo"
+                                >
+                                  <BarChart3 className="h-4 w-4 text-[#8E0E75]" />
+                                  <span>Panel Coordinación</span>
+                                  <ArrowRight className="h-3.5 w-3.5 text-[#8E0E75]" />
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="inline-flex items-center gap-2 mt-5 px-4 py-2 rounded-xl bg-[#F8F6FC] group-hover:bg-[#8E0E75] text-[#8E0E75] group-hover:text-white text-xs sm:text-sm font-black uppercase tracking-wider transition-all shadow-2xs">
                               <span>{app.badge === 'Mantenimiento' ? 'Ver estado' : 'Abrir Herramienta'}</span>
                               <ArrowRight className="h-4 w-4 group-hover:translate-x-1.5 transition-transform" />
-                            </span>
+                              </span>
+                            )}
                           </div>
                         </Link>
                       </div>

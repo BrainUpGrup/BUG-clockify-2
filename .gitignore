@@ -27,3 +27,9 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 *.tsbuildinfo
+
+# Scratch and local inspect scripts
+/scripts/inspect_*
+/scripts/check_*
+claude-skills-agencia
+

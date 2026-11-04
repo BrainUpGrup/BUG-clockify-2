@@ -109,7 +109,7 @@ export function Navbar() {
   const logoHref = '/hub';
 
 
-  // Gestión de Favoritas para el layout modular de la barra superior (vacío por defecto hasta que el usuario elija)
+  // Gestión de Favoritas para el layout modular de la barra superior (por defecto: Tiempo, Agenda y Chat)
   const [favoriteAppIds, setFavoriteAppIds] = React.useState<string[]>([]);
 
   React.useEffect(() => {
@@ -123,10 +123,14 @@ export function Navbar() {
             return;
           }
         }
+        if (stored === null) {
+          setFavoriteAppIds(['clockify', 'taskflow', 'chat']);
+          return;
+        }
         setFavoriteAppIds([]);
       } catch (e) {
         console.warn('Error loading favorite apps in navbar:', e);
-        setFavoriteAppIds([]);
+        setFavoriteAppIds(['clockify', 'taskflow', 'chat']);
       }
     };
 
@@ -162,11 +166,13 @@ export function Navbar() {
     return app.name.replace(/^Brain Up\s+/, '');
   };
 
-  // Lista modular y dinámica de enlaces de navegación según las favoritas del usuario
+  // Lista modular y dinámica de enlaces de navegación según las favoritas del usuario y rol dual
   const navLinks = React.useMemo(() => {
     const links = [
       { href: '/hub', label: 'HUB Apps', icon: LayoutGrid, isActive: isHubActive, visible: true },
     ];
+
+    let hasClockifyInNav = false;
 
     favoriteAppIds.forEach((appId) => {
       const app = BRAIN_UP_HUB_APPS.find((a) => a.id === appId);
@@ -179,8 +185,28 @@ export function Navbar() {
       let isActive = false;
 
       if (app.id === 'clockify') {
-        href = isCoordinator ? '/dashboard/coordinator' : '/dashboard/employee';
-        isActive = isClockifyActive;
+        hasClockifyInNav = true;
+        if (isCoordinator) {
+          // Rol Dual Perpetuo (DM-05): Coordinadora tiene acceso simultáneo a Mi Tiempo y Coordinación
+          links.push({
+            href: '/dashboard/employee',
+            label: 'Mi Tiempo',
+            icon: Clock,
+            isActive: isEmployeeActive,
+            visible: true,
+          });
+          links.push({
+            href: '/dashboard/coordinator',
+            label: 'Coordinación',
+            icon: BarChart3,
+            isActive: isCoordinatorActive,
+            visible: true,
+          });
+          return;
+        } else {
+          href = '/dashboard/employee';
+          isActive = isEmployeeActive;
+        }
       } else if (app.id === 'taskflow') {
         isActive = isTaskFlowActive;
       } else if (app.id === 'chat') {
@@ -201,6 +227,35 @@ export function Navbar() {
       });
     });
 
+    // Si el usuario está navegando dentro del módulo de tiempo y no estaba entre sus favoritas,
+    // añadir contextualmente para que la pastilla y la navegación sigan activas
+    if (!hasClockifyInNav && isClockifyActive) {
+      if (isCoordinator) {
+        links.push({
+          href: '/dashboard/employee',
+          label: 'Mi Tiempo',
+          icon: Clock,
+          isActive: isEmployeeActive,
+          visible: true,
+        });
+        links.push({
+          href: '/dashboard/coordinator',
+          label: 'Coordinación',
+          icon: BarChart3,
+          isActive: isCoordinatorActive,
+          visible: true,
+        });
+      } else {
+        links.push({
+          href: '/dashboard/employee',
+          label: 'Tiempo',
+          icon: Clock,
+          isActive: isEmployeeActive,
+          visible: true,
+        });
+      }
+    }
+
     if (isAdmin) {
       links.push({
         href: '/dashboard/admin',
@@ -218,6 +273,8 @@ export function Navbar() {
     isAdmin,
     isCoordinator,
     isHubActive,
+    isEmployeeActive,
+    isCoordinatorActive,
     isClockifyActive,
     isTaskFlowActive,
     isChatActive,
@@ -586,6 +643,36 @@ export function Navbar() {
               </Link>
 
               <div className="pt-3 space-y-2">
+                {isCoordinator && (
+                  <>
+                    <Link
+                      href="/dashboard/employee"
+                      onClick={() => setShowProfileMenu(false)}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-[#FAF8FD] text-[#191654] hover:text-[#8E0E75] text-xs font-bold transition-colors cursor-pointer border border-transparent hover:border-[#D8CFF0]"
+                      title="Ir a mi panel de fichaje de horas y tareas como empleada"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-[#8E0E75]" />
+                        <span>Mi Fichaje (Horas Empleada)</span>
+                      </div>
+                      <ChevronRight className="h-3.5 w-3.5 text-[#8E0E75]" />
+                    </Link>
+
+                    <Link
+                      href="/dashboard/coordinator"
+                      onClick={() => setShowProfileMenu(false)}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-[#FAF8FD] text-[#191654] hover:text-[#8E0E75] text-xs font-bold transition-colors cursor-pointer border border-transparent hover:border-[#D8CFF0]"
+                      title="Ir al panel de coordinación de equipo e informes"
+                    >
+                      <div className="flex items-center gap-2">
+                        <BarChart3 className="h-4 w-4 text-[#8E0E75]" />
+                        <span>Panel de Coordinación</span>
+                      </div>
+                      <ChevronRight className="h-3.5 w-3.5 text-[#8E0E75]" />
+                    </Link>
+                  </>
+                )}
+
                 <Link
                   href="/profile"
                   onClick={() => setShowProfileMenu(false)}

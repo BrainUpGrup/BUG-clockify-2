@@ -11,7 +11,7 @@ import { useAuth } from '@/context/auth-context';
 import { createClient } from '@/lib/supabase/client';
 import { MOCK_COMPANIES, MOCK_TIME_ENTRIES } from '@/lib/mock-data';
 import { Company, TimeEntry } from '@/types/database';
-import { Clock, ShieldCheck } from 'lucide-react';
+import { Clock, ShieldCheck, BarChart3, ArrowRight } from 'lucide-react';
 import { useTimer } from '@/context/timer-context';
 import { notify, friendlyError, removeWithUndo } from '@/lib/feedback';
 import { formatMinutes, safeSetLocalStorage, safeGetLocalStorage } from '@/lib/utils';
@@ -287,10 +287,11 @@ export default function EmployeeDashboardPage() {
             <div className="flex items-center gap-2 shrink-0">
               <Link
                 href="/dashboard/coordinator"
-                className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-[#F8F6FC] border-2 border-[#D8CFF0] text-xs sm:text-sm font-bold text-[#8E0E75] shadow-2xs hover:border-[#8E0E75]"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border-2 border-[#D8CFF0] hover:border-[#8E0E75] hover:bg-[#F8F6FC] text-xs sm:text-sm font-extrabold text-[#8E0E75] shadow-2xs hover:shadow-sm transition-all"
               >
-                <ShieldCheck className="h-4 w-4 text-[#8E0E75]" />
-                Ir a Coordinación
+                <BarChart3 className="h-4 w-4 text-[#8E0E75]" />
+                <span>Panel de Coordinación</span>
+                <ArrowRight className="h-3.5 w-3.5 text-[#8E0E75]" />
               </Link>
             </div>
           )}

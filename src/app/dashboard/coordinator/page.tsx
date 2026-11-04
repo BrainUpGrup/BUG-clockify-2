@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { MonthlyReports } from '@/components/coordinator/monthly-reports';
 import { CompanyCrud } from '@/components/coordinator/company-crud';
 import { UserManagement } from '@/components/coordinator/user-management';
@@ -20,7 +21,9 @@ import {
   Users, 
   ShieldCheck,
   Palette,
-  Sliders
+  Sliders,
+  Clock,
+  ArrowRight
 } from 'lucide-react';
 import { HubPermissionsMatrix } from '@/components/coordinator/hub-permissions-matrix';
 import { safeSetLocalStorage, safeGetLocalStorage } from '@/lib/utils';
@@ -335,14 +338,27 @@ export default function CoordinatorDashboardPage() {
       <main className="flex-1 w-full max-w-full px-3 sm:px-6 lg:px-8 py-5 sm:py-6 space-y-5 sm:space-y-6 page-transition min-w-0 overflow-x-hidden">
         {/* Cabecera del Panel Líquida con Degradado Sedoso y Relieve Fino */}
         <div className="w-full rounded-2xl bg-gradient-to-r from-white/95 via-[#F8F6FC]/90 to-white/80 border-2 border-[#D0C4EB] p-4 sm:p-5 shadow-sm flex flex-col 2xl:flex-row 2xl:items-center justify-between gap-4">
-          <div className="min-w-0">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0 flex-1">
+            <div className="min-w-0">
             <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#292929] flex items-center gap-2.5">
               <BarChart3 className="h-6 w-6 text-[#8E0E75] shrink-0" />
               <span>Panel de <span className="text-[#8E0E75]">Coordinación</span></span>
             </h1>
             <p className="text-xs sm:text-sm text-[#4A4A4A] mt-0.5">
               Control de cuotas al milímetro, estadísticas profesionales, gestión de clientes y altas de usuarios
-            </p>
+            </p>
+            </div>
+
+            {/* Acceso directo a Mi Fichaje (DM-05 Rol Dual Perpetuo) */}
+            <Link
+              href="/dashboard/employee"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border-2 border-[#D8CFF0] hover:border-[#8E0E75] hover:bg-[#F8F6FC] text-[#8E0E75] text-xs sm:text-sm font-extrabold shadow-2xs hover:shadow-sm transition-all cursor-pointer shrink-0 self-start 2xl:self-auto"
+              title="Ir a mi panel de fichaje de horas y tareas como empleada"
+            >
+              <Clock className="h-4 w-4 text-[#8E0E75]" />
+              <span>Mi Fichaje de Horas (Modo Empleada)</span>
+              <ArrowRight className="h-3.5 w-3.5 text-[#8E0E75]" />
+            </Link>
           </div>
 
           {/* Navegación por Pestañas con Pastilla Morada Deslizante Fluida */}

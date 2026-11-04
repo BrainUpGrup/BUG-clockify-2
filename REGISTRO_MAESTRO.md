@@ -1263,3 +1263,30 @@
 - **Validacion y Pruebas:**
   - `npx tsc --noEmit`: **0 errores de compilacion**.
   - Verificacion estricta de DM-01 (Cero Emojis), DM-04 (Modelo por Empresa) y DM-13 (Identidad Visual "La Abuela").
+
+### [v3.6.0] - 2026-11-04 - Rol Dual Perpetuo (DM-05): Acceso Simultáneo de Coordinación y Fichaje de Horas
+- **Solicitud del Usuario:**
+  *"tenemos que hacer que el cordiandor tambien tenga acceso a las cosas que hacen los empleados"*
+- **Diagnóstico Técnico:**
+  Al iniciar sesión con una cuenta de rol `coordinator` (Montse / Montserrat Grifol Roche), el sistema la dirigía de forma exclusiva al panel de coordinación (`/dashboard/coordinator`). No existía un acceso directo en la cabecera ni en el menú de navegación para entrar al panel de trabajador (`/dashboard/employee`), imposibilitando que la coordinadora pudiera fichar sus propias horas, asociarlas a clientes, iniciar/parar el cronómetro Clockify y gestionar sus imputaciones diarias de forma autónoma, incumpliendo la directriz maestra **DM-05 (Rol Dual Perpetuo)**.
+- **Decisión Técnica e Implementación:**
+  1. **Navegación Modular Dinámica (`src/components/navbar.tsx`):**
+     - **Doble Enlace para Coordinadores:** Para usuarios con rol `coordinator`, el módulo de tiempo despliega dos pestañas simultáneas y diferenciadas:
+       - *Mi Tiempo* (`/dashboard/employee`, icono `Clock`, activo en rutas de empleado).
+       - *Coordinación* (`/dashboard/coordinator`, icono `BarChart3`, activo en rutas de coordinación).
+     - **Inclusión Contextual en Barra Superior:** Si la aplicación de tiempo no está en las favoritas del usuario pero está navegando en ella, se inyectan automáticamente ambas opciones en el navbar para mantener visible la pastilla deslizante morada.
+     - **Favoritas por Defecto:** Para nuevos dispositivos y perfiles recién creados (`localStorage` vacío), se inicializan por defecto las herramientas clave: `['clockify', 'taskflow', 'chat']`.
+     - **Menú de Perfil de Usuario:** Se agregaron accesos directos específicos en el desplegable de avatar para alternar instantáneamente entre *Mi Fichaje (Horas Empleada)* y *Panel de Coordinación*.
+  2. **Cabecera del Panel de Coordinación (`src/app/dashboard/coordinator/page.tsx`):**
+     - Inclusión en la cabecera principal de un botón de acción rápida destacado:
+       `Mi Fichaje de Horas (Modo Empleada)` con iconos `Clock` y `ArrowRight`, que redirige a `/dashboard/employee`.
+  3. **Cabecera del Panel de Empleado (`src/app/dashboard/employee/page.tsx`):**
+     - Actualización del botón de retorno a coordinación con diseño de alta visibilidad:
+       `Panel de Coordinación` con icono `BarChart3` y `ArrowRight`.
+  4. **Tarjeta de Tiempo en el HUB (`src/app/hub/page.tsx`):**
+     - Para usuarios coordinadores, la tarjeta de Brain Up Tiempo ofrece acceso con dos botones independientes:
+       - Botón Primario: *Mi Fichaje (Horas)* (`/dashboard/employee`).
+       - Botón Secundario: *Panel Coordinación* (`/dashboard/coordinator`).
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis), DM-05 (Rol Dual Perpetuo) y DM-15 (Zero-Scroll / Viewport Compacto).
