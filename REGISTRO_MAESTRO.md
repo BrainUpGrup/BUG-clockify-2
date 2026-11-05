@@ -1647,3 +1647,33 @@
 - **Validación y Pruebas:**
   - `npx tsc --noEmit`: **0 errores de compilación**.
   - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis), DM-02 (Controles In-App), DM-03 (100% Pantalla), DM-13 (Identidad "La Abuela") y DM-15 (Zero-Scroll).
+
+### [v3.8.4] - 2026-11-05 - Conexión de Gmail con el Centro de Notificaciones Exclusivo para Coordinadores
+- **Solicitud del Usuario:**
+  *"ahroa tenemos que pasa a la fase de conectar el gmail con el apartado de notificaciones, quieor que als notificaciones llegen al mail de los cordinadores, solo a los cordinadores"*
+- **Diagnóstico y Decisiones Técnicas:**
+  1. **Arquitectura y Servicio de Envío Gmail (`Nodemailer` + SMTP):**
+     - Instalación de `nodemailer` y `@types/nodemailer`.
+     - Creación de [`src/lib/email/gmail-service.ts`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/lib/email/gmail-service.ts):
+       - Verificación de credenciales `GMAIL_USER` y `GMAIL_APP_PASSWORD` con soporte para modo simulación/desarrollo seguro sin caídas de servidor.
+       - Resolución estricta de destinatarios (`getCoordinatorRecipients`): consulta dinámica a Supabase en la tabla `profiles` filtrando exclusivamente por cuentas activas con `role IN ('coordinator', 'admin')`, combinada con la lista auditada en `GMAIL_COORDINATOR_EMAILS`. Los empleados rasos (`role === 'employee'`) quedan matemáticamente excluidos de recibir alertas de coordinación.
+  2. **Route Handler Servidor Seguro (`/api/notifications/email`):**
+     - Implementado en [`src/app/api/notifications/email/route.ts`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/app/api/notifications/email/route.ts) con autenticación estricta `requireActiveUser` y compuerta RBAC (solo coordinadores y administradores pueden disparar avisos).
+     - Soporta 4 acciones:
+       - `test`: Verificación de handshake con Gmail SMTP.
+       - `hosting_batch`: Resumen agrupado por etapas (7, 15, 30, 60, 90 días o todas) con métricas ejecutivas y tabla de servicios en HTML "La Abuela" de alto contraste.
+       - `hosting_single`: Alerta urgente para un único servicio vencido o crítico.
+       - `custom`: Resumen de avisos de TaskFlow y recordatorios de Post-its pendientes.
+  3. **Integración en UI (Centro de Notificaciones & Renovaciones):**
+     - En [`src/components/hosting/hosting-notifications-drawer.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/components/hosting/hosting-notifications-drawer.tsx):
+       - Barra de estado de conexión Gmail con detección de credenciales y recuento de coordinadores destinatarios con tooltip informativo.
+       - Botón superior de acción: **"Notificar a Coordinadores (N)"** para despachar todas las alertas de la etapa seleccionada.
+       - Botón individual en cada tarjeta de servicio: **"Avisar Coordinación"** para remitir avisos individuales de extrema urgencia.
+     - En [`src/components/taskflow/notifications-panel.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/components/taskflow/notifications-panel.tsx):
+       - Botón de despacho rápido para enviar el consolidado de Post-its y recordatorios a los coordinadores.
+  4. **Documentación de Variables de Entorno:**
+     - En [`.env.example`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/.env.example), se añadió la guía paso a paso para configurar `GMAIL_USER`, `GMAIL_APP_PASSWORD` (Google App Password de 16 caracteres), `GMAIL_FROM_NAME` y `GMAIL_COORDINATOR_EMAILS`.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - `npm run build`: **Compilación de producción exitosa (19/19 páginas estáticas + API routes dinámicas)**.
+  - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis), DM-02 (Controles In-App), DM-08 (Seguridad y Aislamiento por Rol), DM-13 (Identidad "La Abuela") y DM-15 (Zero-Scroll).

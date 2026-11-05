@@ -12,10 +12,13 @@ import {
   Check, 
   ExternalLink,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Send,
+  Mail
 } from 'lucide-react';
 import { useNotifications, AppNotification } from '@/context/notifications-context';
 import { PostItItem } from '@/types/postit';
+import { notify } from '@/lib/feedback';
 
 interface NotificationsPanelProps {
   postIts?: PostItItem[];
@@ -41,6 +44,54 @@ export function NotificationsPanel({
 
   const [filterSource, setFilterSource] = useState<'all' | 'postit' | 'taskflow'>('all');
   const [showScheduled, setShowScheduled] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+
+  // Enviar resumen de notificaciones al Gmail de coordinadores
+  const handleSendToCoordinators = async () => {
+    if (notifications.length === 0) {
+      notify('No hay notificaciones para enviar a coordinadores.', { type: 'warning' });
+      return;
+    }
+
+    setIsSendingEmail(true);
+    try {
+      const summaryText = notifications
+        .map((n) => `• [${n.source.toUpperCase()}] ${n.title}\n  ${n.message}`)
+        .join('\n\n');
+
+      const res = await fetch('/api/notifications/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'custom',
+          subject: `Resumen de Alertas y Tareas (${notifications.length} registros)`,
+          message: `Resumen consolidado del Centro de Notificaciones emitido para Coordinación:\n\n${summaryText}`,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error || 'Error enviando correo a coordinadores');
+      }
+
+      const recCount = data.recipients?.length ?? 1;
+      if (data.simulated) {
+        notify(
+          `Modo simulación: Resumen preparado para ${recCount} coordinador(es). (Configura GMAIL_USER en .env.local para entrega real)`,
+          { type: 'info' }
+        );
+      } else {
+        notify(
+          `Resumen enviado con éxito a ${recCount} coordinador(es) vía Gmail.`,
+          { type: 'success' }
+        );
+      }
+    } catch (err: any) {
+      notify(err.message || 'Error al enviar por Gmail.', { type: 'error' });
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
 
   // Filtrado de notificaciones activas
   const filteredNotifs = notifications.filter((n) => {
@@ -151,6 +202,17 @@ export function NotificationsPanel({
 
         {/* Acciones rápidas */}
         <div className="flex items-center gap-1">
+          {notifications.length > 0 && (
+            <button
+              type="button"
+              disabled={isSendingEmail}
+              onClick={handleSendToCoordinators}
+              className="p-1 rounded-xs hover:bg-[#F8F6FC] text-[#191654] hover:text-[#8E0E75] transition-colors cursor-pointer disabled:opacity-50"
+              title="Enviar resumen por Gmail exclusivamente a los Coordinadores"
+            >
+              <Send className="h-3.5 w-3.5" />
+            </button>
+          )}
           {unreadCount > 0 && (
             <button
               type="button"

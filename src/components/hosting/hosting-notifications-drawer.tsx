@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { HostingAlert, HostingService } from '@/types/hosting';
 import { 
   Bell, 
@@ -14,10 +14,26 @@ import {
   ExternalLink,
   ChevronRight,
   Send,
-  Check
+  Check,
+  ShieldCheck,
+  MailCheck,
+  Sparkles
 } from 'lucide-react';
 import { notify } from '@/lib/feedback';
 import { HostingRenewalConfirmModal } from '@/components/hosting/hosting-renewal-confirm-modal';
+
+interface CoordinatorInfo {
+  email: string;
+  name?: string;
+  role: string;
+}
+
+interface GmailStatusData {
+  isConfigured: boolean;
+  senderEmail: string | null;
+  fromName: string;
+  coordinators: CoordinatorInfo[];
+}
 
 interface HostingNotificationsDrawerProps {
   isOpen: boolean;
@@ -39,6 +55,37 @@ export function HostingNotificationsDrawer({
   const [selectedStage, setSelectedStage] = useState<'all' | '7' | '15' | '30' | '60' | '90'>('all');
   const [serviceToRenew, setServiceToRenew] = useState<HostingService | null>(null);
 
+  // Estado de integración con Gmail
+  const [gmailStatus, setGmailStatus] = useState<GmailStatusData | null>(null);
+  const [isSendingBatch, setIsSendingBatch] = useState(false);
+  const [sendingServiceId, setSendingServiceId] = useState<string | null>(null);
+
+  // Cargar estado de Gmail y coordinadores al abrir el drawer
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let isMounted = true;
+    fetch('/api/notifications/email')
+      .then((res) => res.json())
+      .then((data) => {
+        if (isMounted && data && data.status === 'ok') {
+          setGmailStatus({
+            isConfigured: data.gmail?.isConfigured ?? false,
+            senderEmail: data.gmail?.senderEmail ?? null,
+            fromName: data.gmail?.fromName ?? 'Brain Up Notificaciones',
+            coordinators: data.coordinators ?? [],
+          });
+        }
+      })
+      .catch((err) => {
+        console.warn('No se pudo verificar estado de Gmail:', err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   // Filtrar alertas según la etapa seleccionada
@@ -57,6 +104,92 @@ export function HostingNotificationsDrawer({
   const count30 = alerts.filter((a) => a.daysRemaining > 15 && a.daysRemaining <= 30).length;
   const count60 = alerts.filter((a) => a.daysRemaining > 30 && a.daysRemaining <= 60).length;
   const count90 = alerts.filter((a) => a.daysRemaining > 60 && a.daysRemaining <= 90).length;
+
+  // Disparar envío masivo de la etapa seleccionada al Gmail de coordinadores
+  const handleSendBatchCoordinatorAlerts = async () => {
+    if (filteredAlerts.length === 0) {
+      notify('No hay alertas en la etapa seleccionada para enviar.', { type: 'warning' });
+      return;
+    }
+
+    setIsSendingBatch(true);
+    try {
+      const stageLabel =
+        selectedStage === 'all'
+          ? 'Todas las etapas'
+          : `Etapa ${selectedStage} Días`;
+
+      const res = await fetch('/api/notifications/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'hosting_batch',
+          alerts: filteredAlerts,
+          stageLabel,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error || 'Error enviando alertas a coordinadores');
+      }
+
+      const recCount = data.recipients?.length ?? 1;
+      if (data.simulated) {
+        notify(
+          `Modo simulación: ${filteredAlerts.length} alertas preparadas para ${recCount} coordinador(es). (Configura GMAIL_USER en .env.local para entrega real)`,
+          { type: 'info' }
+        );
+      } else {
+        notify(
+          `Alertas enviadas con éxito a ${recCount} coordinador(es) vía Gmail.`,
+          { type: 'success' }
+        );
+      }
+    } catch (err: any) {
+      notify(err.message || 'Error al conectar con el servicio de correo.', { type: 'error' });
+    } finally {
+      setIsSendingBatch(false);
+    }
+  };
+
+  // Enviar alerta urgente de un único servicio al Gmail de coordinadores
+  const handleSendSingleCoordinatorAlert = async (service: HostingService, daysRemaining: number) => {
+    setSendingServiceId(service.id);
+    try {
+      const res = await fetch('/api/notifications/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'hosting_single',
+          service,
+          daysRemaining,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error || 'Error enviando aviso a coordinadores');
+      }
+
+      const recCount = data.recipients?.length ?? 1;
+      if (data.simulated) {
+        notify(
+          `Modo simulación: Aviso de ${service.name} preparado para ${recCount} coordinador(es).`,
+          { type: 'info' }
+        );
+      } else {
+        notify(
+          `Aviso de ${service.name} enviado a ${recCount} coordinador(es) por Gmail.`,
+          { type: 'success' }
+        );
+      }
+    } catch (err: any) {
+      notify(err.message || 'Error al enviar alerta a coordinadores.', { type: 'error' });
+    } finally {
+      setSendingServiceId(null);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-xs transition-opacity duration-200">
@@ -166,6 +299,62 @@ export function HostingNotificationsDrawer({
           </div>
         </div>
 
+        {/* Barra de Conexión Gmail & Notificación Exclusiva a Coordinadores */}
+        <div className="px-4 sm:px-6 py-2.5 bg-white border-b border-[#D8CFF0] flex flex-wrap items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2">
+            <span className={`p-1.5 rounded-lg border shrink-0 ${
+              gmailStatus?.isConfigured
+                ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
+                : 'bg-[#F8F6FC] border-[#D8CFF0] text-[#191654]'
+            }`}>
+              <Mail className="h-4 w-4" />
+            </span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black uppercase tracking-wider text-[#191654]">
+                  Gmail Coordinación
+                </span>
+                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                  gmailStatus?.isConfigured
+                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                    : 'bg-purple-100 text-[#8E0E75] border border-purple-200'
+                }`}>
+                  {gmailStatus?.isConfigured ? 'Conectado' : 'Simulación Activa'}
+                </span>
+              </div>
+              <p className="text-[10px] text-[#4A4A4A] truncate">
+                Destinatarios exclusivos:{' '}
+                <strong 
+                  className="text-[#8E0E75] cursor-help underline decoration-dotted" 
+                  title={
+                    gmailStatus?.coordinators && gmailStatus.coordinators.length > 0
+                      ? gmailStatus.coordinators.map((c) => `${c.name || 'Coordinador'}: ${c.email}`).join('\n')
+                      : 'Consultando perfiles de coordinadores...'
+                  }
+                >
+                  {gmailStatus?.coordinators?.length ?? 1} coordinadores autorizados
+                </strong>
+                {gmailStatus?.senderEmail && (
+                  <span className="text-slate-400 ml-1">· Desde: {gmailStatus.senderEmail}</span>
+                )}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              disabled={isSendingBatch || filteredAlerts.length === 0}
+              onClick={handleSendBatchCoordinatorAlerts}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#8E0E75] hover:bg-[#700B5C] text-white text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-2xs hover:scale-102 active:scale-98 disabled:opacity-40"
+              title={`Enviar ${filteredAlerts.length} alerta(s) de la etapa seleccionada al Gmail de los coordinadores`}
+            >
+              <Send className="h-3 w-3" />
+              <span>{isSendingBatch ? 'Enviando a Gmail...' : `Notificar a Coordinadores (${filteredAlerts.length})`}</span>
+            </button>
+          </div>
+        </div>
+
         {/* Lista de Alertas */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3.5">
           {filteredAlerts.length === 0 ? (
@@ -268,8 +457,19 @@ export function HostingNotificationsDrawer({
                       )}
                     </div>
 
-                    {/* Botones de Acción: Plantilla Correo y Renovar */}
+                    {/* Botones de Acción: Avisar Coordinación, Plantilla Correo y Renovar */}
                     <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={sendingServiceId === service.id}
+                        onClick={() => handleSendSingleCoordinatorAlert(service, daysRemaining)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-[#D8CFF0] bg-white hover:bg-purple-50 text-[#191654] text-xs font-extrabold transition-all cursor-pointer shadow-2xs hover:border-[#191654] disabled:opacity-50"
+                        title="Enviar alerta urgente de este servicio exclusivamente al correo de los coordinadores"
+                      >
+                        <Send className="h-3.5 w-3.5 text-[#191654]" />
+                        <span>{sendingServiceId === service.id ? 'Avisando...' : 'Avisar Coordinación'}</span>
+                      </button>
+
                       <button
                         type="button"
                         onClick={() => onOpenEmailModal(service, daysRemaining)}
