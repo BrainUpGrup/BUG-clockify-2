@@ -64,6 +64,7 @@ export default function HostingPage() {
   // Filtros y Búsqueda
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [providerFilter, setProviderFilter] = useState<string>('all');
   const [serviceTypeFilter, setServiceTypeFilter] = useState<string>('all');
   const [autoRenewFilter, setAutoRenewFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'expiration_asc' | 'expiration_desc' | 'name_asc'>('expiration_asc');
@@ -179,13 +180,21 @@ export default function HostingPage() {
         }
       }
 
-      // 3. Filtro por auto-renovación
+      // 3. Filtro por proveedor oficial
+      if (providerFilter !== 'all') {
+        const provLower = (s.provider || '').toLowerCase();
+        if (!provLower.includes(providerFilter.toLowerCase())) {
+          return false;
+        }
+      }
+
+      // 4. Filtro por auto-renovación
       if (autoRenewFilter !== 'all') {
         const isAuto = autoRenewFilter === 'enabled';
         if (Boolean(s.auto_renew) !== isAuto) return false;
       }
 
-      // 4. Filtro por estado de días restantes
+      // 5. Filtro por estado de días restantes
       if (statusFilter !== 'all') {
         const days = calculateDaysRemaining(s.expiration_date);
         if (statusFilter === 'expired') return days < 0;
@@ -205,7 +214,7 @@ export default function HostingPage() {
       }
       return (a.name || '').localeCompare(b.name || '');
     });
-  }, [services, searchTerm, statusFilter, serviceTypeFilter, autoRenewFilter, sortBy, subhostingsByParent]);
+  }, [services, searchTerm, statusFilter, providerFilter, serviceTypeFilter, autoRenewFilter, sortBy, subhostingsByParent]);
 
   // Paginación
   const totalPages = Math.ceil(filteredServices.length / pageSize) || 1;
@@ -217,7 +226,7 @@ export default function HostingPage() {
   // Restablecer a página 1 cuando cambian los filtros
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, serviceTypeFilter, autoRenewFilter, sortBy]);
+  }, [searchTerm, statusFilter, providerFilter, serviceTypeFilter, autoRenewFilter, sortBy]);
 
   // Manejar guardado de servicio
   const handleSaveService = async (service: HostingService) => {
@@ -405,7 +414,7 @@ export default function HostingPage() {
         <div className="p-4 rounded-2xl bg-white border border-[#D8CFF0] shadow-xs space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3">
             {/* Buscador de texto */}
-            <div className="lg:col-span-5 relative">
+            <div className="lg:col-span-4 relative">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <input
                 type="text"
@@ -416,8 +425,22 @@ export default function HostingPage() {
               />
             </div>
 
+            {/* Filtro por Proveedor Oficial */}
+            <div className="lg:col-span-2">
+              <AppSelect
+                value={providerFilter}
+                onChange={setProviderFilter}
+                options={[
+                  { value: 'all', label: 'Proveedores: Todos' },
+                  { value: 'cdmon', label: 'Cdmon' },
+                  { value: 'hostinger', label: 'Hostinger' },
+                  { value: 'raiola', label: 'Raiola Networks' },
+                ]}
+              />
+            </div>
+
             {/* Filtro por tipo de servicio */}
-            <div className="lg:col-span-3">
+            <div className="lg:col-span-2">
               <AppSelect
                 value={serviceTypeFilter}
                 onChange={setServiceTypeFilter}
@@ -463,13 +486,15 @@ export default function HostingPage() {
             <span>
               Mostrando <strong>{filteredServices.length}</strong> de {services.length} servicios registrados
               {statusFilter !== 'all' && <span className="ml-1 text-[#8E0E75] font-bold">(filtro activo: {statusFilter})</span>}
+              {providerFilter !== 'all' && <span className="ml-1 text-[#191654] font-bold">(proveedor: {providerFilter})</span>}
             </span>
-            {(searchTerm || statusFilter !== 'all' || serviceTypeFilter !== 'all' || autoRenewFilter !== 'all') && (
+            {(searchTerm || statusFilter !== 'all' || providerFilter !== 'all' || serviceTypeFilter !== 'all' || autoRenewFilter !== 'all') && (
               <button
                 type="button"
                 onClick={() => {
                   setSearchTerm('');
                   setStatusFilter('all');
+                  setProviderFilter('all');
                   setServiceTypeFilter('all');
                   setAutoRenewFilter('all');
                 }}

@@ -1432,3 +1432,20 @@
 - **Validación y Pruebas:**
   - `npx tsc --noEmit`: **0 errores de compilación**.
   - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis), DM-02 (Controles In-App), DM-03 (100% Pantalla) y DM-15 (Zero-Scroll).
+
+### [v3.7.3] - 2026-11-05 - Proveedores Oficiales de la Agencia: CDMON, HOSTINGER y RAIOLA
+- **Solicitud del Usuario:**
+  *"CDMON, HOSTINGER , RAIOLA son nuestros provedores actuales"* (con captura del selector de proveedores en el modal).
+- **Diagnóstico y Decisiones Técnicas:**
+  1. **Alineación del Catálogo de Proveedores (`HostingModal`):**
+     - Se sustituyó la lista genérica anterior por los proveedores reales de Brain Up Grup:
+       - **CDMON** (`Cdmon`)
+       - **HOSTINGER** (`Hostinger`)
+       - **RAIOLA** (`Raiola Networks`)
+       - **Otro Proveedor** (`Otro`, con campo de texto libre emergente para proveedores excepcionales).
+  2. **Nuevo Filtro por Proveedor en la Tabla Principal (`/apps/hosting`):**
+     - Se integró un selector `AppSelect` en la barra de filtros de 12 columnas: "Proveedores: Todos", "Cdmon", "Hostinger", "Raiola Networks".
+     - Permite aislar con 1 clic todos los dominios o hostings de cada proveedor contratado.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis) y DM-15 (Zero-Scroll).

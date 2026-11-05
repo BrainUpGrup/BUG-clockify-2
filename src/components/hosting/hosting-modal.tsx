@@ -32,11 +32,8 @@ const RENEWAL_CYCLE_OPTIONS = [
 
 const PROVIDER_OPTIONS = [
   { value: 'Cdmon', label: 'Cdmon' },
-  { value: 'OVH', label: 'OVHcloud' },
-  { value: 'SiteGround', label: 'SiteGround' },
-  { value: 'Hetzner', label: 'Hetzner' },
-  { value: 'Cloudflare', label: 'Cloudflare' },
-  { value: 'Ionos', label: 'Ionos / 1&1' },
+  { value: 'Hostinger', label: 'Hostinger' },
+  { value: 'Raiola Networks', label: 'Raiola Networks' },
   { value: 'Otro', label: 'Otro Proveedor' },
 ];
 
@@ -53,6 +50,7 @@ export function HostingModal({
   const [parentId, setParentId] = useState<string | null>(null);
   const [renewalCycle, setRenewalCycle] = useState<string>('Anual');
   const [provider, setProvider] = useState<string>('Cdmon');
+  const [customProvider, setCustomProvider] = useState<string>('');
   const [expirationDate, setExpirationDate] = useState('');
   const [clientName, setClientName] = useState('');
   const [autoRenew, setAutoRenew] = useState(false);
@@ -68,7 +66,17 @@ export function HostingModal({
       setServiceType(serviceToEdit.service_type || 'Hosting');
       setParentId(serviceToEdit.parent_id || null);
       setRenewalCycle(serviceToEdit.renewal_cycle || 'Anual');
-      setProvider(serviceToEdit.provider || 'Cdmon');
+      
+      const prov = serviceToEdit.provider || 'Cdmon';
+      const matched = PROVIDER_OPTIONS.find((o) => o.value.toLowerCase() === prov.toLowerCase());
+      if (matched) {
+        setProvider(matched.value);
+        setCustomProvider('');
+      } else {
+        setProvider('Otro');
+        setCustomProvider(prov);
+      }
+
       setExpirationDate(serviceToEdit.expiration_date || '');
       setClientName(serviceToEdit.client_name || '');
       setAutoRenew(Boolean(serviceToEdit.auto_renew));
@@ -82,6 +90,7 @@ export function HostingModal({
       setParentId(defaultParentId || null);
       setRenewalCycle('Anual');
       setProvider('Cdmon');
+      setCustomProvider('');
       // Fecha por defecto: hoy + 1 año
       const defaultDate = new Date();
       defaultDate.setFullYear(defaultDate.getFullYear() + 1);
@@ -103,6 +112,8 @@ export function HostingModal({
 
     setIsSubmitting(true);
     try {
+      const effectiveProvider = provider === 'Otro' ? (customProvider.trim() || 'Otro') : provider;
+
       const serviceData: HostingService = {
         id: serviceToEdit ? serviceToEdit.id : `h_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
         name: name.trim().toLowerCase(),
@@ -112,7 +123,7 @@ export function HostingModal({
         expiration_date: expirationDate || new Date().toISOString().split('T')[0],
         auto_renew: autoRenew,
         payment_method: paymentMethod.trim() || 'Manual / No configurado',
-        provider: provider.trim() || 'Cdmon',
+        provider: effectiveProvider.trim() || 'Cdmon',
         client_name: clientName.trim() || name.split('.')[0].replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
         price_cost: typeof priceCost === 'number' ? priceCost : 0,
         price_client: typeof priceClient === 'number' ? priceClient : 0,
@@ -229,6 +240,15 @@ export function HostingModal({
                   onChange={setProvider}
                   options={PROVIDER_OPTIONS}
                 />
+                {provider === 'Otro' && (
+                  <input
+                    type="text"
+                    placeholder="Nombre del proveedor personalizado..."
+                    value={customProvider}
+                    onChange={(e) => setCustomProvider(e.target.value)}
+                    className="mt-1.5 w-full px-3 py-2 rounded-xl border border-[#D8CFF0] bg-[#F8F6FC] text-xs font-bold text-[#292929] focus:outline-hidden focus:border-[#8E0E75]"
+                  />
+                )}
               </div>
 
               <div>
