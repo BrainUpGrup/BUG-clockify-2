@@ -931,39 +931,69 @@ function TaskFlowContent() {
 
         {/* Barra ultra-compacta cuando está plegado en vista Lista */}
         {isHeaderCollapsed && viewMode === 'list' && (
-          <div className="bg-white border border-[#D8CFF0] px-3.5 py-1.5 rounded-xl shadow-2xs flex items-center justify-between gap-2 shrink-0 animate-in fade-in duration-200">
-            <div className="flex items-center gap-2">
+          <div className="bg-white border-2 border-[#D8CFF0] rounded-xl px-2.5 py-1.5 shadow-2xs flex items-center justify-between gap-3 shrink-0 animate-in fade-in duration-200">
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 type="button"
                 onClick={toggleHeaderCollapse}
-                className="px-2.5 py-1 rounded-lg bg-[#8E0E75] hover:bg-[#700B5C] text-white text-xs font-black flex items-center gap-1.5 shadow-xs transition-all cursor-pointer hover:scale-102 active:scale-98"
+                className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg bg-[#8E0E75] hover:bg-[#700B5C] text-white text-xs font-black flex items-center gap-1.5 shadow-xs transition-all cursor-pointer hover:scale-102 active:scale-98"
                 title="Desplegar cabecera de filtros y herramientas"
               >
                 <ChevronDown className="h-4 w-4 stroke-[2.5]" />
-                <span>Desplegar Cabeceras</span>
+                <span className="hidden md:inline">Desplegar</span>
               </button>
 
-              <span className="text-xs font-black text-[#292929] uppercase tracking-wider">
-                Vista de Lista de Tareas
+              <span className="text-xs sm:text-sm font-black text-[#292929] uppercase tracking-wider">
+                Vista de Lista ({filteredItems.length})
               </span>
             </div>
 
-            <div className="flex items-center gap-1.5 text-xs font-bold">
+            {/* Centro: EL MÓDULO DE LA FOTO 1 (Conmutador de Vistas con Pastilla) */}
+            <div className="flex items-center justify-center shrink-0">
+              <div className="relative flex items-center rounded-2xl bg-[#F8F6FC] p-0.5 border-2 border-[#D8CFF0] text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider select-none shadow-2xs">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('calendar')}
+                  className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-xl transition-all duration-200 cursor-pointer text-[#4A4A4A] font-bold hover:text-[#8E0E75]"
+                >
+                  <CalendarIcon className="h-3.5 w-3.5 shrink-0 text-[#8E0E75]" />
+                  <span>Calendario (L-V)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setViewMode('postits')}
+                  className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-xl transition-all duration-200 cursor-pointer text-[#4A4A4A] font-bold hover:text-[#8E0E75]"
+                >
+                  <StickyNote className="h-3.5 w-3.5 shrink-0 text-[#8E0E75]" />
+                  <span>Mural de Post-its</span>
+                  {postIts && postIts.length > 0 && (
+                    <span className="text-[10px] px-1.5 py-0.2 rounded-full font-bold bg-[#D8CFF0] text-[#8E0E75]">
+                      {postIts.length}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setViewMode('list')}
+                  className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-xl transition-all duration-200 cursor-pointer bg-[#8E0E75] text-white font-black shadow-xs"
+                >
+                  <List className="h-3.5 w-3.5 shrink-0 text-white" />
+                  <span>Lista</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 type="button"
-                onClick={() => setViewMode('calendar')}
-                className="px-2.5 py-1 rounded-lg border border-[#D8CFF0] bg-[#F8F6FC] text-[#8E0E75] hover:bg-white transition-all cursor-pointer flex items-center gap-1"
+                onClick={() => handleOpenCreateModal()}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#8E0E75] hover:bg-[#700B5C] text-white text-xs font-bold shadow-xs transition-all cursor-pointer hover:scale-102 active:scale-98"
+                title="Agregar tarea"
               >
-                <CalendarIcon className="h-3.5 w-3.5" />
-                <span>Calendario (L-V)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('postits')}
-                className="px-2.5 py-1 rounded-lg border border-[#D8CFF0] bg-[#F8F6FC] text-[#8E0E75] hover:bg-white transition-all cursor-pointer flex items-center gap-1"
-              >
-                <StickyNote className="h-3.5 w-3.5" />
-                <span>Post-its</span>
+                <Plus className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Nueva tarea</span>
               </button>
             </div>
           </div>
@@ -988,6 +1018,7 @@ function TaskFlowContent() {
               isHeaderCollapsed={isHeaderCollapsed}
               onToggleHeaderCollapse={toggleHeaderCollapse}
               onChangeViewMode={(mode) => setViewMode(mode)}
+              viewMode={viewMode}
             />
           </div>
         )}
@@ -999,6 +1030,7 @@ function TaskFlowContent() {
             isHeaderCollapsed={isHeaderCollapsed}
             onToggleHeaderCollapse={toggleHeaderCollapse}
             onChangeViewMode={(mode) => setViewMode(mode)}
+            viewMode={viewMode}
           />
         )}
 

@@ -28,7 +28,9 @@ import {
   ListTodo,
   RotateCw,
   FastForward,
-  Bell
+  Bell,
+  StickyNote,
+  List
 } from 'lucide-react';
 import { 
   TaskFlowItem, 
@@ -61,6 +63,7 @@ interface NativeCalendarProps {
   isHeaderCollapsed?: boolean;
   onToggleHeaderCollapse?: () => void;
   onChangeViewMode?: (mode: 'calendar' | 'postits' | 'list') => void;
+  viewMode?: 'calendar' | 'postits' | 'list';
 }
 
 const MONTH_NAMES = [
@@ -89,6 +92,7 @@ export function NativeCalendar({
   isHeaderCollapsed = false,
   onToggleHeaderCollapse,
   onChangeViewMode,
+  viewMode = 'calendar',
 }: NativeCalendarProps) {
   // Vista activa: por defecto 'week' para mostrar el formato tira de colores tipo Asana / Google Calendar
   const [viewType, setViewType] = useState<CalendarViewType>('week');
@@ -471,45 +475,21 @@ export function NativeCalendar({
         </div>
       ) : (
         /* MODO PORTÁTIL AMPLIO: Barra compacta de una sola línea (36px) que sustituye las Secciones 1 y 2 */
-        <div className="bg-white border-2 border-[#D8CFF0] rounded-xl px-3 py-1.5 shadow-2xs flex items-center justify-between gap-2 shrink-0 animate-in fade-in duration-200">
-          <div className="flex items-center gap-2 min-w-0">
-            {/* Botón Maestro para Desplegar Secciones 1 y 2 */}
+        <div className="bg-white border-2 border-[#D8CFF0] rounded-xl px-2.5 py-1.5 shadow-2xs flex items-center justify-between gap-3 shrink-0 animate-in fade-in duration-200">
+          {/* Izquierda: Botón Desplegar + Período (< Hoy > Rango de Fechas) */}
+          <div className="flex items-center gap-2 shrink-0">
             {onToggleHeaderCollapse && (
               <button
                 type="button"
                 onClick={onToggleHeaderCollapse}
-                className="px-2.5 py-1 rounded-lg bg-[#8E0E75] hover:bg-[#700B5C] text-white text-xs font-black flex items-center gap-1.5 shadow-xs transition-all cursor-pointer hover:scale-102 active:scale-98 shrink-0"
+                className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg bg-[#8E0E75] hover:bg-[#700B5C] text-white text-xs font-black flex items-center gap-1.5 shadow-xs transition-all cursor-pointer hover:scale-102 active:scale-98 shrink-0"
                 title="Desplegar secciones 1 y 2 (Filtros, vistas y estadísticas)"
                 aria-label="Desplegar cabeceras"
               >
                 <ChevronDown className="h-4 w-4 stroke-[2.5]" />
-                <span className="hidden xs:inline">Desplegar Cabeceras</span>
+                <span className="hidden md:inline">Desplegar</span>
               </button>
             )}
-
-            {/* Accesos rápidos a Post-its / Lista si se quiere alternar */}
-            {onChangeViewMode && (
-              <div className="hidden lg:flex items-center gap-1 border-l border-[#D8CFF0] pl-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => onChangeViewMode('postits')}
-                  className="px-2 py-0.5 rounded text-[11px] font-bold text-[#4A4A4A] hover:text-[#8E0E75] hover:bg-[#F8F6FC] transition-colors cursor-pointer"
-                  title="Ver Mural de Post-its"
-                >
-                  Post-its ({postIts?.length || 0})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onChangeViewMode('list')}
-                  className="px-2 py-0.5 rounded text-[11px] font-bold text-[#4A4A4A] hover:text-[#8E0E75] hover:bg-[#F8F6FC] transition-colors cursor-pointer"
-                  title="Ver Vista de Lista"
-                >
-                  Lista
-                </button>
-              </div>
-            )}
-
-            <div className="h-4 w-px bg-[#D8CFF0] mx-0.5 hidden sm:block shrink-0" />
 
             {/* Navegación rápida < Hoy > + Título del período */}
             <div className="flex items-center rounded-lg border border-[#D8CFF0] bg-[#F8F6FC] p-0.5 text-xs shrink-0">
@@ -539,14 +519,68 @@ export function NativeCalendar({
               </button>
             </div>
 
-            <span className="text-xs sm:text-sm font-black text-[#292929] tabular-nums truncate">
+            <span className="text-xs sm:text-sm font-black text-[#292929] tabular-nums whitespace-nowrap">
               {getHeaderTitle()}
             </span>
           </div>
 
+          {/* Centro: EL MÓDULO DE LA FOTO 1 (Conmutador de Vistas con Pastilla) */}
+          {onChangeViewMode && (
+            <div className="flex items-center justify-center shrink-0">
+              <div className="relative flex items-center rounded-2xl bg-[#F8F6FC] p-0.5 border-2 border-[#D8CFF0] text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider select-none shadow-2xs">
+                <button
+                  type="button"
+                  onClick={() => onChangeViewMode('calendar')}
+                  className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-xl transition-all duration-200 cursor-pointer ${
+                    viewMode === 'calendar'
+                      ? 'bg-[#8E0E75] text-white font-black shadow-xs'
+                      : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75]'
+                  }`}
+                >
+                  <CalendarIcon className={`h-3.5 w-3.5 shrink-0 ${viewMode === 'calendar' ? 'text-white' : 'text-[#8E0E75]'}`} />
+                  <span>Calendario (L-V)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onChangeViewMode('postits')}
+                  className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-xl transition-all duration-200 cursor-pointer ${
+                    viewMode === 'postits'
+                      ? 'bg-[#8E0E75] text-white font-black shadow-xs'
+                      : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75]'
+                  }`}
+                >
+                  <StickyNote className={`h-3.5 w-3.5 shrink-0 ${viewMode === 'postits' ? 'text-white' : 'text-[#8E0E75]'}`} />
+                  <span>Mural de Post-its</span>
+                  {postIts && postIts.length > 0 && (
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                      viewMode === 'postits' ? 'bg-white/25 text-white' : 'bg-[#D8CFF0] text-[#8E0E75]'
+                    }`}>
+                      {postIts.length}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onChangeViewMode('list')}
+                  className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-xl transition-all duration-200 cursor-pointer ${
+                    viewMode === 'list'
+                      ? 'bg-[#8E0E75] text-white font-black shadow-xs'
+                      : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75]'
+                  }`}
+                >
+                  <List className={`h-3.5 w-3.5 shrink-0 ${viewMode === 'list' ? 'text-white' : 'text-[#8E0E75]'}`} />
+                  <span>Lista</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Derecha: Selector de vistas Día | Semana | Mes | Año + Badges + Nueva tarea */}
           <div className="flex items-center gap-2 shrink-0">
             {/* Selector de vistas Día | Semana | Mes | Año */}
-            <div className="flex items-center rounded-lg bg-[#F8F6FC] p-0.5 border border-[#D8CFF0] text-[11px] font-black uppercase shadow-2xs">
+            <div className="hidden lg:flex items-center rounded-lg bg-[#F8F6FC] p-0.5 border border-[#D8CFF0] text-[11px] font-black uppercase shadow-2xs">
               {(['day', 'week', 'month', 'year'] as CalendarViewType[]).map((v) => (
                 <button
                   key={v}
@@ -564,7 +598,7 @@ export function NativeCalendar({
             </div>
 
             {/* Badges rápidos pendientes / hechas */}
-            <div className="hidden xl:flex items-center gap-1.5 text-[11px]">
+            <div className="hidden 2xl:flex items-center gap-1.5 text-[11px]">
               <button
                 type="button"
                 onClick={() => setActivePopup('urgent_warnings')}

@@ -1538,3 +1538,20 @@
 - **Validación y Pruebas:**
   - `npx tsc --noEmit`: **0 errores de compilación**.
   - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis), DM-02 (Controles In-App), DM-03 (100% Pantalla) y DM-15 (Zero-Scroll).
+
+### [v3.7.8] - 2026-11-05 - Inserción del Conmutador de Espacios con Pastilla en el Modo Plegado
+- **Solicitud del Usuario:**
+  *"el modulo de la foto 1 la quier inserada en el modulo plegado para poder desplazarse por los diferentes espacios mas comdoamente"* (con captura del conmutador de vistas [Calendario (L-V), Mural de Post-its 3, Lista] y captura marcando la zona central de la micro-cinta plegada).
+- **Diagnóstico y Decisiones Técnicas:**
+  1. **Integración Central del Módulo de Navegación de Espacios:**
+     - Se sustituyeron los enlaces de texto simples anteriores por el componente visual completo de conmutación de espacios con pastilla deslizante:
+       - `Calendario (L-V)` con icono de calendario.
+       - `Mural de Post-its` con icono de nota adhesiva y pastilla de recuento numérico en tiempo real.
+       - `Lista` con icono de listado.
+     - Botón activo en tono ciruela corporativo `#8E0E75` con texto blanco de alto contraste y botones inactivos con hover sutil.
+  2. **Disponibilidad Universal en Todas las Vistas Plegadas:**
+     - Integrado en la micro-barra del Calendario ([`NativeCalendar`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/components/taskflow/native-calendar.tsx)), de la Pizarra de Post-its ([`PostItBoard`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/components/taskflow/post-it-board.tsx)) y de la Vista de Lista ([`src/app/apps/taskflow/page.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/app/apps/taskflow/page.tsx)).
+     - Permite a los usuarios navegar de forma inmediata y ergonómica entre las 3 herramientas de TaskFlow incluso manteniendo el modo compacto plegado.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis), DM-02 (Controles In-App), DM-03 (100% Pantalla) y DM-15 (Zero-Scroll).
