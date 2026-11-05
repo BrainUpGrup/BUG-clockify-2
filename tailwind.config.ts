@@ -5,6 +5,18 @@ const config: Config = {
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  safelist: [
+    'bg-[#FEF08A]', 'border-[#FACC15]', 'text-[#713F12]',
+    'bg-[#BBF7D0]', 'border-[#4ADE80]', 'text-[#14532D]',
+    'bg-[#BAE6FD]', 'border-[#38BDF8]', 'text-[#0369A1]',
+    'bg-[#FBCFE8]', 'border-[#F472B6]', 'text-[#831843]',
+    'bg-[#FED7AA]', 'border-[#FB923C]', 'text-[#7C2D12]',
+    'bg-[#E9D5FF]', 'border-[#C084FC]', 'text-[#581C87]',
+    'bg-[#FDE047]', 'bg-[#86EFAC]', 'bg-[#7DD3FC]', 'bg-[#F9A8D4]', 'bg-[#FDBA74]', 'bg-[#D8B4FE]',
+    'bg-[#CA8A04]', 'bg-[#16A34A]', 'bg-[#0284C7]', 'bg-[#DB2777]', 'bg-[#EA580C]', 'bg-[#8E0E75]',
+    'bg-[#FEF9C3]', 'bg-[#DCFCE7]', 'bg-[#E0F2FE]', 'bg-[#FCE7F3]', 'bg-[#FFEDD5]', 'bg-[#F3E8FF]',
   ],
   darkMode: "class",
   theme: {

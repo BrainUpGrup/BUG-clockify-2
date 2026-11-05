@@ -820,8 +820,12 @@ export function PostItBoard({
                     key={cKey}
                     type="button"
                     onClick={() => setSelectedColorFilter(cKey)}
-                    className={`w-5 h-5 rounded-md ${cfg.bg} ${cfg.border} border-2 transition-all cursor-pointer ${
-                      selectedColorFilter === cKey ? 'ring-2 ring-[#8E0E75] scale-110' : 'opacity-80 hover:opacity-100'
+                    style={{
+                      backgroundColor: cfg.hex,
+                      borderColor: cfg.borderHex,
+                    }}
+                    className={`w-5 h-5 rounded-md border-2 transition-all cursor-pointer ${
+                      selectedColorFilter === cKey ? 'ring-2 ring-[#8E0E75] scale-110 shadow-xs' : 'opacity-85 hover:opacity-100'
                     }`}
                     title={cfg.name}
                   />
@@ -1096,8 +1100,11 @@ export function PostItBoard({
                       width: `${dims.w}px`,
                       height: `${dims.h}px`,
                       zIndex: item.zIndex || 10,
+                      backgroundColor: cfg.hex,
+                      borderColor: cfg.borderHex,
+                      color: cfg.textHex,
                     }}
-                    className={`postit-card group flex flex-col justify-between rounded-2xl border-2 ${cfg.bg} ${cfg.border} p-3.5 shadow-md hover:shadow-xl transition-shadow cursor-grab active:cursor-grabbing ${
+                    className={`postit-card group flex flex-col justify-between rounded-2xl border-2 p-3.5 shadow-md hover:shadow-xl transition-shadow cursor-grab active:cursor-grabbing ${
                       item.isCompleted ? 'opacity-65' : ''
                     }`}
                   >
@@ -1160,7 +1167,7 @@ export function PostItBoard({
                             </button>
 
                             {isColorMenuOpen && (
-                              <div className="absolute left-0 top-full mt-1 z-50 flex items-center gap-1 p-1 bg-white rounded-xl shadow-xl border border-[#D8CFF0] animate-in zoom-in-95">
+                              <div className="absolute left-0 top-full mt-1.5 z-50 flex items-center gap-1.5 p-1.5 bg-white rounded-xl shadow-xl border border-[#D8CFF0] animate-in zoom-in-95">
                                 {(Object.keys(POSTIT_COLORS) as PostItColor[]).map((cKey) => {
                                   const cCfg = POSTIT_COLORS[cKey];
                                   return (
@@ -1168,7 +1175,13 @@ export function PostItBoard({
                                       key={cKey}
                                       type="button"
                                       onClick={() => handleQuickChangeColor(item.id, cKey)}
-                                      className={`w-4 h-4 rounded-full ${cCfg.bg} ${cCfg.border} border-2 hover:scale-125 transition-transform cursor-pointer`}
+                                      style={{
+                                        backgroundColor: cCfg.hex,
+                                        borderColor: cCfg.borderHex,
+                                      }}
+                                      className={`w-5 h-5 rounded-full border-2 hover:scale-125 transition-transform cursor-pointer shadow-xs ${
+                                        item.color === cKey ? 'ring-2 ring-[#8E0E75] scale-110' : ''
+                                      }`}
                                       title={cCfg.name}
                                     />
                                   );
@@ -1364,7 +1377,12 @@ export function PostItBoard({
                 return (
                   <div
                     key={item.id}
-                    className={`relative flex flex-col justify-between rounded-2xl border-2 ${cfg.bg} ${cfg.border} p-3.5 shadow-md hover:shadow-lg transition-all min-h-[240px] ${
+                    style={{
+                      backgroundColor: cfg.hex,
+                      borderColor: cfg.borderHex,
+                      color: cfg.textHex,
+                    }}
+                    className={`relative flex flex-col justify-between rounded-2xl border-2 p-3.5 shadow-md hover:shadow-lg transition-all min-h-[240px] ${
                       item.isCompleted ? 'opacity-65' : ''
                     }`}
                   >
@@ -1398,7 +1416,7 @@ export function PostItBoard({
                             </button>
 
                             {isColorMenuOpen && (
-                              <div className="absolute left-0 top-full mt-1 z-50 flex items-center gap-1 p-1 bg-white rounded-xl shadow-xl border border-[#D8CFF0] animate-in zoom-in-95">
+                              <div className="absolute left-0 top-full mt-1.5 z-50 flex items-center gap-1.5 p-1.5 bg-white rounded-xl shadow-xl border border-[#D8CFF0] animate-in zoom-in-95">
                                 {(Object.keys(POSTIT_COLORS) as PostItColor[]).map((cKey) => {
                                   const cCfg = POSTIT_COLORS[cKey];
                                   return (
@@ -1406,7 +1424,13 @@ export function PostItBoard({
                                       key={cKey}
                                       type="button"
                                       onClick={() => handleQuickChangeColor(item.id, cKey)}
-                                      className={`w-4 h-4 rounded-full ${cCfg.bg} ${cCfg.border} border-2 hover:scale-125 transition-transform cursor-pointer`}
+                                      style={{
+                                        backgroundColor: cCfg.hex,
+                                        borderColor: cCfg.borderHex,
+                                      }}
+                                      className={`w-5 h-5 rounded-full border-2 hover:scale-125 transition-transform cursor-pointer shadow-xs ${
+                                        item.color === cKey ? 'ring-2 ring-[#8E0E75] scale-110' : ''
+                                      }`}
                                       title={cCfg.name}
                                     />
                                   );
@@ -1572,7 +1596,7 @@ export function PostItBoard({
                     <label className="block text-[11px] font-black uppercase tracking-wider text-[#292929] mb-1">
                       Color del Post-it
                     </label>
-                    <div className="grid grid-cols-3 gap-1.5">
+                    <div className="grid grid-cols-3 gap-2">
                       {(Object.keys(POSTIT_COLORS) as PostItColor[]).map((cKey) => {
                         const cfg = POSTIT_COLORS[cKey];
                         return (
@@ -1580,8 +1604,13 @@ export function PostItBoard({
                             key={cKey}
                             type="button"
                             onClick={() => setColor(cKey)}
-                            className={`py-1.5 px-2 rounded-xl border-2 text-[10px] font-black uppercase tracking-tight text-center cursor-pointer transition-all ${cfg.bg} ${cfg.border} ${
-                              color === cKey ? 'ring-2 ring-[#8E0E75] scale-102 shadow-xs' : 'opacity-85 hover:opacity-100'
+                            style={{
+                              backgroundColor: cfg.hex,
+                              borderColor: cfg.borderHex,
+                              color: cfg.textHex,
+                            }}
+                            className={`py-2 px-2.5 rounded-xl border-2 text-[10px] font-black uppercase tracking-tight text-center cursor-pointer transition-all shadow-xs ${
+                              color === cKey ? 'ring-2 ring-[#8E0E75] scale-102 ring-offset-1 font-extrabold shadow-sm' : 'opacity-90 hover:opacity-100 hover:scale-101'
                             }`}
                           >
                             {cfg.name.split(' ')[0]}

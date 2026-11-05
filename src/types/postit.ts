@@ -40,6 +40,8 @@ export const POSTIT_COLORS: Record<PostItColor, {
   pin: string;
   badge: string;
   hex: string;
+  borderHex: string;
+  textHex: string;
 }> = {
   yellow: {
     name: 'Amarillo Canario',
@@ -50,6 +52,8 @@ export const POSTIT_COLORS: Record<PostItColor, {
     pin: 'bg-[#CA8A04]',
     badge: 'bg-[#FEF9C3] text-[#713F12] border border-[#FACC15]',
     hex: '#FEF08A',
+    borderHex: '#FACC15',
+    textHex: '#713F12',
   },
   green: {
     name: 'Menta Fresca',
@@ -60,6 +64,8 @@ export const POSTIT_COLORS: Record<PostItColor, {
     pin: 'bg-[#16A34A]',
     badge: 'bg-[#DCFCE7] text-[#14532D] border border-[#4ADE80]',
     hex: '#BBF7D0',
+    borderHex: '#4ADE80',
+    textHex: '#14532D',
   },
   blue: {
     name: 'Azul Celeste',
@@ -70,6 +76,8 @@ export const POSTIT_COLORS: Record<PostItColor, {
     pin: 'bg-[#0284C7]',
     badge: 'bg-[#E0F2FE] text-[#0369A1] border border-[#38BDF8]',
     hex: '#BAE6FD',
+    borderHex: '#38BDF8',
+    textHex: '#0369A1',
   },
   pink: {
     name: 'Rosa Palo',
@@ -80,6 +88,8 @@ export const POSTIT_COLORS: Record<PostItColor, {
     pin: 'bg-[#DB2777]',
     badge: 'bg-[#FCE7F3] text-[#831843] border border-[#F472B6]',
     hex: '#FBCFE8',
+    borderHex: '#F472B6',
+    textHex: '#831843',
   },
   orange: {
     name: 'Melocotón / Naranja',
@@ -90,6 +100,8 @@ export const POSTIT_COLORS: Record<PostItColor, {
     pin: 'bg-[#EA580C]',
     badge: 'bg-[#FFEDD5] text-[#7C2D12] border border-[#FB923C]',
     hex: '#FED7AA',
+    borderHex: '#FB923C',
+    textHex: '#7C2D12',
   },
   purple: {
     name: 'Lavanda Brain Up',
@@ -100,6 +112,8 @@ export const POSTIT_COLORS: Record<PostItColor, {
     pin: 'bg-[#8E0E75]',
     badge: 'bg-[#F3E8FF] text-[#581C87] border border-[#C084FC]',
     hex: '#E9D5FF',
+    borderHex: '#C084FC',
+    textHex: '#581C87',
   },
 };
 

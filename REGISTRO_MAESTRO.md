@@ -1591,3 +1591,24 @@
 - **Validación y Pruebas:**
   - `npx tsc --noEmit`: **0 errores de compilación**.
   - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis), DM-02 (Controles In-App), DM-03 (100% Pantalla) y DM-15 (Zero-Scroll).
+
+
+### [v3.8.1] - 2026-11-05 - Corrección de Colores en Post-its (Visibilidad Total de la Paleta de 6 Colores)
+- **Solicitud del Usuario:**
+  *"si te fijas 5 de los 6 colores estan en blanco trasnparente y no significan ningun color cambia eso"* (con capturas del selector circular de colores y de los botones del modal de creación donde solo el amarillo tenía color visible).
+- **Diagnóstico y Decisiones Técnicas:**
+  1. **Causa Raíz:**
+     - Las clases dinámicas `${cfg.bg}` y `${cfg.border}` no eran reconocidas por el escáner estático de Tailwind CSS en compilación de producción para `menta`, `azul`, `rosa`, `melocotón` y `lavanda`, resultando en fondos transparentes o blancos.
+  2. **Resolución Integral mediante Estilos Directos y Safelist:**
+     - En [`src/types/postit.ts`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/types/postit.ts), se enriqueció la definición de cada color con `hex`, `borderHex` y `textHex` exactos:
+       - **Amarillo Canario:** `#FEF08A`, borde `#FACC15`, texto `#713F12`.
+       - **Menta Fresca:** `#BBF7D0`, borde `#4ADE80`, texto `#14532D`.
+       - **Azul Celeste:** `#BAE6FD`, borde `#38BDF8`, texto `#0369A1`.
+       - **Rosa Palo:** `#FBCFE8`, borde `#F472B6`, texto `#831843`.
+       - **Melocotón / Naranja:** `#FED7AA`, borde `#FB923C`, texto `#7C2D12`.
+       - **Lavanda Brain Up:** `#E9D5FF`, borde `#C084FC`, texto `#581C87`.
+     - En [`src/components/taskflow/post-it-board.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/components/taskflow/post-it-board.tsx), se dotó a todos los selectores circulares de la barra de notas, a los botones del modal de nuevo post-it, a las fichas del lienzo y a los filtros superiores de `style={{ backgroundColor: cfg.hex, borderColor: cfg.borderHex, color: cfg.textHex }}`.
+     - En [`tailwind.config.ts`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/tailwind.config.ts), se configuró escaneo amplio `./src/**/*.{js,ts,jsx,tsx,mdx}` y safelist de todas las clases de la paleta.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis), DM-02 (Controles In-App), DM-03 (100% Pantalla), DM-13 (Identidad "La Abuela") y DM-15 (Zero-Scroll).
