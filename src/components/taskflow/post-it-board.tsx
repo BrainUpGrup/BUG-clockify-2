@@ -19,7 +19,11 @@ import {
   Grid,
   Layers,
   Palette,
-  LayoutGrid
+  LayoutGrid,
+  ZoomIn,
+  ZoomOut,
+  Eye,
+  Maximize2
 } from 'lucide-react';
 import { 
   PostItItem, 
@@ -63,6 +67,9 @@ export function PostItBoard({
 }: PostItBoardProps) {
   const { syncPostItReminders, addNotification } = useNotifications();
 
+  // Ref del contenedor con scroll para zoom y paneo
+  const canvasContainerRef = useRef<HTMLDivElement | null>(null);
+
   // Copia local sincronizada para manipulación fluida a 60fps
   const [localPostIts, setLocalPostIts] = useState<PostItItem[]>(postIts);
 
@@ -72,6 +79,9 @@ export function PostItBoard({
 
   // Modo de visualización: 'free' (Pizarra / Tabla Libre) o 'grid' (Cuadrícula Clásica)
   const [boardMode, setBoardMode] = useState<'free' | 'grid'>('free');
+
+  // Nivel de Zoom interactivo: 0.4 (40% vista general) a 1.8 (180% vista de detalle)
+  const [zoom, setZoom] = useState<number>(1);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -88,6 +98,94 @@ export function PostItBoard({
       localStorage.setItem('bug_postit_board_mode', mode);
     }
   };
+
+  // Controles de Zoom
+  const handleZoomIn = () => {
+    setZoom((prev) => Math.min(1.8, Math.round((prev + 0.15) * 100) / 100));
+  };
+
+  const handleZoomOut = () => {
+    setZoom((prev) => Math.max(0.4, Math.round((prev - 0.15) * 100) / 100));
+  };
+
+  const handleResetZoom = () => {
+    setZoom(1);
+  };
+
+  const handleOverviewZoom = () => {
+    setZoom(0.55); // Vista panorámica general
+    if (canvasContainerRef.current) {
+      canvasContainerRef.current.scrollTo({ left: 0, top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleFocusZoom = () => {
+    setZoom(1.3); // Vista cercana para enfocar notas
+  };
+
+  // Zoom interactivo con rueda del ratón al mantener pulsado Ctrl o Alt
+  useEffect(() => {
+    const container = canvasContainerRef.current;
+    if (!container || boardMode !== 'free') return;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) {
+        e.preventDefault();
+        const delta = e.deltaY < 0 ? 0.08 : -0.08;
+        setZoom((prev) => Math.max(0.4, Math.min(1.8, Math.round((prev + delta) * 100) / 100)));
+      }
+    };
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      container.removeEventListener('wheel', handleWheel);
+    };
+  }, [boardMode]);
+
+  // Paneo / Desplazamiento arrastrando el fondo del lienzo libre
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState<{ x: number; y: number; scrollLeft: number; scrollTop: number } | null>(null);
+
+  const handleCanvasPointerDown = (e: React.PointerEvent) => {
+    if (boardMode !== 'free') return;
+    // Solo iniciar paneo si se hace clic en el fondo vacío del lienzo
+    if ((e.target as HTMLElement).closest('.postit-card, button, input, textarea, a, .resize-handle')) {
+      return;
+    }
+    if (!canvasContainerRef.current) return;
+
+    setIsPanning(true);
+    setPanStart({
+      x: e.clientX,
+      y: e.clientY,
+      scrollLeft: canvasContainerRef.current.scrollLeft,
+      scrollTop: canvasContainerRef.current.scrollTop,
+    });
+  };
+
+  useEffect(() => {
+    if (!isPanning || !panStart) return;
+
+    const handlePointerMove = (e: PointerEvent) => {
+      if (!canvasContainerRef.current || !panStart) return;
+      const dx = e.clientX - panStart.x;
+      const dy = e.clientY - panStart.y;
+      canvasContainerRef.current.scrollLeft = panStart.scrollLeft - dx;
+      canvasContainerRef.current.scrollTop = panStart.scrollTop - dy;
+    };
+
+    const handlePointerUp = () => {
+      setIsPanning(false);
+      setPanStart(null);
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+    };
+  }, [isPanning, panStart]);
 
   // Estados interactivos de Arrastre y Redimensión libre
   const [dragging, setDragging] = useState<DragState | null>(null);
@@ -157,7 +255,7 @@ export function PostItBoard({
     };
   };
 
-  // Iniciar Arrastre Libre de Post-it
+  // Iniciar Arrastre Libre de Post-it (compensando el factor de escala zoom)
   const handleStartDrag = (
     e: React.PointerEvent,
     item: PostItItem,
@@ -165,7 +263,7 @@ export function PostItBoard({
     currentY: number
   ) => {
     if (boardMode !== 'free') return;
-    // Ignorar si se hace clic en botones, enlaces o el tirador de redimensión
+    // Ignorar si se hace clic en botones, inputs o tirador de redimensión
     if ((e.target as HTMLElement).closest('button, input, textarea, a, .no-drag, .resize-handle')) {
       return;
     }
@@ -187,7 +285,7 @@ export function PostItBoard({
     );
   };
 
-  // Iniciar Redimensión Libre de Post-it desde la esquina inferior derecha
+  // Iniciar Redimensión Libre de Post-it
   const handleStartResize = (
     e: React.PointerEvent,
     item: PostItItem,
@@ -213,25 +311,29 @@ export function PostItBoard({
     );
   };
 
-  // Manejo global de Pointer Move y Pointer Up
+  // Manejo global de Pointer Move y Pointer Up con corrección por escala de Zoom
   useEffect(() => {
     if (!dragging && !resizing) return;
 
     const handlePointerMove = (e: PointerEvent) => {
+      const currentZoom = zoom || 1;
+
       if (dragging) {
-        const dx = e.clientX - dragging.startX;
-        const dy = e.clientY - dragging.startY;
-        const newX = Math.max(12, dragging.initialX + dx);
-        const newY = Math.max(12, dragging.initialY + dy);
+        // Dividir delta entre zoom para que la nota siga exactamente al cursor
+        const dx = (e.clientX - dragging.startX) / currentZoom;
+        const dy = (e.clientY - dragging.startY) / currentZoom;
+        const newX = Math.max(12, Math.round(dragging.initialX + dx));
+        const newY = Math.max(12, Math.round(dragging.initialY + dy));
 
         setLocalPostIts((prev) =>
           prev.map((p) => (p.id === dragging.id ? { ...p, posX: newX, posY: newY } : p))
         );
       } else if (resizing) {
-        const dw = e.clientX - resizing.startX;
-        const dh = e.clientY - resizing.startY;
-        const newW = Math.min(650, Math.max(220, resizing.initialW + dw));
-        const newH = Math.min(650, Math.max(170, resizing.initialH + dh));
+        // Dividir delta entre zoom para redimensión precisa
+        const dw = (e.clientX - resizing.startX) / currentZoom;
+        const dh = (e.clientY - resizing.startY) / currentZoom;
+        const newW = Math.min(700, Math.max(220, Math.round(resizing.initialW + dw)));
+        const newH = Math.min(700, Math.max(170, Math.round(resizing.initialH + dh)));
 
         setLocalPostIts((prev) =>
           prev.map((p) => (p.id === resizing.id ? { ...p, width: newW, height: newH } : p))
@@ -253,7 +355,7 @@ export function PostItBoard({
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('pointerup', handlePointerUp);
     };
-  }, [dragging, resizing, localPostIts, onSavePostIts]);
+  }, [dragging, resizing, localPostIts, onSavePostIts, zoom]);
 
   // Cambiar tamaño con píldoras predefinidas (S / M / L)
   const handleSetQuickSize = (id: string, preset: 'small' | 'medium' | 'large') => {
@@ -508,12 +610,12 @@ export function PostItBoard({
               </span>
             </h2>
             <p className="text-[11px] text-[#4A4A4A]">
-              Pizarra interactiva libre: arrastra notas por la pantalla, cambia su tamaño y personaliza colores a tu gusto.
+              Pizarra interactiva libre: arrastra notas por la pantalla, cambia su tamaño, haz zoom panorámico o acércate a zonas concretas.
             </p>
           </div>
         </div>
 
-        {/* Controles Modulares: Modo Libre / Cuadrícula, Auto-Alinear, Filtro de Color y Nuevo */}
+        {/* Controles Modulares: Modo Libre / Cuadrícula, Zoom Rápido, Auto-Alinear y Nuevo */}
         <div className="flex flex-wrap items-center gap-2">
           
           {/* Selector de Modo: Pizarra Libre vs Cuadrícula */}
@@ -547,6 +649,53 @@ export function PostItBoard({
             </button>
           </div>
 
+          {/* Controles Rápidos de Zoom en Barra Superior (solo en modo pizarra libre) */}
+          {boardMode === 'free' && (
+            <div className="flex items-center bg-[#F8F6FC] p-1 rounded-xl border border-[#D8CFF0] gap-1">
+              <button
+                type="button"
+                onClick={handleZoomOut}
+                disabled={zoom <= 0.4}
+                className="p-1 rounded-lg hover:bg-white text-[#4A4A4A] hover:text-[#8E0E75] disabled:opacity-30 cursor-pointer transition-colors"
+                title="Alejar vista / Zoom Out (-)"
+              >
+                <ZoomOut className="h-3.5 w-3.5" />
+              </button>
+
+              <button
+                type="button"
+                onClick={handleResetZoom}
+                className="px-2 py-0.5 rounded-md text-[11px] font-black tabular-nums text-[#191654] hover:bg-white cursor-pointer"
+                title="Clic para volver al 100%"
+              >
+                {Math.round(zoom * 100)}%
+              </button>
+
+              <button
+                type="button"
+                onClick={handleZoomIn}
+                disabled={zoom >= 1.8}
+                className="p-1 rounded-lg hover:bg-white text-[#4A4A4A] hover:text-[#8E0E75] disabled:opacity-30 cursor-pointer transition-colors"
+                title="Acercar vista / Zoom In (+)"
+              >
+                <ZoomIn className="h-3.5 w-3.5" />
+              </button>
+
+              <div className="h-3 w-px bg-[#D8CFF0] mx-0.5" />
+
+              <button
+                type="button"
+                onClick={handleOverviewZoom}
+                className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase transition-all cursor-pointer ${
+                  zoom <= 0.65 ? 'bg-[#8E0E75] text-white' : 'text-[#4A4A4A] hover:bg-white hover:text-[#8E0E75]'
+                }`}
+                title="Vista panorámica alejada para ver todos los post-its"
+              >
+                Panorámica
+              </button>
+            </div>
+          )}
+
           {/* Botón Auto-Alinear (solo visible en modo libre) */}
           {boardMode === 'free' && (
             <button
@@ -561,7 +710,7 @@ export function PostItBoard({
           )}
 
           {/* Swatches de Filtro por Color */}
-          <div className="hidden md:flex items-center gap-1 bg-[#F8F6FC] p-1 rounded-xl border border-[#D8CFF0]">
+          <div className="hidden lg:flex items-center gap-1 bg-[#F8F6FC] p-1 rounded-xl border border-[#D8CFF0]">
             <button
               type="button"
               onClick={() => setSelectedColorFilter('all')}
@@ -622,211 +771,301 @@ export function PostItBoard({
             </button>
           </div>
         ) : boardMode === 'free' ? (
-          /* MODO 1: PIZARRA LIBRE INTERACTIVA (DRAG & RESIZE LIBRE CON FONDO DE CUADRÍCULA) */
+          /* MODO 1: PIZARRA LIBRE INTERACTIVA CON ZOOM Y PANEO LIBRE */
           <div 
-            className="relative flex-1 w-full h-full min-h-[850px] overflow-auto"
+            ref={canvasContainerRef}
+            onPointerDown={handleCanvasPointerDown}
+            className={`relative flex-1 w-full h-full overflow-auto ${
+              isPanning ? 'cursor-grabbing' : 'cursor-grab'
+            }`}
             style={{
               backgroundColor: '#F8F6FC',
               backgroundImage: 'radial-gradient(#D0C4EA 1.5px, transparent 1.5px)',
               backgroundSize: '24px 24px',
             }}
           >
-            {filteredPostIts.map((item, index) => {
-              const coords = getCoords(item, index);
-              const dims = getDimensions(item);
-              const cfg = POSTIT_COLORS[item.color] || POSTIT_COLORS.yellow;
-              const daysRemaining = getDaysRemainingText(item.targetDate);
-              const isColorMenuOpen = colorPickerNoteId === item.id;
+            {/* Superficie Escalar del Lienzo según el nivel de Zoom */}
+            <div
+              className="relative origin-top-left transition-transform duration-75"
+              style={{
+                width: `${Math.max(3200, 3200 * zoom)}px`,
+                height: `${Math.max(2400, 2400 * zoom)}px`,
+                transform: `scale(${zoom})`,
+                transformOrigin: '0 0',
+              }}
+            >
+              {filteredPostIts.map((item, index) => {
+                const coords = getCoords(item, index);
+                const dims = getDimensions(item);
+                const cfg = POSTIT_COLORS[item.color] || POSTIT_COLORS.yellow;
+                const daysRemaining = getDaysRemainingText(item.targetDate);
+                const isColorMenuOpen = colorPickerNoteId === item.id;
 
-              return (
-                <div
-                  key={item.id}
-                  onPointerDown={(e) => handleStartDrag(e, item, coords.x, coords.y)}
-                  style={{
-                    position: 'absolute',
-                    left: `${coords.x}px`,
-                    top: `${coords.y}px`,
-                    width: `${dims.w}px`,
-                    height: `${dims.h}px`,
-                    zIndex: item.zIndex || 10,
-                  }}
-                  className={`group flex flex-col justify-between rounded-2xl border-2 ${cfg.bg} ${cfg.border} p-3.5 shadow-md hover:shadow-xl transition-shadow cursor-grab active:cursor-grabbing ${
-                    item.isCompleted ? 'opacity-65' : ''
-                  }`}
-                >
-                  {/* Cinta Adhesiva Superior Realista */}
-                  <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 w-16 h-4 bg-white/70 backdrop-blur-xs border border-black/10 rounded-xs shadow-2xs rotate-[-1deg] pointer-events-none" />
+                return (
+                  <div
+                    key={item.id}
+                    onPointerDown={(e) => handleStartDrag(e, item, coords.x, coords.y)}
+                    style={{
+                      position: 'absolute',
+                      left: `${coords.x}px`,
+                      top: `${coords.y}px`,
+                      width: `${dims.w}px`,
+                      height: `${dims.h}px`,
+                      zIndex: item.zIndex || 10,
+                    }}
+                    className={`postit-card group flex flex-col justify-between rounded-2xl border-2 ${cfg.bg} ${cfg.border} p-3.5 shadow-md hover:shadow-xl transition-shadow cursor-grab active:cursor-grabbing ${
+                      item.isCompleted ? 'opacity-65' : ''
+                    }`}
+                  >
+                    {/* Cinta Adhesiva Superior Realista */}
+                    <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 w-16 h-4 bg-white/70 backdrop-blur-xs border border-black/10 rounded-xs shadow-2xs rotate-[-1deg] pointer-events-none" />
 
-                  {/* Cabecera del Post-It: Pin, Drag, Selector de Tamaño y Alertas */}
-                  <div className="shrink-0">
-                    <div className="flex items-center justify-between gap-1 mb-2 pt-0.5">
-                      <div className="flex items-center gap-1.5 no-drag">
-                        {/* Pin / Chincheta */}
-                        <button
-                          type="button"
-                          onClick={() => handleTogglePin(item.id)}
-                          className={`p-1 rounded-lg transition-colors cursor-pointer ${
-                            item.isPinned ? 'text-[#8E0E75] bg-black/10' : 'text-black/35 hover:text-black/80'
-                          }`}
-                          title={item.isPinned ? 'Desfijar' : 'Fijar nota'}
-                        >
-                          <Pin className="h-3.5 w-3.5 fill-current" />
-                        </button>
-
-                        {/* Píldoras Rápidas de Tamaño: S / M / L */}
-                        <div className="hidden sm:inline-flex items-center gap-0.5 bg-black/5 p-0.5 rounded-lg">
+                    {/* Cabecera del Post-It: Pin, Drag, Selector de Tamaño y Alertas */}
+                    <div className="shrink-0">
+                      <div className="flex items-center justify-between gap-1 mb-2 pt-0.5">
+                        <div className="flex items-center gap-1.5 no-drag">
+                          {/* Pin / Chincheta */}
                           <button
                             type="button"
-                            onClick={() => handleSetQuickSize(item.id, 'small')}
-                            className="px-1 py-0.5 rounded-xs text-[9px] font-black uppercase text-black/60 hover:text-black hover:bg-black/10 cursor-pointer"
-                            title="Tamaño Compacto (240x210)"
+                            onClick={() => handleTogglePin(item.id)}
+                            className={`p-1 rounded-lg transition-colors cursor-pointer ${
+                              item.isPinned ? 'text-[#8E0E75] bg-black/10' : 'text-black/35 hover:text-black/80'
+                            }`}
+                            title={item.isPinned ? 'Desfijar' : 'Fijar nota'}
                           >
-                            S
+                            <Pin className="h-3.5 w-3.5 fill-current" />
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => handleSetQuickSize(item.id, 'medium')}
-                            className="px-1 py-0.5 rounded-xs text-[9px] font-black uppercase text-black/60 hover:text-black hover:bg-black/10 cursor-pointer"
-                            title="Tamaño Normal (290x250)"
-                          >
-                            M
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleSetQuickSize(item.id, 'large')}
-                            className="px-1 py-0.5 rounded-xs text-[9px] font-black uppercase text-black/60 hover:text-black hover:bg-black/10 cursor-pointer"
-                            title="Tamaño Amplio (380x320)"
-                          >
-                            L
-                          </button>
+
+                          {/* Píldoras Rápidas de Tamaño: S / M / L */}
+                          <div className="hidden sm:inline-flex items-center gap-0.5 bg-black/5 p-0.5 rounded-lg">
+                            <button
+                              type="button"
+                              onClick={() => handleSetQuickSize(item.id, 'small')}
+                              className="px-1 py-0.5 rounded-xs text-[9px] font-black uppercase text-black/60 hover:text-black hover:bg-black/10 cursor-pointer"
+                              title="Tamaño Compacto (240x210)"
+                            >
+                              S
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleSetQuickSize(item.id, 'medium')}
+                              className="px-1 py-0.5 rounded-xs text-[9px] font-black uppercase text-black/60 hover:text-black hover:bg-black/10 cursor-pointer"
+                              title="Tamaño Normal (290x250)"
+                            >
+                              M
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleSetQuickSize(item.id, 'large')}
+                              className="px-1 py-0.5 rounded-xs text-[9px] font-black uppercase text-black/60 hover:text-black hover:bg-black/10 cursor-pointer"
+                              title="Tamaño Amplio (380x320)"
+                            >
+                              L
+                            </button>
+                          </div>
+
+                          {/* Paleta Rápida de Cambio de Color */}
+                          <div className="relative">
+                            <button
+                              type="button"
+                              onClick={() => setColorPickerNoteId(isColorMenuOpen ? null : item.id)}
+                              className="p-1 rounded-lg text-black/40 hover:text-black/80 hover:bg-black/5 cursor-pointer"
+                              title="Cambiar color del post-it"
+                            >
+                              <Palette className="h-3 w-3" />
+                            </button>
+
+                            {isColorMenuOpen && (
+                              <div className="absolute left-0 top-full mt-1 z-50 flex items-center gap-1 p-1 bg-white rounded-xl shadow-xl border border-[#D8CFF0] animate-in zoom-in-95">
+                                {(Object.keys(POSTIT_COLORS) as PostItColor[]).map((cKey) => {
+                                  const cCfg = POSTIT_COLORS[cKey];
+                                  return (
+                                    <button
+                                      key={cKey}
+                                      type="button"
+                                      onClick={() => handleQuickChangeColor(item.id, cKey)}
+                                      className={`w-4 h-4 rounded-full ${cCfg.bg} ${cCfg.border} border-2 hover:scale-125 transition-transform cursor-pointer`}
+                                      title={cCfg.name}
+                                    />
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
                         </div>
 
-                        {/* Paleta Rápida de Cambio de Color */}
-                        <div className="relative">
-                          <button
-                            type="button"
-                            onClick={() => setColorPickerNoteId(isColorMenuOpen ? null : item.id)}
-                            className="p-1 rounded-lg text-black/40 hover:text-black/80 hover:bg-black/5 cursor-pointer"
-                            title="Cambiar color del post-it"
-                          >
-                            <Palette className="h-3 w-3" />
-                          </button>
-
-                          {isColorMenuOpen && (
-                            <div className="absolute left-0 top-full mt-1 z-50 flex items-center gap-1 p-1 bg-white rounded-xl shadow-xl border border-[#D8CFF0] animate-in zoom-in-95">
-                              {(Object.keys(POSTIT_COLORS) as PostItColor[]).map((cKey) => {
-                                const cCfg = POSTIT_COLORS[cKey];
-                                return (
-                                  <button
-                                    key={cKey}
-                                    type="button"
-                                    onClick={() => handleQuickChangeColor(item.id, cKey)}
-                                    className={`w-4 h-4 rounded-full ${cCfg.bg} ${cCfg.border} border-2 hover:scale-125 transition-transform cursor-pointer`}
-                                    title={cCfg.name}
-                                  />
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
+                        {/* Badge con tiempo restante */}
+                        <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${cfg.badge}`}>
+                          {daysRemaining}
+                        </span>
                       </div>
 
-                      {/* Badge con tiempo restante */}
-                      <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${cfg.badge}`}>
-                        {daysRemaining}
-                      </span>
+                      {/* Título de la Nota */}
+                      <h3 className={`font-black text-xs leading-tight mb-1.5 ${cfg.text} ${item.isCompleted ? 'line-through' : ''}`}>
+                        {item.title}
+                      </h3>
                     </div>
 
-                    {/* Título de la Nota */}
-                    <h3 className={`font-black text-xs leading-tight mb-1.5 ${cfg.text} ${item.isCompleted ? 'line-through' : ''}`}>
-                      {item.title}
-                    </h3>
-                  </div>
+                    {/* Cuerpo / Texto de la Nota (con scroll interno si es extenso) */}
+                    <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+                      <p className={`text-[11px] leading-relaxed whitespace-pre-wrap ${cfg.text} opacity-95 font-medium`}>
+                        {item.content}
+                      </p>
+                    </div>
 
-                  {/* Cuerpo / Texto de la Nota (con scroll interno si es extenso) */}
-                  <div className="flex-1 min-h-0 overflow-y-auto pr-1">
-                    <p className={`text-[11px] leading-relaxed whitespace-pre-wrap ${cfg.text} opacity-95 font-medium`}>
-                      {item.content}
-                    </p>
-                  </div>
-
-                  {/* Bloque Inferior: Fecha, Recordatorios y Barra de Acciones */}
-                  <div className="mt-2.5 pt-2 border-t border-black/10 space-y-1.5 shrink-0">
-                    {/* Fecha y hora */}
-                    <div className="flex items-center justify-between text-[10px] font-bold opacity-80">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        <span>{item.targetDate.split('-').reverse().join('/')}</span>
-                      </div>
-                      {item.targetTime && (
+                    {/* Bloque Inferior: Fecha, Recordatorios y Barra de Acciones */}
+                    <div className="mt-2.5 pt-2 border-t border-black/10 space-y-1.5 shrink-0">
+                      {/* Fecha y hora */}
+                      <div className="flex items-center justify-between text-[10px] font-bold opacity-80">
                         <div className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          <span>{item.targetTime}</span>
+                          <Calendar className="h-3 w-3" />
+                          <span>{item.targetDate.split('-').reverse().join('/')}</span>
+                        </div>
+                        {item.targetTime && (
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            <span>{item.targetTime}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Alertas programadas */}
+                      {item.reminders && item.reminders.length > 0 && (
+                        <div className="flex flex-wrap gap-1 max-h-12 overflow-y-auto">
+                          {item.reminders.map((rem) => (
+                            <span
+                              key={rem.id}
+                              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-white/80 border border-black/10 text-[9px] font-bold text-[#292929]"
+                              title="Alerta automática en panel"
+                            >
+                              <Bell className="h-2.5 w-2.5 text-[#8E0E75]" />
+                              <span>{rem.label}</span>
+                            </span>
+                          ))}
                         </div>
                       )}
-                    </div>
 
-                    {/* Alertas programadas */}
-                    {item.reminders && item.reminders.length > 0 && (
-                      <div className="flex flex-wrap gap-1 max-h-12 overflow-y-auto">
-                        {item.reminders.map((rem) => (
-                          <span
-                            key={rem.id}
-                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-white/80 border border-black/10 text-[9px] font-bold text-[#292929]"
-                            title="Alerta automática en panel"
+                      {/* Acciones */}
+                      <div className="flex items-center justify-between pt-1 no-drag">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleComplete(item.id)}
+                          className={`inline-flex items-center gap-1 text-[10px] font-black uppercase transition-colors cursor-pointer ${
+                            item.isCompleted ? 'text-emerald-800' : 'text-black/60 hover:text-[#8E0E75]'
+                          }`}
+                        >
+                          <Check className="h-3 w-3" />
+                          <span>{item.isCompleted ? 'Hecho' : 'Completar'}</span>
+                        </button>
+
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEdit(item)}
+                            className="p-1 rounded-md hover:bg-black/10 text-black/60 hover:text-black cursor-pointer"
+                            title="Editar"
                           >
-                            <Bell className="h-2.5 w-2.5 text-[#8E0E75]" />
-                            <span>{rem.label}</span>
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Acciones */}
-                    <div className="flex items-center justify-between pt-1 no-drag">
-                      <button
-                        type="button"
-                        onClick={() => handleToggleComplete(item.id)}
-                        className={`inline-flex items-center gap-1 text-[10px] font-black uppercase transition-colors cursor-pointer ${
-                          item.isCompleted ? 'text-emerald-800' : 'text-black/60 hover:text-[#8E0E75]'
-                        }`}
-                      >
-                        <Check className="h-3 w-3" />
-                        <span>{item.isCompleted ? 'Hecho' : 'Completar'}</span>
-                      </button>
-
-                      <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => handleOpenEdit(item)}
-                          className="p-1 rounded-md hover:bg-black/10 text-black/60 hover:text-black cursor-pointer"
-                          title="Editar"
-                        >
-                          <Edit3 className="h-3 w-3" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(item.id)}
-                          className="p-1 rounded-md hover:bg-rose-100 text-black/60 hover:text-rose-700 cursor-pointer"
-                          title="Eliminar"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
+                            <Edit3 className="h-3 w-3" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(item.id)}
+                            className="p-1 rounded-md hover:bg-rose-100 text-black/60 hover:text-rose-700 cursor-pointer"
+                            title="Eliminar"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Tirador de Redimensión en Esquina Inferior Derecha */}
-                  <div
-                    onPointerDown={(e) => handleStartResize(e, item, dims.w, dims.h)}
-                    className="resize-handle absolute bottom-1 right-1 p-1 text-black/40 hover:text-black/90 cursor-se-resize select-none no-drag"
-                    title="Arrastra para hacer la nota más grande o más pequeña"
-                  >
-                    <MoveDiagonal2 className="h-3 w-3" />
+                    {/* Tirador de Redimensión en Esquina Inferior Derecha */}
+                    <div
+                      onPointerDown={(e) => handleStartResize(e, item, dims.w, dims.h)}
+                      className="resize-handle absolute bottom-1 right-1 p-1 text-black/40 hover:text-black/90 cursor-se-resize select-none no-drag"
+                      title="Arrastra para hacer la nota más grande o más pequeña"
+                    >
+                      <MoveDiagonal2 className="h-3 w-3" />
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+
+            {/* Widget Flotante de Zoom y Navegación en el Lienzo Libre */}
+            <div className="sticky bottom-4 left-4 z-40 w-fit bg-white/95 backdrop-blur-md border border-[#D8CFF0] rounded-2xl shadow-lg px-2.5 py-1.5 flex items-center gap-1.5 select-none text-xs pointer-events-auto">
+              <button
+                type="button"
+                onClick={handleZoomOut}
+                disabled={zoom <= 0.4}
+                className="p-1.5 rounded-xl hover:bg-[#F8F6FC] text-[#4A4A4A] hover:text-[#8E0E75] disabled:opacity-35 transition-colors cursor-pointer"
+                title="Alejar vista / Zoom Out (-)"
+                aria-label="Alejar vista"
+              >
+                <ZoomOut className="h-4 w-4" />
+              </button>
+
+              <button
+                type="button"
+                onClick={handleResetZoom}
+                className="px-2 py-1 rounded-lg text-xs font-black tabular-nums text-[#191654] hover:bg-[#F8F6FC] transition-colors cursor-pointer"
+                title="Clic para volver al 100%"
+              >
+                {Math.round(zoom * 100)}%
+              </button>
+
+              <button
+                type="button"
+                onClick={handleZoomIn}
+                disabled={zoom >= 1.8}
+                className="p-1.5 rounded-xl hover:bg-[#F8F6FC] text-[#4A4A4A] hover:text-[#8E0E75] disabled:opacity-35 transition-colors cursor-pointer"
+                title="Acercar vista / Zoom In (+)"
+                aria-label="Acercar vista"
+              >
+                <ZoomIn className="h-4 w-4" />
+              </button>
+
+              <div className="h-4 w-px bg-[#D8CFF0] mx-0.5" />
+
+              <button
+                type="button"
+                onClick={handleOverviewZoom}
+                className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-tight transition-all cursor-pointer ${
+                  zoom <= 0.65
+                    ? 'bg-[#8E0E75] text-white shadow-2xs'
+                    : 'text-[#4A4A4A] hover:bg-[#F8F6FC] hover:text-[#8E0E75]'
+                }`}
+                title="Vista general para ver todas las notas en pantalla (55%)"
+              >
+                Vista General
+              </button>
+
+              <button
+                type="button"
+                onClick={handleResetZoom}
+                className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-tight transition-all cursor-pointer ${
+                  zoom === 1
+                    ? 'bg-[#8E0E75] text-white shadow-2xs'
+                    : 'text-[#4A4A4A] hover:bg-[#F8F6FC] hover:text-[#8E0E75]'
+                }`}
+                title="Vista estándar 100%"
+              >
+                100%
+              </button>
+
+              <button
+                type="button"
+                onClick={handleFocusZoom}
+                className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-tight transition-all cursor-pointer ${
+                  zoom >= 1.25
+                    ? 'bg-[#8E0E75] text-white shadow-2xs'
+                    : 'text-[#4A4A4A] hover:bg-[#F8F6FC] hover:text-[#8E0E75]'
+                }`}
+                title="Acercar vista para enfocarse en notas concretas (130%)"
+              >
+                Enfoque
+              </button>
+            </div>
           </div>
         ) : (
           /* MODO 2: CUADRÍCULA ORDENADA */

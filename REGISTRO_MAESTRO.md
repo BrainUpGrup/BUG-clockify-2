@@ -1467,3 +1467,26 @@
 - **Validación y Pruebas:**
   - `npx tsc --noEmit`: **0 errores de compilación**.
   - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis), DM-02 (Controles In-App), DM-03 (100% Pantalla) y DM-15 (Zero-Scroll).
+
+### [v3.7.5] - 2026-11-05 - Sistema de Zoom Panorámico y Enfoque en Pizarra de Post-its
+- **Solicitud del Usuario:**
+  *"quieor que hagas un posible zoom y alejar la pantalla para que podamos ver mas o menos posit o centranos en zonas concretas o vista as general"*
+- **Diagnóstico y Decisiones Técnicas:**
+  1. **Zoom Panorámico e Interactivo (40% a 180%):**
+     - Rango de escala dinámica continua de `0.4` a `1.8` en el lienzo libre interactivo de TaskFlow.
+     - Widget flotante in-app en la esquina inferior izquierda con:
+       - Botón **Alejar (`ZoomOut` / `-`)**.
+       - Indicador de porcentaje interactivo (`100%`) con restablecimiento inmediato al hacer clic.
+       - Botón **Acercar (`ZoomIn` / `+`)**.
+       - Botón **Vista General (55%)**: Panorámica alejada para ver todos los post-its del tablero de un solo vistazo.
+       - Botón **100%**: Escala estándar natural.
+       - Botón **Enfoque (130%)**: Vista cercana para leer y editar notas de detalle con máxima nitidez.
+     - Controles integrados también en la barra de herramientas superior para acceso inmediato.
+  2. **Interacción con Ratón y Teclado:**
+     - Soporte para zoom con rueda del ratón manteniendo pulsado `Ctrl` o `Alt` (`wheel` event con escalado suave).
+     - Desplazamiento panorámico (pan) haciendo clic y arrastrando el fondo vacío del lienzo (`cursor-grab` / `cursor-grabbing`).
+  3. **Precisión Matemática en Arrastre y Redimensión Escalar:**
+     - Compensación matemática dividiendo los deltas de arrastre y cambio de tamaño entre el factor de zoom actual (`dx / zoom`, `dy / zoom`), garantizando que las notas se muevan y redimensionen de forma milimétrica exactamente bajo el cursor a cualquier nivel de aumento.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis), DM-02 (Controles In-App), DM-03 (100% Pantalla) y DM-15 (Zero-Scroll).
