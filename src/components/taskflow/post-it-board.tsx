@@ -280,6 +280,7 @@ export function PostItBoard({
   // Estados interactivos de Arrastre y Redimensión libre
   const [dragging, setDragging] = useState<DragState | null>(null);
   const [resizing, setResizing] = useState<ResizeState | null>(null);
+  const dragDistanceRef = useRef(0);
   const [highestZ, setHighestZ] = useState<number>(() => {
     const maxZ = postIts.reduce((max, p) => Math.max(max, p.zIndex || 10), 10);
     return maxZ + 1;
@@ -362,6 +363,7 @@ export function PostItBoard({
     const newZ = highestZ + 1;
     setHighestZ(newZ);
 
+    dragDistanceRef.current = 0;
     setDragging({
       id: item.id,
       startX: e.clientX,
@@ -412,6 +414,7 @@ export function PostItBoard({
         // Dividir delta entre zoom para que la nota siga exactamente al cursor
         const dx = (e.clientX - dragging.startX) / currentZoom;
         const dy = (e.clientY - dragging.startY) / currentZoom;
+        dragDistanceRef.current += Math.abs(dx) + Math.abs(dy);
         const newX = Math.max(12, Math.round(dragging.initialX + dx));
         const newY = Math.max(12, Math.round(dragging.initialY + dy));
 
@@ -1093,6 +1096,14 @@ export function PostItBoard({
                   <div
                     key={item.id}
                     onPointerDown={(e) => handleStartDrag(e, item, coords.x, coords.y)}
+                    onDoubleClick={(e) => {
+                      if (dragDistanceRef.current > 6) return;
+                      if ((e.target as HTMLElement).closest('button, input, textarea, a, .resize-handle')) {
+                        return;
+                      }
+                      e.stopPropagation();
+                      handleOpenEdit(item);
+                    }}
                     style={{
                       position: 'absolute',
                       left: `${coords.x}px`,
@@ -1104,9 +1115,10 @@ export function PostItBoard({
                       borderColor: cfg.borderHex,
                       color: cfg.textHex,
                     }}
-                    className={`postit-card group flex flex-col justify-between rounded-2xl border-2 p-3.5 shadow-md hover:shadow-xl transition-shadow cursor-grab active:cursor-grabbing ${
+                    className={`postit-card group flex flex-col justify-between rounded-2xl border-2 p-3.5 shadow-md hover:shadow-xl transition-shadow cursor-grab active:cursor-grabbing select-none ${
                       item.isCompleted ? 'opacity-65' : ''
                     }`}
+                    title="Arrastra para mover · Doble clic para editar"
                   >
                     {/* Cinta Adhesiva Superior Realista */}
                     <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 w-16 h-4 bg-white/70 backdrop-blur-xs border border-black/10 rounded-xs shadow-2xs rotate-[-1deg] pointer-events-none" />
@@ -1377,14 +1389,22 @@ export function PostItBoard({
                 return (
                   <div
                     key={item.id}
+                    onDoubleClick={(e) => {
+                      if ((e.target as HTMLElement).closest('button, input, textarea, a')) {
+                        return;
+                      }
+                      e.stopPropagation();
+                      handleOpenEdit(item);
+                    }}
                     style={{
                       backgroundColor: cfg.hex,
                       borderColor: cfg.borderHex,
                       color: cfg.textHex,
                     }}
-                    className={`relative flex flex-col justify-between rounded-2xl border-2 p-3.5 shadow-md hover:shadow-lg transition-all min-h-[240px] ${
+                    className={`relative flex flex-col justify-between rounded-2xl border-2 p-3.5 shadow-md hover:shadow-lg transition-all min-h-[240px] cursor-pointer select-none ${
                       item.isCompleted ? 'opacity-65' : ''
                     }`}
+                    title="Doble clic para editar contenido"
                   >
                     {/* Cinta adhesiva superior */}
                     <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 w-16 h-4 bg-white/70 backdrop-blur-xs border border-black/10 rounded-xs shadow-2xs rotate-[-1deg]" />

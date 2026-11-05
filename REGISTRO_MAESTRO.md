@@ -1612,3 +1612,17 @@
 - **Validación y Pruebas:**
   - `npx tsc --noEmit`: **0 errores de compilación**.
   - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis), DM-02 (Controles In-App), DM-03 (100% Pantalla), DM-13 (Identidad "La Abuela") y DM-15 (Zero-Scroll).
+
+### [v3.8.2] - 2026-11-05 - Apertura de Edición de Post-it mediante Doble Clic
+- **Solicitud del Usuario:**
+  *"si das doble click sobre los posits se abre para editar el contenido"*
+- **Diagnóstico y Decisiones Técnicas:**
+  1. **Interacción Ergonómica de Edición por Doble Clic:**
+     - En [`src/components/taskflow/post-it-board.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/components/taskflow/post-it-board.tsx), se implementó el evento `onDoubleClick` en las tarjetas de post-it tanto en la pizarra interactiva libre como en la vista de cuadrícula.
+     - Al hacer doble clic sobre cualquier zona del post-it (título, texto o cuerpo de la nota), se invoca de forma inmediata `handleOpenEdit(item)`, abriendo el modal de edición con foco activo en el contenido.
+  2. **Discriminación Inteligente contra Arrastres y Botones de Acción:**
+     - Se integró un umbral cinemático mediante `dragDistanceRef`: si el usuario estaba arrastrando la nota por el lienzo libre (`dragDistance > 6px`), el doble clic se ignora para evitar aperturas no deseadas al soltar la nota.
+     - Se excluyen selectivamente los botones internos (chincheta, selector de tamaño, cambio de color, completar o eliminar) y tiradores de redimensión para preservar su funcionalidad independiente.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis), DM-02 (Controles In-App), DM-03 (100% Pantalla), DM-13 (Identidad "La Abuela") y DM-15 (Zero-Scroll).
