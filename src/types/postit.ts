@@ -22,6 +22,13 @@ export interface PostItItem {
   createdAt: string;
   isPinned?: boolean;
   isCompleted?: boolean;
+  // Propiedades para la Pizarra / Tabla Libre Modular
+  posX?: number; // Coordenada X en píxeles
+  posY?: number; // Coordenada Y en píxeles
+  width?: number; // Ancho en píxeles (redimensionable)
+  height?: number; // Alto en píxeles (redimensionable)
+  zIndex?: number; // Nivel de elevación / apilamiento
+  sizePreset?: 'small' | 'medium' | 'large'; // Tamaño rápido
 }
 
 export const POSTIT_COLORS: Record<PostItColor, {
@@ -32,60 +39,67 @@ export const POSTIT_COLORS: Record<PostItColor, {
   header: string;
   pin: string;
   badge: string;
+  hex: string;
 }> = {
   yellow: {
-    name: 'Amarillo Clásico',
-    bg: 'bg-[#FEF9C3]',
-    border: 'border-[#FDE047]',
+    name: 'Amarillo Canario',
+    bg: 'bg-[#FEF08A]',
+    border: 'border-[#FACC15]',
     text: 'text-[#713F12]',
-    header: 'bg-[#FEF08A]',
+    header: 'bg-[#FDE047]',
     pin: 'bg-[#CA8A04]',
-    badge: 'bg-yellow-200/80 text-yellow-900',
+    badge: 'bg-[#FEF9C3] text-[#713F12] border border-[#FACC15]',
+    hex: '#FEF08A',
   },
   green: {
-    name: 'Menta Pastel',
-    bg: 'bg-[#DCFCE7]',
-    border: 'border-[#86EFAC]',
+    name: 'Menta Fresca',
+    bg: 'bg-[#BBF7D0]',
+    border: 'border-[#4ADE80]',
     text: 'text-[#14532D]',
-    header: 'bg-[#BBF7D0]',
+    header: 'bg-[#86EFAC]',
     pin: 'bg-[#16A34A]',
-    badge: 'bg-emerald-200/80 text-emerald-900',
+    badge: 'bg-[#DCFCE7] text-[#14532D] border border-[#4ADE80]',
+    hex: '#BBF7D0',
   },
   blue: {
-    name: 'Celeste Suave',
-    bg: 'bg-[#E0F2FE]',
-    border: 'border-[#7DD3FC]',
-    text: 'text-[#075985]',
-    header: 'bg-[#BAE6FD]',
+    name: 'Azul Celeste',
+    bg: 'bg-[#BAE6FD]',
+    border: 'border-[#38BDF8]',
+    text: 'text-[#0369A1]',
+    header: 'bg-[#7DD3FC]',
     pin: 'bg-[#0284C7]',
-    badge: 'bg-sky-200/80 text-sky-900',
+    badge: 'bg-[#E0F2FE] text-[#0369A1] border border-[#38BDF8]',
+    hex: '#BAE6FD',
   },
   pink: {
     name: 'Rosa Palo',
-    bg: 'bg-[#FCE7F3]',
+    bg: 'bg-[#FBCFE8]',
     border: 'border-[#F472B6]',
     text: 'text-[#831843]',
-    header: 'bg-[#FBCFE8]',
+    header: 'bg-[#F9A8D4]',
     pin: 'bg-[#DB2777]',
-    badge: 'bg-pink-200/80 text-pink-900',
+    badge: 'bg-[#FCE7F3] text-[#831843] border border-[#F472B6]',
+    hex: '#FBCFE8',
   },
   orange: {
-    name: 'Melocotón',
-    bg: 'bg-[#FFEDD5]',
-    border: 'border-[#FDBA74]',
+    name: 'Melocotón / Naranja',
+    bg: 'bg-[#FED7AA]',
+    border: 'border-[#FB923C]',
     text: 'text-[#7C2D12]',
-    header: 'bg-[#FED7AA]',
+    header: 'bg-[#FDBA74]',
     pin: 'bg-[#EA580C]',
-    badge: 'bg-orange-200/80 text-orange-900',
+    badge: 'bg-[#FFEDD5] text-[#7C2D12] border border-[#FB923C]',
+    hex: '#FED7AA',
   },
   purple: {
     name: 'Lavanda Brain Up',
-    bg: 'bg-[#F3E8FF]',
-    border: 'border-[#D8B4FE]',
+    bg: 'bg-[#E9D5FF]',
+    border: 'border-[#C084FC]',
     text: 'text-[#581C87]',
-    header: 'bg-[#E9D5FF]',
+    header: 'bg-[#D8B4FE]',
     pin: 'bg-[#8E0E75]',
-    badge: 'bg-purple-200/80 text-purple-900',
+    badge: 'bg-[#F3E8FF] text-[#581C87] border border-[#C084FC]',
+    hex: '#E9D5FF',
   },
 };
 

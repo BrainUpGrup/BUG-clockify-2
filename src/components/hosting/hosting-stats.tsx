@@ -157,10 +157,10 @@ export function HostingStats({
       <button
         type="button"
         onClick={onOpenNotifications}
-        className="p-3.5 sm:p-4 rounded-2xl border-2 border-[#D8CFF0] bg-linear-to-r from-[#191654] to-[#8E0E75] text-white hover:opacity-95 transition-all text-left cursor-pointer shadow-sm hover:shadow-md"
+        className="p-3.5 sm:p-4 rounded-2xl border-2 border-[#191654] bg-[#191654] bg-gradient-to-r from-[#191654] to-[#8E0E75] text-white hover:opacity-95 transition-all text-left cursor-pointer shadow-md hover:shadow-lg"
       >
         <div className="flex items-center justify-between">
-          <span className="text-[11px] font-black uppercase tracking-wider text-white/90">
+          <span className="text-[11px] font-black uppercase tracking-wider text-white">
             Alertas & Avisos
           </span>
           <Bell className="h-4 w-4 text-amber-300 animate-pulse" />
@@ -169,7 +169,7 @@ export function HostingStats({
           <span className="text-2xl sm:text-3xl font-black text-white tabular-nums">
             {urgentCount}
           </span>
-          <span className="text-[10px] font-bold text-amber-200">
+          <span className="text-[10px] font-bold text-amber-300">
             {urgentCount === 1 ? 'aviso prioritario' : 'avisos prioritarios'}
           </span>
         </div>

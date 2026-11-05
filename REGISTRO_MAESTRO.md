@@ -1449,3 +1449,21 @@
 - **Validación y Pruebas:**
   - `npx tsc --noEmit`: **0 errores de compilación**.
   - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis) y DM-15 (Zero-Scroll).
+
+### [v3.7.4] - 2026-11-05 - Corrección de Contraste en Hosting y Pizarra Libre Modular de Post-its
+- **Solicitud del Usuario:**
+  *"tienes que cambiar este color que no se ve nada bien de apartado de hosting. por otro lado el apartado de pos-its quiero que cambies el color del fondo de los posits y que sea una especie de tabla libre interactiva donde poder move rlos posits libremente por la mantalla, hacerlos mas grandes, mas pequeños, que sea full modular al gusto de todo el mundo"*
+- **Diagnóstico y Decisiones Técnicas:**
+  1. **Corrección de Contraste en Alertas de Hosting (`HostingStats` y Modales):**
+     - La 6ª tarjeta de métricas usaba `bg-linear-to-r` (sintaxis no reconocida en Tailwind v3), provocando fondo blanco con textos blancos y amarillos ilegibles.
+     - Se corrigió a `bg-[#191654] bg-gradient-to-r from-[#191654] to-[#8E0E75]` con respaldo de fondo índigo oscuro, texto blanco nítido y acentos en amarillo ámbar luminoso. Se estandarizó en todas las cabeceras de modales del módulo.
+  2. **Colores Auténticos y Saturados de Post-its (`POSTIT_COLORS`):**
+     - Se reemplazaron los fondos pálidos casi blancos por colores ricos de notas adhesivas: Canario (`#FEF08A`), Menta (`#BBF7D0`), Celeste (`#BAE6FD`), Rosa Palo (`#FBCFE8`), Melocotón (`#FED7AA`) y Lavanda (`#E9D5FF`), con bordes sólidos y tipografías oscuras de alto contraste.
+  3. **Pizarra Libre Modular e Interactiva (`PostItBoard`):**
+     - **Lienzo Libre con Fondo Dot-Grid:** Pizarra interactiva con fondo punteado moderno (`radial-gradient` en `#D0C4EA`), permitiendo mover cualquier nota libremente (`cursor-grab`, coordenadas `posX`, `posY` persistidas en `localStorage`).
+     - **Redimensión Libre y Modular:** Tirador de arrastre en la esquina inferior derecha (`MoveDiagonal2`) para cambiar anchura y altura en tiempo real, además de selector rápido de tamaños `S` (240x210), `M` (290x250) y `L` (380x320).
+     - **Paleta de Color In-Situ:** Botón de paleta en cada nota para cambiar su color con un solo clic.
+     - **Modo Dual y Auto-Alineación:** Selector para alternar entre "Pizarra Libre" y "Cuadrícula Ordenada", más botón "Auto-Alinear" para ordenar el tablero en cuadrícula con un clic.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis), DM-02 (Controles In-App), DM-03 (100% Pantalla) y DM-15 (Zero-Scroll).

@@ -58,7 +58,7 @@ export function HostingEmailModal({
         aria-modal="true"
       >
         {/* Cabecera */}
-        <div className="p-5 sm:p-6 border-b border-[#D8CFF0] bg-linear-to-r from-[#191654] to-[#8E0E75] text-white flex items-center justify-between">
+        <div className="p-5 sm:p-6 border-b border-[#D8CFF0] bg-[#191654] bg-gradient-to-r from-[#191654] to-[#8E0E75] text-white flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-white/20 border border-white/30 flex items-center justify-center shrink-0">
               <Mail className="h-5 w-5 text-white" />
