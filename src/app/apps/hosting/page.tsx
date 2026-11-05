@@ -545,10 +545,12 @@ export default function HostingPage() {
                     const hasSubhostings = service.service_type === 'Hosting' && childSubhostings.length > 0;
                     const isExpanded = expandedHostingIds.has(service.id);
 
-                    // Hosting principal para Subhostings
+                    // Hosting principal / nido para Subhostings
                     const parentHosting = (service.service_type === 'Subhosting' && service.parent_id)
                       ? (services.find((p) => p.id === service.parent_id || p.name.toLowerCase() === service.parent_id?.toLowerCase()) || null)
                       : null;
+                    const isSubhostingWithParent = service.service_type === 'Subhosting' && Boolean(parentHosting || service.parent_id);
+                    const canExpand = hasSubhostings || isSubhostingWithParent;
 
                     return (
                       <React.Fragment key={service.id}>
@@ -557,7 +559,7 @@ export default function HostingPage() {
                             isExpired ? 'bg-red-50/40' : isCritical ? 'bg-amber-50/40' : ''
                           }`}
                         >
-                          {/* Dominio / Servicio con icono y flecha a la derecha del nombre */}
+                          {/* Dominio / Servicio con icono, tooltip dinámico y flecha desplegable */}
                           <td className="py-3.5 px-4">
                             <div className="flex items-center gap-2.5">
                               <span className="p-1.5 rounded-lg bg-[#F8F6FC] border border-[#D8CFF0] text-[#8E0E75] shrink-0">
@@ -574,24 +576,46 @@ export default function HostingPage() {
 
                               <div className="min-w-0">
                                 <div className="flex items-center gap-2">
-                                  <span 
-                                    onClick={() => hasSubhostings && toggleExpandHosting(service.id)}
-                                    className={`font-black text-[#292929] block truncate hover:text-[#8E0E75] ${
-                                      hasSubhostings ? 'cursor-pointer' : ''
-                                    }`}
-                                    title={hasSubhostings ? (isExpanded ? 'Plegar subhostings' : `Desplegar ${childSubhostings.length} subhosting(s)`) : undefined}
-                                  >
-                                    {service.name}
-                                  </span>
+                                  {/* Nombre con Tooltip rápido para Subhostings */}
+                                  <div className="relative group/subname inline-flex items-center">
+                                    <span 
+                                      onClick={() => canExpand && toggleExpandHosting(service.id)}
+                                      className={`font-black text-[#292929] block truncate hover:text-[#8E0E75] ${
+                                        canExpand ? 'cursor-pointer' : ''
+                                      }`}
+                                      title={
+                                        service.service_type === 'Subhosting'
+                                          ? `Hosting Principal (Nido): ${parentHosting ? parentHosting.name : (service.parent_id || 'Sin asignar')}`
+                                          : hasSubhostings
+                                          ? (isExpanded ? 'Plegar subhostings' : `Desplegar ${childSubhostings.length} subhosting(s)`)
+                                          : undefined
+                                      }
+                                    >
+                                      {service.name}
+                                    </span>
+
+                                    {/* Tooltip flotante enriquecido al pasar el ratón sobre el nombre del subhosting */}
+                                    {service.service_type === 'Subhosting' && (
+                                      <div className="absolute bottom-full left-0 mb-2 hidden group-hover/subname:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#191654] text-white text-[10px] font-black uppercase tracking-wider shadow-2xl z-40 pointer-events-none whitespace-nowrap border border-purple-400/30 animate-in fade-in zoom-in-95 duration-150">
+                                        <Server className="h-3 w-3 text-purple-300 shrink-0" />
+                                        <span>Hosting Nido: <strong className="text-purple-200">{parentHosting ? parentHosting.name : (service.parent_id || 'Sin asignar')}</strong></span>
+                                        <div className="absolute top-full left-4 border-4 border-transparent border-t-[#191654]" />
+                                      </div>
+                                    )}
+                                  </div>
 
                                   {/* Flecha a la derecha del nombre para desplegar/plegar */}
-                                  {hasSubhostings && (
+                                  {canExpand && (
                                     <button
                                       type="button"
                                       onClick={() => toggleExpandHosting(service.id)}
                                       className="p-1 rounded-lg hover:bg-purple-100 text-[#8E0E75] transition-colors cursor-pointer shrink-0 inline-flex items-center"
-                                      title={isExpanded ? 'Ocultar subhostings' : `Ver ${childSubhostings.length} subhosting(s) alojados`}
-                                      aria-label={isExpanded ? 'Ocultar subhostings' : 'Ver subhostings alojados'}
+                                      title={
+                                        hasSubhostings
+                                          ? (isExpanded ? 'Ocultar subhostings' : `Ver ${childSubhostings.length} subhosting(s) alojados`)
+                                          : (isExpanded ? 'Ocultar hosting nido' : `Ver hosting nido (${parentHosting?.name || service.parent_id})`)
+                                      }
+                                      aria-label={isExpanded ? 'Plegar' : 'Desplegar'}
                                     >
                                       {isExpanded ? (
                                         <ChevronDown className="h-4 w-4 stroke-[2.5]" />
@@ -599,17 +623,6 @@ export default function HostingPage() {
                                         <ChevronRight className="h-4 w-4 stroke-[2.5]" />
                                       )}
                                     </button>
-                                  )}
-
-                                  {/* Etiqueta con el nombre del dominio principal para subhostings */}
-                                  {service.service_type === 'Subhosting' && (
-                                    <span
-                                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-purple-50 border border-purple-200 text-[#8E0E75] shrink-0"
-                                      title={parentHosting ? `Alojado en el hosting principal: ${parentHosting.name}` : (service.parent_id ? `Alojado en: ${service.parent_id}` : 'Subhosting sin hosting principal')}
-                                    >
-                                      <Server className="h-3 w-3 text-[#8E0E75]" />
-                                      Principal: {parentHosting?.name || service.parent_id || 'Sin asignar'}
-                                    </span>
                                   )}
                                 </div>
                                 {service.notes && (
@@ -812,20 +825,24 @@ export default function HostingPage() {
 
                                         return (
                                           <tr key={child.id} className="hover:bg-[#F8F6FC]/80 transition-colors">
-                                            {/* Nombre con etiqueta del dominio principal */}
+                                            {/* Nombre con tooltip del dominio principal */}
                                             <td className="py-2.5 px-3">
                                               <div className="flex items-center gap-2">
                                                 <CornerDownRight className="h-3.5 w-3.5 text-[#8E0E75] shrink-0" />
-                                                <span className="font-black text-[#292929]">
-                                                  {child.name}
-                                                </span>
-                                                <span
-                                                  className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-purple-50 border border-purple-200 text-[#8E0E75] shrink-0"
-                                                  title={`Alojado en el hosting principal: ${service.name}`}
-                                                >
-                                                  <Server className="h-3 w-3 text-[#8E0E75]" />
-                                                  Principal: {service.name}
-                                                </span>
+                                                <div className="relative group/nestedsub inline-flex items-center">
+                                                  <span 
+                                                    className="font-black text-[#292929] hover:text-[#8E0E75] cursor-default"
+                                                    title={`Hosting Principal (Nido): ${service.name}`}
+                                                  >
+                                                    {child.name}
+                                                  </span>
+                                                  {/* Tooltip flotante enriquecido */}
+                                                  <div className="absolute bottom-full left-0 mb-2 hidden group-hover/nestedsub:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#191654] text-white text-[10px] font-black uppercase tracking-wider shadow-2xl z-40 pointer-events-none whitespace-nowrap border border-purple-400/30 animate-in fade-in zoom-in-95 duration-150">
+                                                    <Server className="h-3 w-3 text-purple-300 shrink-0" />
+                                                    <span>Hosting Nido: <strong className="text-purple-200">{service.name}</strong></span>
+                                                    <div className="absolute top-full left-4 border-4 border-transparent border-t-[#191654]" />
+                                                  </div>
+                                                </div>
                                               </div>
                                             </td>
 
@@ -944,6 +961,178 @@ export default function HostingPage() {
                                     </tbody>
                                   </table>
                                 </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+
+                        {/* Desplegable Inverso: Si es Subhosting con Hosting Nido asociado */}
+                        {isSubhostingWithParent && isExpanded && (
+                          <tr className="bg-[#FAF7FD]">
+                            <td colSpan={8} className="p-0 border-b border-[#D8CFF0]">
+                              <div className="pl-6 sm:pl-10 pr-4 py-3.5 bg-[#FAF7FD] border-l-4 border-l-[#191654] space-y-2.5">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <span className="p-1 rounded-md bg-[#191654] text-white">
+                                      <Server className="h-3.5 w-3.5 text-purple-200" />
+                                    </span>
+                                    <div>
+                                      <span className="text-xs font-black uppercase tracking-wider text-[#191654]">
+                                        Hosting Nido (Servidor Principal) · {service.name}
+                                      </span>
+                                      <p className="text-[10px] text-[#4A4A4A]">
+                                        Servidor padre donde está alojado este subhosting
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  {parentHosting && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setEditingService(parentHosting);
+                                        setDefaultParentForCreate(null);
+                                        setIsCreateModalOpen(true);
+                                      }}
+                                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-[#D8CFF0] hover:border-[#8E0E75] text-[#8E0E75] text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-2xs hover:scale-102"
+                                    >
+                                      <Edit3 className="h-3 w-3" />
+                                      <span>Editar Servidor Nido</span>
+                                    </button>
+                                  )}
+                                </div>
+
+                                {parentHosting ? (
+                                  <div className="rounded-xl border border-[#D8CFF0] bg-white overflow-hidden shadow-2xs">
+                                    <table className="w-full text-left text-xs">
+                                      <thead className="bg-[#F8F6FC] border-b border-[#D8CFF0] text-[10px] font-black uppercase tracking-wider text-[#4A4A4A]">
+                                        <tr>
+                                          <th className="py-2.5 px-3">Hosting Nido / Servidor</th>
+                                          <th className="py-2.5 px-3">Tipo</th>
+                                          <th className="py-2.5 px-3">Proveedor</th>
+                                          <th className="py-2.5 px-3">Cliente</th>
+                                          <th className="py-2.5 px-3">Ciclo</th>
+                                          <th className="py-2.5 px-3">Tiempo Restante</th>
+                                          <th className="py-2.5 px-3 text-center">Auto-Renovación</th>
+                                          <th className="py-2.5 px-3 text-right">Acciones</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {(() => {
+                                          const parentDays = calculateDaysRemaining(parentHosting.expiration_date);
+                                          const parentExpired = parentDays < 0;
+                                          const parentCritical = parentDays >= 0 && parentDays <= 7;
+                                          const parentWarning = parentDays > 7 && parentDays <= 15;
+                                          const parentNotice = parentDays > 15 && parentDays <= 30;
+
+                                          return (
+                                            <tr className="hover:bg-[#F8F6FC]/80 transition-colors">
+                                              <td className="py-2.5 px-3">
+                                                <div className="flex items-center gap-2">
+                                                  <span className="p-1 rounded-md bg-[#F8F6FC] border border-[#D8CFF0] text-[#191654]">
+                                                    <Server className="h-3.5 w-3.5" />
+                                                  </span>
+                                                  <div>
+                                                    <span className="font-black text-[#191654]">
+                                                      {parentHosting.name}
+                                                    </span>
+                                                    <span className="block text-[9px] text-[#8E0E75] font-bold">
+                                                      Servidor Principal
+                                                    </span>
+                                                  </div>
+                                                </div>
+                                              </td>
+                                              <td className="py-2.5 px-3">
+                                                <span className="px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-purple-50 border border-purple-200 text-[#8E0E75]">
+                                                  {parentHosting.service_type || 'Hosting'}
+                                                </span>
+                                              </td>
+                                              <td className="py-2.5 px-3">
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[11px] font-black uppercase tracking-wider bg-[#F8F6FC] border border-[#D8CFF0] text-[#191654]">
+                                                  {parentHosting.provider || 'Cdmon'}
+                                                </span>
+                                              </td>
+                                              <td className="py-2.5 px-3 font-semibold text-[#292929]">
+                                                {parentHosting.client_name || '-'}
+                                              </td>
+                                              <td className="py-2.5 px-3 text-[#4A4A4A]">
+                                                {parentHosting.renewal_cycle || 'Anual'}
+                                              </td>
+                                              <td className="py-2.5 px-3">
+                                                <div className="flex flex-col">
+                                                  <span
+                                                    className={`font-black tabular-nums text-[11px] ${
+                                                      parentExpired
+                                                        ? 'text-red-600 font-extrabold'
+                                                        : parentCritical
+                                                        ? 'text-red-500'
+                                                        : parentWarning
+                                                        ? 'text-amber-600'
+                                                        : parentNotice
+                                                        ? 'text-[#191654]'
+                                                        : 'text-emerald-700'
+                                                    }`}
+                                                  >
+                                                    {parentExpired
+                                                      ? `${Math.abs(parentDays)} días caducado`
+                                                      : parentDays === 0
+                                                      ? 'Caduca hoy'
+                                                      : `${parentDays} días`}
+                                                  </span>
+                                                  <span className="text-[10px] text-slate-400 font-mono">
+                                                    {parentHosting.expiration_date.split('-').reverse().join('/')}
+                                                  </span>
+                                                </div>
+                                              </td>
+                                              <td className="py-2.5 px-3 text-center">
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleToggleAutoRenew(parentHosting)}
+                                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider border cursor-pointer ${
+                                                    parentHosting.auto_renew
+                                                      ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                                                      : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
+                                                  }`}
+                                                >
+                                                  <span
+                                                    className={`h-1.5 w-1.5 rounded-full ${
+                                                      parentHosting.auto_renew ? 'bg-emerald-500' : 'bg-red-500'
+                                                    }`}
+                                                  />
+                                                  <span>{parentHosting.auto_renew ? 'Activa' : 'Desact.'}</span>
+                                                </button>
+                                              </td>
+                                              <td className="py-2.5 px-3 text-right">
+                                                <div className="inline-flex items-center gap-1">
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => handleOpenEmail(parentHosting, parentDays)}
+                                                    className="p-1 rounded-md border border-[#D8CFF0] hover:border-[#8E0E75] hover:bg-[#F8F6FC] text-[#8E0E75] cursor-pointer"
+                                                    title="Generar correo"
+                                                  >
+                                                    <Mail className="h-3 w-3" />
+                                                  </button>
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => setRenewalConfirmService(parentHosting)}
+                                                    className="px-2 py-0.5 rounded-md bg-[#8E0E75] hover:bg-[#700B5C] text-white text-[10px] font-black uppercase cursor-pointer"
+                                                    title="Renovar +1 año"
+                                                  >
+                                                    Renovar
+                                                  </button>
+                                                </div>
+                                              </td>
+                                            </tr>
+                                          );
+                                        })()}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                ) : (
+                                  <div className="p-3 bg-white rounded-xl border border-[#D8CFF0] text-xs text-[#4A4A4A]">
+                                    Alojado en servidor nido: <strong>{service.parent_id}</strong>
+                                  </div>
+                                )}
                               </div>
                             </td>
                           </tr>

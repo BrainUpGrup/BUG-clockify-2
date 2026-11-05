@@ -1626,3 +1626,24 @@
 - **Validación y Pruebas:**
   - `npx tsc --noEmit`: **0 errores de compilación**.
   - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis), DM-02 (Controles In-App), DM-03 (100% Pantalla), DM-13 (Identidad "La Abuela") y DM-15 (Zero-Scroll).
+
+### [v3.8.3] - 2026-11-05 - Hosting: Acordeón Inverso Subhosting -> Hosting Nido y Tooltip Rápido
+- **Solicitud del Usuario:**
+  *"haz un desplegable igual que en el formato de hosting a subhosting peor a la inversa, que te salga cual es el hosting nido del cual forma parte, y quiza el principal:... Aparte de eso quiero que pongas un tooltip para tneer un acesso mas rapido que en los subhosting si pasas el raton por encima del nombre del subhosting te salga cual es su hosting principal"*
+- **Diagnóstico y Decisiones Técnicas:**
+  1. **Acordeón Desplegable Inverso (Subhosting -> Hosting Nido):**
+     - En [`src/app/apps/hosting/page.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/app/apps/hosting/page.tsx), se habilitó la expansión (`canExpand = hasSubhostings || isSubhostingWithParent`) en las filas de tipo `Subhosting`.
+     - Al pulsar el botón de flecha o el nombre del subhosting, se despliega una sub-tabla corporativa con acento índigo (`border-l-4 border-l-[#191654]`) que detalla el **Hosting Nido (Servidor Principal)**:
+       - Identificación de servidor principal con icono vectorial `Server`.
+       - Tipo de servicio, proveedor, cliente asignado y ciclo de renovación.
+       - Cálculo dinámico de días restantes y fecha de expiración con semáforo cromático.
+       - Interruptor de auto-renovación interactivo.
+       - Botón directo para redactar email al cliente, botón de renovación (+1 año) y botón de edición completa del servidor padre.
+  2. **Tooltip Dinámico al Pasar el Ratón:**
+     - Se dotó al nombre de cada subhosting (tanto en la tabla raíz como anidado) de un tooltip emergente enriquecido (`group-hover/subname:flex`) con fondo índigo (`#191654`), borde translúcido y flecha indicadora: `Hosting Nido: <Nombre del Servidor>`.
+     - Permite conocer al instante el servidor donde reside el subhosting con solo posar el ratón, sin obligar a abrir el acordeón.
+  3. **Limpieza Visual y Supresión de la Insignia Estática `[ PRINCIPAL: ... ]`:**
+     - Se retiró la etiqueta estática que saturaba visualmente la fila de subhostings, logrando una presentación limpia y alineada con la política Zero-Scroll (DM-15) e identidad "La Abuela" (DM-13).
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis), DM-02 (Controles In-App), DM-03 (100% Pantalla), DM-13 (Identidad "La Abuela") y DM-15 (Zero-Scroll).
