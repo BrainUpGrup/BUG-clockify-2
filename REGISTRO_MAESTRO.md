@@ -1555,3 +1555,20 @@
 - **Validación y Pruebas:**
   - `npx tsc --noEmit`: **0 errores de compilación**.
   - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis), DM-02 (Controles In-App), DM-03 (100% Pantalla) y DM-15 (Zero-Scroll).
+
+### [v3.7.9] - 2026-11-05 - Hosting: Flecha Desplegable a la Derecha del Nombre y Etiqueta de Dominio Principal
+- **Solicitud del Usuario:**
+  *"pasamos la flecha a la derecha del nombre y quitamos la etiqueta de multi hosting, por otro lado añadimos una etiqueta con el nombre del dominio principal."* (con capturas indicando el movimiento de la flecha `>`, la eliminación tachada de `Multihosting (1)` y la visualización de subhostings con su servidor principal).
+- **Diagnóstico y Decisiones Técnicas:**
+  1. **Reubicación de la Flecha Acordeón (`ChevronDown` / `ChevronRight`):**
+     - Se retiró el botón desplegable que precedía al icono del servidor en la columna *Dominio / Servicio*, logrando que todos los iconos de las filas queden estrictamente alineados verticalmente sin indentaciones desiguales.
+     - El botón de despliegue se ubica ahora inmediatamente a la derecha del nombre de dominio (`service.name`), con interactividad táctil/clic tanto en la flecha como sobre el propio nombre de dominio cuando tiene subhostings asociados.
+  2. **Supresión de la Etiqueta `Multihosting`:**
+     - Se eliminó por completo la pastilla `Multihosting (N)` del listado principal de hostings padre, liberando espacio horizontal y dejando una visualización minimalista y limpia.
+  3. **Etiqueta con el Nombre del Dominio Principal en Subhostings:**
+     - Tanto en la tabla principal (cuando se listan o filtran subhostings sueltos) como en la tabla anidada que se despliega bajo el hosting principal:
+       - Se añade la insignia corporativa con icono `Server` y texto `Principal: <dominio principal>`.
+       - Resolución bidireccional automática: localiza el dominio principal tanto si `parent_id` contiene el UUID del servicio como si contiene el nombre de dominio original importado.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis), DM-02 (Controles In-App), DM-03 (100% Pantalla), DM-13 (Identidad "La Abuela") y DM-15 (Zero-Scroll).

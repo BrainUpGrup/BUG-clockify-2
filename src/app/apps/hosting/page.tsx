@@ -127,14 +127,16 @@ export default function HostingPage() {
   const metrics = useMemo(() => computeHostingMetrics(services), [services]);
   const alerts = useMemo(() => getHostingAlerts(services), [services]);
 
-  // Multihosting: Mapeo de Subhostings por ID de Hosting Padre
+  // Multihosting: Mapeo de Subhostings por ID o Nombre de Hosting Padre
   const subhostingsByParent = useMemo(() => {
     const map = new Map<string, HostingService[]>();
     services.forEach((s) => {
       if (s.service_type === 'Subhosting' && s.parent_id) {
-        const list = map.get(s.parent_id) || [];
+        const parent = services.find((p) => p.id === s.parent_id || p.name.toLowerCase() === s.parent_id?.toLowerCase());
+        const parentKey = parent ? parent.id : s.parent_id;
+        const list = map.get(parentKey) || [];
         list.push(s);
-        map.set(s.parent_id, list);
+        map.set(parentKey, list);
       }
     });
     return map;
@@ -543,6 +545,11 @@ export default function HostingPage() {
                     const hasSubhostings = service.service_type === 'Hosting' && childSubhostings.length > 0;
                     const isExpanded = expandedHostingIds.has(service.id);
 
+                    // Hosting principal para Subhostings
+                    const parentHosting = (service.service_type === 'Subhosting' && service.parent_id)
+                      ? (services.find((p) => p.id === service.parent_id || p.name.toLowerCase() === service.parent_id?.toLowerCase()) || null)
+                      : null;
+
                     return (
                       <React.Fragment key={service.id}>
                         <tr 
@@ -550,26 +557,9 @@ export default function HostingPage() {
                             isExpired ? 'bg-red-50/40' : isCritical ? 'bg-amber-50/40' : ''
                           }`}
                         >
-                          {/* Dominio / Servicio con icono y desplegable condicional */}
+                          {/* Dominio / Servicio con icono y flecha a la derecha del nombre */}
                           <td className="py-3.5 px-4">
                             <div className="flex items-center gap-2.5">
-                              {/* Desplegable SOLO se genera si es Hosting con subhostings */}
-                              {hasSubhostings ? (
-                                <button
-                                  type="button"
-                                  onClick={() => toggleExpandHosting(service.id)}
-                                  className="p-1 rounded-lg hover:bg-purple-100 text-[#8E0E75] transition-colors cursor-pointer shrink-0"
-                                  title={isExpanded ? 'Ocultar subhostings' : 'Ver subhostings alojados'}
-                                  aria-label={isExpanded ? 'Ocultar subhostings' : 'Ver subhostings alojados'}
-                                >
-                                  {isExpanded ? (
-                                    <ChevronDown className="h-4 w-4 stroke-[2.5]" />
-                                  ) : (
-                                    <ChevronRight className="h-4 w-4 stroke-[2.5]" />
-                                  )}
-                                </button>
-                              ) : null}
-
                               <span className="p-1.5 rounded-lg bg-[#F8F6FC] border border-[#D8CFF0] text-[#8E0E75] shrink-0">
                                 {service.service_type?.toLowerCase() === 'dominio' ? (
                                   <Globe className="h-4 w-4" />
@@ -584,17 +574,42 @@ export default function HostingPage() {
 
                               <div className="min-w-0">
                                 <div className="flex items-center gap-2">
-                                  <span className="font-black text-[#292929] block truncate hover:text-[#8E0E75]">
+                                  <span 
+                                    onClick={() => hasSubhostings && toggleExpandHosting(service.id)}
+                                    className={`font-black text-[#292929] block truncate hover:text-[#8E0E75] ${
+                                      hasSubhostings ? 'cursor-pointer' : ''
+                                    }`}
+                                    title={hasSubhostings ? (isExpanded ? 'Plegar subhostings' : `Desplegar ${childSubhostings.length} subhosting(s)`) : undefined}
+                                  >
                                     {service.name}
                                   </span>
+
+                                  {/* Flecha a la derecha del nombre para desplegar/plegar */}
                                   {hasSubhostings && (
                                     <button
                                       type="button"
                                       onClick={() => toggleExpandHosting(service.id)}
-                                      className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-100 hover:bg-purple-200 text-[#8E0E75] border border-purple-200 transition-colors cursor-pointer shrink-0"
+                                      className="p-1 rounded-lg hover:bg-purple-100 text-[#8E0E75] transition-colors cursor-pointer shrink-0 inline-flex items-center"
+                                      title={isExpanded ? 'Ocultar subhostings' : `Ver ${childSubhostings.length} subhosting(s) alojados`}
+                                      aria-label={isExpanded ? 'Ocultar subhostings' : 'Ver subhostings alojados'}
                                     >
-                                      Multihosting ({childSubhostings.length})
+                                      {isExpanded ? (
+                                        <ChevronDown className="h-4 w-4 stroke-[2.5]" />
+                                      ) : (
+                                        <ChevronRight className="h-4 w-4 stroke-[2.5]" />
+                                      )}
                                     </button>
+                                  )}
+
+                                  {/* Etiqueta con el nombre del dominio principal para subhostings */}
+                                  {service.service_type === 'Subhosting' && (
+                                    <span
+                                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-purple-50 border border-purple-200 text-[#8E0E75] shrink-0"
+                                      title={parentHosting ? `Alojado en el hosting principal: ${parentHosting.name}` : (service.parent_id ? `Alojado en: ${service.parent_id}` : 'Subhosting sin hosting principal')}
+                                    >
+                                      <Server className="h-3 w-3 text-[#8E0E75]" />
+                                      Principal: {parentHosting?.name || service.parent_id || 'Sin asignar'}
+                                    </span>
                                   )}
                                 </div>
                                 {service.notes && (
@@ -797,12 +812,19 @@ export default function HostingPage() {
 
                                         return (
                                           <tr key={child.id} className="hover:bg-[#F8F6FC]/80 transition-colors">
-                                            {/* Nombre */}
+                                            {/* Nombre con etiqueta del dominio principal */}
                                             <td className="py-2.5 px-3">
                                               <div className="flex items-center gap-2">
                                                 <CornerDownRight className="h-3.5 w-3.5 text-[#8E0E75] shrink-0" />
                                                 <span className="font-black text-[#292929]">
                                                   {child.name}
+                                                </span>
+                                                <span
+                                                  className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-purple-50 border border-purple-200 text-[#8E0E75] shrink-0"
+                                                  title={`Alojado en el hosting principal: ${service.name}`}
+                                                >
+                                                  <Server className="h-3 w-3 text-[#8E0E75]" />
+                                                  Principal: {service.name}
                                                 </span>
                                               </div>
                                             </td>
