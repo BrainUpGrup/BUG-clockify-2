@@ -354,6 +354,7 @@ create table if not exists public.hosting_services (
   auto_renew boolean not null default false,
   payment_method text null default 'Manual / No configurado',
   provider text not null default 'Cdmon',
+  parent_id text null references public.hosting_services(id) on delete cascade,
   client_name text null,
   company_id uuid null references public.companies(id) on delete set null,
   price_cost numeric(10, 2) null default 0,
@@ -368,6 +369,7 @@ create table if not exists public.hosting_services (
 
 create index if not exists idx_hosting_expiration_date on public.hosting_services(expiration_date);
 create index if not exists idx_hosting_name on public.hosting_services(name);
+create index if not exists idx_hosting_parent_id on public.hosting_services(parent_id);
 
 alter table public.hosting_services enable row level security;
 

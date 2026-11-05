@@ -1413,3 +1413,22 @@
 - **Validación y Pruebas:**
   - `npx tsc --noEmit`: **0 errores de compilación**.
   - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis) y DM-15 (Zero-Scroll).
+
+### [v3.7.2] - 2026-11-05 - Multihosting Jerárquico Condicional, Proveedor Prominente y Tipos Oficiales
+- **Solicitud del Usuario:**
+  *"vale cosas a mejorar del apartado de hosting, los tipos que dejaremos son Hosting, Dominio, Correo y Subhosting. Que el proovedor salga un poco mas grande y tenemos que tener la capacidad de hacer Multihosting, com funcionara, si yo creo un hosting y añado un sub hosting, se generara u desplegable con toda la informacion de ese subhosting. Pero si es un correo, hosting, o dominio sin nada debajo ese desplejable no se genera."*
+- **Diagnóstico y Decisiones Técnicas:**
+  1. **Tipos de Servicio Estrictos:**
+     - Tipado restringido en `src/types/hosting.ts`: `'Hosting' | 'Dominio' | 'Correo' | 'Subhosting'`.
+     - Depuración en el modal de alta/edición (`HostingModal`), el selector de filtros de la tabla (`AppSelect`), el importador/exportador CSV y el conteo métrico en `HostingStats`.
+  2. **Proveedor Más Grande y Visible:**
+     - Se dotó al proveedor de una columna dedicada en la tabla principal con un badge corporativo sobredimensionado (`text-xs font-black uppercase text-[#191654] bg-[#F8F6FC] border border-[#D8CFF0]`), asegurando legibilidad inmediata sin perder densidad de datos.
+  3. **Jerarquía Multihosting Condicional:**
+     - Adición de `parent_id` al modelo y a `schema.sql`.
+     - **Regla inmutable cumplida:** Si y solo si un servicio es un `Hosting` y cuenta con uno o más subhostings asociados (`parent_id === hosting.id`), se renderiza el botón interactivo de despliegue (`ChevronDown`/`ChevronRight`) y la insignia `Multihosting (N)`.
+     - Para cualquier `Correo`, `Dominio` o `Hosting` sin subhostings, **el desplegable no se genera bajo ningún concepto**.
+     - Al desplegar, se visualiza una sub-tabla indentada de alta fidelidad con todos los datos del subhosting (dominio, tipo, proveedor, cliente, ciclo, tiempo restante con colores de urgencia, interruptor de auto-renovación y acciones completas de email, renovación con confirmación, edición y borrado).
+     - Se añadió un botón de acceso directo "+ Subhosting" en la fila del servidor padre para registrar nuevos subhostings con el servidor principal preseleccionado.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis), DM-02 (Controles In-App), DM-03 (100% Pantalla) y DM-15 (Zero-Scroll).

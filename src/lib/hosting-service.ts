@@ -1,4 +1,4 @@
-import { HostingService, HostingMetrics, HostingAlert, NotificationStages } from '@/types/hosting';
+import { HostingService, HostingMetrics, HostingAlert, NotificationStages, ServiceType } from '@/types/hosting';
 import { INITIAL_HOSTING_SERVICES } from '@/lib/hosting-seed-data';
 import { createClient } from '@/lib/supabase/client';
 
@@ -230,6 +230,8 @@ export function computeHostingMetrics(services: HostingService[]): HostingMetric
   let autoRenewDisabled = 0;
   let totalHostings = 0;
   let totalDomains = 0;
+  let totalEmails = 0;
+  let totalSubhostings = 0;
 
   services.forEach((s) => {
     const days = calculateDaysRemaining(s.expiration_date);
@@ -243,8 +245,15 @@ export function computeHostingMetrics(services: HostingService[]): HostingMetric
     if (!s.auto_renew) autoRenewDisabled++;
 
     const lowerService = (s.service_type || '').toLowerCase();
-    if (lowerService.includes('hosting')) totalHostings++;
-    if (lowerService.includes('dominio')) totalDomains++;
+    if (lowerService === 'subhosting') {
+      totalSubhostings++;
+    } else if (lowerService === 'hosting') {
+      totalHostings++;
+    } else if (lowerService === 'dominio') {
+      totalDomains++;
+    } else if (lowerService === 'correo') {
+      totalEmails++;
+    }
   });
 
   return {
@@ -258,6 +267,8 @@ export function computeHostingMetrics(services: HostingService[]): HostingMetric
     autoRenewDisabled,
     totalHostings,
     totalDomains,
+    totalEmails,
+    totalSubhostings,
   };
 }
 
@@ -309,6 +320,7 @@ export function exportHostingToCSV(services: HostingService[]): string {
     '"Coste Proveedor"',
     '"PVP Cliente"',
     '"Estado"',
+    '"Hosting Padre"',
     '"Notas"'
   ];
 
@@ -336,6 +348,7 @@ export function exportHostingToCSV(services: HostingService[]): string {
       `"${s.price_cost ?? 0}"`,
       `"${s.price_client ?? 0}"`,
       `"${s.status || 'active'}"`,
+      `"${(s.parent_id || '').replace(/"/g, '""')}"`,
       `"${(s.notes || '').replace(/"/g, '""')}"`,
     ].join(';');
   });
@@ -367,6 +380,7 @@ export function parseHostingCSV(csvText: string): HostingService[] {
   const idxAuto = headers.findIndex((h) => h.includes('renovación automática') || h.includes('renovacion automatica') || h.includes('auto'));
   const idxProveedor = headers.findIndex((h) => h.includes('proveedor'));
   const idxCliente = headers.findIndex((h) => h.includes('cliente'));
+  const idxParent = headers.findIndex((h) => h.includes('padre') || h.includes('parent'));
 
   const parsedServices: HostingService[] = [];
 
@@ -400,6 +414,20 @@ export function parseHostingCSV(csvText: string): HostingService[] {
     const rawAuto = idxAuto >= 0 && cols[idxAuto] ? cols[idxAuto] : 'Desactivada';
     const rawProveedor = idxProveedor >= 0 && cols[idxProveedor] ? cols[idxProveedor] : 'Cdmon';
     const rawCliente = idxCliente >= 0 && cols[idxCliente] ? cols[idxCliente] : '';
+    const rawParent = idxParent >= 0 && cols[idxParent] ? cols[idxParent] : null;
+
+    // Normalizar a los 4 tipos oficiales: Hosting, Dominio, Correo o Subhosting
+    let normalizedService: ServiceType = 'Hosting';
+    const sLower = rawServicio.toLowerCase();
+    if (sLower.includes('sub')) {
+      normalizedService = 'Subhosting';
+    } else if (sLower.includes('corr') || sLower.includes('mail')) {
+      normalizedService = 'Correo';
+    } else if (sLower.includes('dom')) {
+      normalizedService = 'Dominio';
+    } else {
+      normalizedService = 'Hosting';
+    }
 
     // Convertir fecha a ISO YYYY-MM-DD
     let isoDate = new Date().toISOString().split('T')[0];
@@ -418,12 +446,13 @@ export function parseHostingCSV(csvText: string): HostingService[] {
     parsedServices.push({
       id: `h_${Date.now()}_${i}_${Math.random().toString(36).substring(2, 7)}`,
       name: rawName,
-      service_type: rawServicio,
+      service_type: normalizedService,
       renewal_cycle: rawCiclo,
       payment_method: rawPago,
       expiration_date: isoDate,
       auto_renew: rawAuto.toLowerCase().includes('activada') || rawAuto.toLowerCase() === 'true',
       provider: rawProveedor,
+      parent_id: rawParent,
       client_name: clientName,
       status: 'active',
       notes: '',
@@ -479,3 +508,4 @@ soporte@brainupgrup.com | www.brainupgrup.com`;
 
   return { subject, body };
 }
+

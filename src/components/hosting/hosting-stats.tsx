@@ -46,12 +46,14 @@ export function HostingStats({
           </span>
           <Server className="h-4 w-4 text-[#8E0E75]" />
         </div>
-        <div className="mt-2 flex items-baseline gap-2">
-          <span className="text-2xl sm:text-3xl font-black text-[#292929] tabular-nums">
-            {metrics.totalServices}
-          </span>
-          <span className="text-[10px] font-bold text-[#4A4A4A]">
-            {metrics.totalHostings} H · {metrics.totalDomains} D
+        <div className="mt-2 flex flex-col">
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl sm:text-3xl font-black text-[#292929] tabular-nums">
+              {metrics.totalServices}
+            </span>
+          </div>
+          <span className="text-[10px] font-bold text-[#4A4A4A] tracking-tight">
+            {metrics.totalHostings} Hostings · {metrics.totalDomains} Dom · {metrics.totalEmails} Correo · {metrics.totalSubhostings} Sub
           </span>
         </div>
       </button>
@@ -180,3 +182,4 @@ export function HostingStats({
     </div>
   );
 }
+

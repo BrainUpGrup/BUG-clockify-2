@@ -10,15 +10,15 @@ interface HostingModalProps {
   onClose: () => void;
   onSave: (service: HostingService) => Promise<void>;
   serviceToEdit: HostingService | null;
+  parentHostings?: HostingService[];
+  defaultParentId?: string | null;
 }
 
 const SERVICE_TYPE_OPTIONS = [
-  { value: 'Hosting', label: 'Hosting Web' },
+  { value: 'Hosting', label: 'Hosting' },
   { value: 'Dominio', label: 'Dominio' },
-  { value: 'Hosting + Dominio', label: 'Hosting + Dominio' },
-  { value: 'Correo', label: 'Servicio Correo' },
-  { value: 'Certificado SSL', label: 'Certificado SSL' },
-  { value: 'Servidor Dedicado / VPS', label: 'Servidor VPS / Dedicado' },
+  { value: 'Correo', label: 'Correo' },
+  { value: 'Subhosting', label: 'Subhosting (Multihosting)' },
 ];
 
 const RENEWAL_CYCLE_OPTIONS = [
@@ -45,9 +45,12 @@ export function HostingModal({
   onClose,
   onSave,
   serviceToEdit,
+  parentHostings = [],
+  defaultParentId = null,
 }: HostingModalProps) {
   const [name, setName] = useState('');
   const [serviceType, setServiceType] = useState<string>('Hosting');
+  const [parentId, setParentId] = useState<string | null>(null);
   const [renewalCycle, setRenewalCycle] = useState<string>('Anual');
   const [provider, setProvider] = useState<string>('Cdmon');
   const [expirationDate, setExpirationDate] = useState('');
@@ -63,6 +66,7 @@ export function HostingModal({
     if (serviceToEdit) {
       setName(serviceToEdit.name || '');
       setServiceType(serviceToEdit.service_type || 'Hosting');
+      setParentId(serviceToEdit.parent_id || null);
       setRenewalCycle(serviceToEdit.renewal_cycle || 'Anual');
       setProvider(serviceToEdit.provider || 'Cdmon');
       setExpirationDate(serviceToEdit.expiration_date || '');
@@ -74,7 +78,8 @@ export function HostingModal({
       setNotes(serviceToEdit.notes || '');
     } else {
       setName('');
-      setServiceType('Hosting');
+      setServiceType(defaultParentId ? 'Subhosting' : 'Hosting');
+      setParentId(defaultParentId || null);
       setRenewalCycle('Anual');
       setProvider('Cdmon');
       // Fecha por defecto: hoy + 1 año
@@ -88,7 +93,7 @@ export function HostingModal({
       setPriceClient('');
       setNotes('');
     }
-  }, [serviceToEdit, isOpen]);
+  }, [serviceToEdit, isOpen, defaultParentId]);
 
   if (!isOpen) return null;
 
@@ -102,6 +107,7 @@ export function HostingModal({
         id: serviceToEdit ? serviceToEdit.id : `h_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
         name: name.trim().toLowerCase(),
         service_type: serviceType,
+        parent_id: serviceType === 'Subhosting' ? (parentId || null) : null,
         renewal_cycle: renewalCycle,
         expiration_date: expirationDate || new Date().toISOString().split('T')[0],
         auto_renew: autoRenew,
@@ -190,6 +196,29 @@ export function HostingModal({
                   options={SERVICE_TYPE_OPTIONS}
                 />
               </div>
+
+              {/* Selector de Hosting Padre para Multihosting */}
+              {serviceType === 'Subhosting' && (
+                <div className="p-2.5 rounded-xl bg-purple-50/80 border border-[#D8CFF0] space-y-1">
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-[#8E0E75]">
+                    Hosting Principal (Servidor Padre) *
+                  </label>
+                  <AppSelect
+                    value={parentId || ''}
+                    onChange={(val) => setParentId(val || null)}
+                    options={[
+                      { value: '', label: 'Seleccionar Hosting Principal...' },
+                      ...(parentHostings || []).map((h) => ({
+                        value: h.id,
+                        label: `${h.name} (${h.client_name || 'Sin cliente'})`,
+                      })),
+                    ]}
+                  />
+                  <p className="text-[10px] text-[#4A4A4A] leading-tight pt-0.5">
+                    Este subhosting se mostrará anidado dentro del desplegable del servidor principal.
+                  </p>
+                </div>
+              )}
 
               <div>
                 <label className="block text-[11px] font-black uppercase tracking-wider text-[#292929] mb-1">
@@ -326,3 +355,4 @@ export function HostingModal({
     </div>
   );
 }
+

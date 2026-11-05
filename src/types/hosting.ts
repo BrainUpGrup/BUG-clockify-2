@@ -1,10 +1,8 @@
 export type ServiceType = 
   | 'Hosting' 
   | 'Dominio' 
-  | 'Hosting + Dominio' 
   | 'Correo' 
-  | 'Certificado SSL' 
-  | 'Servidor Dedicado / VPS';
+  | 'Subhosting';
 
 export type RenewalCycle = 
   | 'Anual' 
@@ -33,6 +31,7 @@ export interface HostingService {
   auto_renew: boolean;
   payment_method: string;
   provider: string; // 'Cdmon', 'OVH', 'SiteGround', etc.
+  parent_id?: string | null; // ID del Hosting principal si es un Subhosting (Multihosting)
   client_name?: string; // Nombre del cliente asignado
   company_id?: string | null; // ID de empresa en Supabase si está enlazada
   price_cost?: number; // Coste proveedor en €
@@ -64,4 +63,7 @@ export interface HostingMetrics {
   autoRenewDisabled: number;
   totalHostings: number;
   totalDomains: number;
+  totalEmails: number;
+  totalSubhostings: number;
 }
+

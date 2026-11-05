@@ -43,7 +43,10 @@ import {
   AlertTriangle,
   ExternalLink,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ChevronDown,
+  Layers,
+  CornerDownRight
 } from 'lucide-react';
 import { AppSelect } from '@/components/ui/app-select';
 
@@ -54,12 +57,29 @@ export default function HostingPage() {
   const [services, setServices] = useState<HostingService[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Multihosting: IDs de hostings padre actualmente expandidos
+  const [expandedHostingIds, setExpandedHostingIds] = useState<Set<string>>(new Set());
+  const [defaultParentForCreate, setDefaultParentForCreate] = useState<string | null>(null);
+
   // Filtros y Búsqueda
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [serviceTypeFilter, setServiceTypeFilter] = useState<string>('all');
   const [autoRenewFilter, setAutoRenewFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'expiration_asc' | 'expiration_desc' | 'name_asc'>('expiration_asc');
+
+  // Alternar desplegable de Hosting con subhostings
+  const toggleExpandHosting = (id: string) => {
+    setExpandedHostingIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   // Paginación compacta para 150+ registros
   const [currentPage, setCurrentPage] = useState(1);
@@ -106,16 +126,50 @@ export default function HostingPage() {
   const metrics = useMemo(() => computeHostingMetrics(services), [services]);
   const alerts = useMemo(() => getHostingAlerts(services), [services]);
 
+  // Multihosting: Mapeo de Subhostings por ID de Hosting Padre
+  const subhostingsByParent = useMemo(() => {
+    const map = new Map<string, HostingService[]>();
+    services.forEach((s) => {
+      if (s.service_type === 'Subhosting' && s.parent_id) {
+        const list = map.get(s.parent_id) || [];
+        list.push(s);
+        map.set(s.parent_id, list);
+      }
+    });
+    return map;
+  }, [services]);
+
+  // Lista de Hostings disponibles para actuar como servidores padre
+  const parentHostingsList = useMemo(() => {
+    return services.filter((s) => s.service_type === 'Hosting');
+  }, [services]);
+
   // Filtrado y ordenación
   const filteredServices = useMemo(() => {
     return services.filter((s) => {
-      // 1. Búsqueda por texto (nombre de dominio o cliente)
+      // Si no estamos filtrando expresamente por 'Subhosting', y este servicio es un Subhosting asignado a un padre existente,
+      // no lo mostramos suelto en la raíz (se muestra anidado dentro del desplegable de su Hosting principal).
+      if (serviceTypeFilter !== 'Subhosting' && s.service_type === 'Subhosting' && s.parent_id) {
+        const hasParent = services.some((p) => p.id === s.parent_id);
+        if (hasParent) return false;
+      }
+
+      // 1. Búsqueda por texto (nombre de dominio, cliente o proveedor)
       if (searchTerm.trim()) {
         const query = searchTerm.toLowerCase();
         const matchesName = (s.name || '').toLowerCase().includes(query);
         const matchesClient = (s.client_name || '').toLowerCase().includes(query);
         const matchesProvider = (s.provider || '').toLowerCase().includes(query);
-        if (!matchesName && !matchesClient && !matchesProvider) return false;
+
+        // También comprobar si alguno de sus subhostings hijos coincide
+        const childMatches = (subhostingsByParent.get(s.id) || []).some(
+          (child) =>
+            (child.name || '').toLowerCase().includes(query) ||
+            (child.client_name || '').toLowerCase().includes(query) ||
+            (child.provider || '').toLowerCase().includes(query)
+        );
+
+        if (!matchesName && !matchesClient && !matchesProvider && !childMatches) return false;
       }
 
       // 2. Filtro por tipo de servicio
@@ -151,7 +205,7 @@ export default function HostingPage() {
       }
       return (a.name || '').localeCompare(b.name || '');
     });
-  }, [services, searchTerm, statusFilter, serviceTypeFilter, autoRenewFilter, sortBy]);
+  }, [services, searchTerm, statusFilter, serviceTypeFilter, autoRenewFilter, sortBy, subhostingsByParent]);
 
   // Paginación
   const totalPages = Math.ceil(filteredServices.length / pageSize) || 1;
@@ -371,8 +425,8 @@ export default function HostingPage() {
                   { value: 'all', label: 'Todos los servicios' },
                   { value: 'Hosting', label: 'Solo Hostings' },
                   { value: 'Dominio', label: 'Solo Dominios' },
-                  { value: 'Correo', label: 'Solo Correo' },
-                  { value: 'Certificado SSL', label: 'Certificados SSL' },
+                  { value: 'Correo', label: 'Solo Correos' },
+                  { value: 'Subhosting', label: 'Solo Subhostings' },
                 ]}
               />
             </div>
@@ -435,6 +489,7 @@ export default function HostingPage() {
                 <tr>
                   <th className="py-3.5 px-4">Dominio / Servicio</th>
                   <th className="py-3.5 px-3">Tipo</th>
+                  <th className="py-3.5 px-3">Proveedor</th>
                   <th className="py-3.5 px-3">Cliente Asignado</th>
                   <th className="py-3.5 px-3">Ciclo</th>
                   <th className="py-3.5 px-4">Tiempo Restante / Vencimiento</th>
@@ -446,7 +501,7 @@ export default function HostingPage() {
               <tbody className="divide-y divide-[#EAE4F5]">
                 {paginatedServices.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-12 text-center text-[#4A4A4A]">
+                    <td colSpan={8} className="py-12 text-center text-[#4A4A4A]">
                       No se encontraron servicios de hosting que coincidan con los criterios.
                     </td>
                   </tr>
@@ -458,146 +513,395 @@ export default function HostingPage() {
                     const isWarning = days > 7 && days <= 15;
                     const isNotice = days > 15 && days <= 30;
 
+                    // Multihosting: calcular si es Hosting y tiene subhostings anidados debajo
+                    const childSubhostings = subhostingsByParent.get(service.id) || [];
+                    const hasSubhostings = service.service_type === 'Hosting' && childSubhostings.length > 0;
+                    const isExpanded = expandedHostingIds.has(service.id);
+
                     return (
-                      <tr 
-                        key={service.id}
-                        className={`hover:bg-[#F8F6FC]/70 transition-colors ${
-                          isExpired ? 'bg-red-50/40' : isCritical ? 'bg-amber-50/40' : ''
-                        }`}
-                      >
-                        {/* Nombre del Servicio */}
-                        <td className="py-3.5 px-4">
-                          <div className="flex items-center gap-2.5">
-                            <span className="p-1.5 rounded-lg bg-[#F8F6FC] border border-[#D8CFF0] text-[#8E0E75] shrink-0">
-                              {service.service_type?.toLowerCase().includes('dominio') ? (
-                                <Globe className="h-4 w-4" />
-                              ) : (
-                                <Server className="h-4 w-4" />
-                              )}
-                            </span>
-                            <div className="min-w-0">
-                              <span className="font-black text-[#292929] block truncate hover:text-[#8E0E75]">
-                                {service.name}
+                      <React.Fragment key={service.id}>
+                        <tr 
+                          className={`hover:bg-[#F8F6FC]/70 transition-colors ${
+                            isExpired ? 'bg-red-50/40' : isCritical ? 'bg-amber-50/40' : ''
+                          }`}
+                        >
+                          {/* Dominio / Servicio con icono y desplegable condicional */}
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-2.5">
+                              {/* Desplegable SOLO se genera si es Hosting con subhostings */}
+                              {hasSubhostings ? (
+                                <button
+                                  type="button"
+                                  onClick={() => toggleExpandHosting(service.id)}
+                                  className="p-1 rounded-lg hover:bg-purple-100 text-[#8E0E75] transition-colors cursor-pointer shrink-0"
+                                  title={isExpanded ? 'Ocultar subhostings' : 'Ver subhostings alojados'}
+                                  aria-label={isExpanded ? 'Ocultar subhostings' : 'Ver subhostings alojados'}
+                                >
+                                  {isExpanded ? (
+                                    <ChevronDown className="h-4 w-4 stroke-[2.5]" />
+                                  ) : (
+                                    <ChevronRight className="h-4 w-4 stroke-[2.5]" />
+                                  )}
+                                </button>
+                              ) : null}
+
+                              <span className="p-1.5 rounded-lg bg-[#F8F6FC] border border-[#D8CFF0] text-[#8E0E75] shrink-0">
+                                {service.service_type?.toLowerCase() === 'dominio' ? (
+                                  <Globe className="h-4 w-4" />
+                                ) : service.service_type?.toLowerCase() === 'correo' ? (
+                                  <Mail className="h-4 w-4" />
+                                ) : service.service_type?.toLowerCase() === 'subhosting' ? (
+                                  <Layers className="h-4 w-4" />
+                                ) : (
+                                  <Server className="h-4 w-4" />
+                                )}
                               </span>
-                              <span className="text-[10px] text-slate-400 font-mono">
-                                Proveedor: {service.provider || 'Cdmon'}
+
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-black text-[#292929] block truncate hover:text-[#8E0E75]">
+                                    {service.name}
+                                  </span>
+                                  {hasSubhostings && (
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleExpandHosting(service.id)}
+                                      className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-100 hover:bg-purple-200 text-[#8E0E75] border border-purple-200 transition-colors cursor-pointer shrink-0"
+                                    >
+                                      Multihosting ({childSubhostings.length})
+                                    </button>
+                                  )}
+                                </div>
+                                {service.notes && (
+                                  <span className="text-[10px] text-slate-400 block truncate max-w-[200px]">
+                                    {service.notes}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Tipo de Servicio */}
+                          <td className="py-3.5 px-3">
+                            <span className="px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-white border border-[#D8CFF0] text-[#8E0E75]">
+                              {service.service_type}
+                            </span>
+                          </td>
+
+                          {/* Proveedor Más Grande y Destacado */}
+                          <td className="py-3.5 px-3">
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-xl text-xs font-black uppercase tracking-wider bg-[#F8F6FC] border border-[#D8CFF0] text-[#191654] shadow-2xs">
+                              {service.provider || 'Cdmon'}
+                            </span>
+                          </td>
+
+                          {/* Cliente Asignado */}
+                          <td className="py-3.5 px-3">
+                            <span className="font-bold text-[#292929] block truncate max-w-[180px]">
+                              {service.client_name || '-'}
+                            </span>
+                          </td>
+
+                          {/* Ciclo */}
+                          <td className="py-3.5 px-3 text-[#4A4A4A] font-semibold">
+                            {service.renewal_cycle || 'Anual'}
+                          </td>
+
+                          {/* Tiempo Restante / Fecha */}
+                          <td className="py-3.5 px-4">
+                            <div className="flex flex-col gap-0.5">
+                              <span
+                                className={`inline-flex items-center gap-1 font-black tabular-nums text-xs ${
+                                  isExpired
+                                    ? 'text-red-600 font-extrabold'
+                                    : isCritical
+                                    ? 'text-red-500'
+                                    : isWarning
+                                    ? 'text-amber-600'
+                                    : isNotice
+                                    ? 'text-[#191654]'
+                                    : 'text-emerald-700'
+                                }`}
+                              >
+                                {isExpired
+                                  ? `${Math.abs(days)} días caducado`
+                                  : days === 0
+                                  ? 'Caduca hoy'
+                                  : `${days} días para caducar`}
+                              </span>
+                              <span className="text-[11px] text-slate-400 font-mono">
+                                {service.expiration_date.split('-').reverse().join('/')}
                               </span>
                             </div>
-                          </div>
-                        </td>
+                          </td>
 
-                        {/* Tipo de Servicio */}
-                        <td className="py-3.5 px-3">
-                          <span className="px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-white border border-[#D8CFF0] text-[#8E0E75]">
-                            {service.service_type}
-                          </span>
-                        </td>
-
-                        {/* Cliente Asignado */}
-                        <td className="py-3.5 px-3">
-                          <span className="font-bold text-[#292929] block truncate max-w-[180px]">
-                            {service.client_name || '-'}
-                          </span>
-                        </td>
-
-                        {/* Ciclo */}
-                        <td className="py-3.5 px-3 text-[#4A4A4A] font-semibold">
-                          {service.renewal_cycle || 'Anual'}
-                        </td>
-
-                        {/* Tiempo Restante / Fecha */}
-                        <td className="py-3.5 px-4">
-                          <div className="flex flex-col gap-0.5">
-                            <span
-                              className={`inline-flex items-center gap-1 font-black tabular-nums text-xs ${
-                                isExpired
-                                  ? 'text-red-600 font-extrabold'
-                                  : isCritical
-                                  ? 'text-red-500'
-                                  : isWarning
-                                  ? 'text-amber-600'
-                                  : isNotice
-                                  ? 'text-[#191654]'
-                                  : 'text-emerald-700'
+                          {/* Renovación Automática */}
+                          <td className="py-3.5 px-3 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleAutoRenew(service)}
+                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider border cursor-pointer transition-colors ${
+                                service.auto_renew
+                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                                  : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
                               }`}
+                              title="Haz clic para alternar el estado de auto-renovación"
                             >
-                              {isExpired
-                                ? `${Math.abs(days)} días caducado`
-                                : days === 0
-                                ? 'Caduca hoy'
-                                : `${days} días para caducar`}
-                            </span>
-                            <span className="text-[11px] text-slate-400 font-mono">
-                              {service.expiration_date.split('-').reverse().join('/')}
-                            </span>
-                          </div>
-                        </td>
-
-                        {/* Renovación Automática */}
-                        <td className="py-3.5 px-3 text-center">
-                          <button
-                            type="button"
-                            onClick={() => handleToggleAutoRenew(service)}
-                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider border cursor-pointer transition-colors ${
-                              service.auto_renew
-                                ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
-                                : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
-                            }`}
-                            title="Haz clic para alternar el estado de auto-renovación"
-                          >
-                            <span className={`h-1.5 w-1.5 rounded-full ${service.auto_renew ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                            <span>{service.auto_renew ? 'Activada' : 'Desactivada'}</span>
-                          </button>
-                        </td>
-
-                        {/* Acciones */}
-                        <td className="py-3.5 px-4 text-right">
-                          <div className="inline-flex items-center gap-1.5">
-                            {/* Plantilla de Email */}
-                            <button
-                              type="button"
-                              onClick={() => handleOpenEmail(service, days)}
-                              className="p-1.5 rounded-lg border border-[#D8CFF0] hover:border-[#8E0E75] hover:bg-[#F8F6FC] text-[#8E0E75] transition-colors cursor-pointer"
-                              title="Generar correo de aviso para el cliente"
-                            >
-                              <Mail className="h-4 w-4" />
+                              <span className={`h-1.5 w-1.5 rounded-full ${service.auto_renew ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                              <span>{service.auto_renew ? 'Activada' : 'Desactivada'}</span>
                             </button>
+                          </td>
 
-                            {/* Renovar +1 año con ventana de confirmación */}
-                            <button
-                              type="button"
-                              onClick={() => setRenewalConfirmService(service)}
-                              className="px-2.5 py-1 rounded-lg bg-[#8E0E75] hover:bg-[#700B5C] text-white text-[11px] font-black uppercase tracking-tight transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
-                              title="Extender fecha de vencimiento +1 año"
-                            >
-                              Renovar
-                            </button>
+                          {/* Acciones */}
+                          <td className="py-3.5 px-4 text-right">
+                            <div className="inline-flex items-center gap-1.5">
+                              {/* Botón rápido "+ Subhosting" solo para Hostings */}
+                              {service.service_type === 'Hosting' && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingService(null);
+                                    setDefaultParentForCreate(service.id);
+                                    setIsCreateModalOpen(true);
+                                  }}
+                                  className="px-2 py-1 rounded-lg border border-purple-300 bg-purple-50 hover:bg-purple-100 text-[#8E0E75] text-[10px] font-black uppercase tracking-tight transition-colors cursor-pointer"
+                                  title="Añadir un subhosting dentro de este servidor"
+                                >
+                                  + Subhosting
+                                </button>
+                              )}
 
-                            {/* Editar */}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setEditingService(service);
-                                setIsCreateModalOpen(true);
-                              }}
-                              className="p-1.5 rounded-lg border border-[#D8CFF0] hover:border-[#8E0E75] hover:bg-[#F8F6FC] text-[#4A4A4A] hover:text-[#8E0E75] transition-colors cursor-pointer"
-                              title="Editar datos del servicio"
-                            >
-                              <Edit3 className="h-4 w-4" />
-                            </button>
+                              {/* Plantilla de Email */}
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEmail(service, days)}
+                                className="p-1.5 rounded-lg border border-[#D8CFF0] hover:border-[#8E0E75] hover:bg-[#F8F6FC] text-[#8E0E75] transition-colors cursor-pointer"
+                                title="Generar correo de aviso para el cliente"
+                              >
+                                <Mail className="h-4 w-4" />
+                              </button>
 
-                            {/* Eliminar */}
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteService(service.id, service.name)}
-                              className="p-1.5 rounded-lg border border-[#D8CFF0] hover:border-red-400 hover:bg-red-50 text-[#4A4A4A] hover:text-red-600 transition-colors cursor-pointer"
-                              title="Eliminar servicio"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
+                              {/* Renovar +1 año con ventana de confirmación */}
+                              <button
+                                type="button"
+                                onClick={() => setRenewalConfirmService(service)}
+                                className="px-2.5 py-1 rounded-lg bg-[#8E0E75] hover:bg-[#700B5C] text-white text-[11px] font-black uppercase tracking-tight transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
+                                title="Extender fecha de vencimiento +1 año"
+                              >
+                                Renovar
+                              </button>
+
+                              {/* Editar */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingService(service);
+                                  setDefaultParentForCreate(null);
+                                  setIsCreateModalOpen(true);
+                                }}
+                                className="p-1.5 rounded-lg border border-[#D8CFF0] hover:border-[#8E0E75] hover:bg-[#F8F6FC] text-[#4A4A4A] hover:text-[#8E0E75] transition-colors cursor-pointer"
+                                title="Editar datos del servicio"
+                              >
+                                <Edit3 className="h-4 w-4" />
+                              </button>
+
+                              {/* Eliminar */}
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteService(service.id, service.name)}
+                                className="p-1.5 rounded-lg border border-[#D8CFF0] hover:border-red-400 hover:bg-red-50 text-[#4A4A4A] hover:text-red-600 transition-colors cursor-pointer"
+                                title="Eliminar servicio"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+
+                        {/* Desplegable Multihosting: solo si es Hosting y tiene subhostings asociados */}
+                        {hasSubhostings && isExpanded && (
+                          <tr className="bg-[#FAF7FD]">
+                            <td colSpan={8} className="p-0 border-b border-[#D8CFF0]">
+                              <div className="pl-6 sm:pl-10 pr-4 py-3 bg-[#FAF7FD] border-l-4 border-l-[#8E0E75] space-y-2.5">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <span className="p-1 rounded-md bg-purple-100 text-[#8E0E75]">
+                                      <Layers className="h-3.5 w-3.5" />
+                                    </span>
+                                    <span className="text-xs font-black uppercase tracking-wider text-[#191654]">
+                                      Subhostings alojados en {service.name} ({childSubhostings.length})
+                                    </span>
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingService(null);
+                                      setDefaultParentForCreate(service.id);
+                                      setIsCreateModalOpen(true);
+                                    }}
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-[#D8CFF0] hover:border-[#8E0E75] text-[#8E0E75] text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-2xs hover:scale-102"
+                                  >
+                                    <Plus className="h-3 w-3" />
+                                    <span>Añadir Subhosting</span>
+                                  </button>
+                                </div>
+
+                                {/* Tabla anidada con toda la información del Subhosting */}
+                                <div className="rounded-xl border border-[#D8CFF0] bg-white overflow-hidden shadow-2xs">
+                                  <table className="w-full text-left text-xs">
+                                    <thead className="bg-[#F8F6FC] border-b border-[#D8CFF0] text-[10px] font-black uppercase tracking-wider text-[#4A4A4A]">
+                                      <tr>
+                                        <th className="py-2.5 px-3">Subhosting / Dominio</th>
+                                        <th className="py-2.5 px-3">Tipo</th>
+                                        <th className="py-2.5 px-3">Proveedor</th>
+                                        <th className="py-2.5 px-3">Cliente</th>
+                                        <th className="py-2.5 px-3">Ciclo</th>
+                                        <th className="py-2.5 px-3">Tiempo Restante</th>
+                                        <th className="py-2.5 px-3 text-center">Auto-Renovación</th>
+                                        <th className="py-2.5 px-3 text-right">Acciones</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-[#EAE4F5]">
+                                      {childSubhostings.map((child) => {
+                                        const childDays = calculateDaysRemaining(child.expiration_date);
+                                        const childExpired = childDays < 0;
+                                        const childCritical = childDays >= 0 && childDays <= 7;
+                                        const childWarning = childDays > 7 && childDays <= 15;
+                                        const childNotice = childDays > 15 && childDays <= 30;
+
+                                        return (
+                                          <tr key={child.id} className="hover:bg-[#F8F6FC]/80 transition-colors">
+                                            {/* Nombre */}
+                                            <td className="py-2.5 px-3">
+                                              <div className="flex items-center gap-2">
+                                                <CornerDownRight className="h-3.5 w-3.5 text-[#8E0E75] shrink-0" />
+                                                <span className="font-black text-[#292929]">
+                                                  {child.name}
+                                                </span>
+                                              </div>
+                                            </td>
+
+                                            {/* Tipo */}
+                                            <td className="py-2.5 px-3">
+                                              <span className="px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-purple-50 border border-purple-200 text-[#8E0E75]">
+                                                Subhosting
+                                              </span>
+                                            </td>
+
+                                            {/* Proveedor */}
+                                            <td className="py-2.5 px-3">
+                                              <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[11px] font-black uppercase tracking-wider bg-[#F8F6FC] border border-[#D8CFF0] text-[#191654]">
+                                                {child.provider || service.provider || 'Cdmon'}
+                                              </span>
+                                            </td>
+
+                                            {/* Cliente */}
+                                            <td className="py-2.5 px-3 font-semibold text-[#292929]">
+                                              {child.client_name || service.client_name || '-'}
+                                            </td>
+
+                                            {/* Ciclo */}
+                                            <td className="py-2.5 px-3 text-[#4A4A4A]">
+                                              {child.renewal_cycle || 'Anual'}
+                                            </td>
+
+                                            {/* Vencimiento */}
+                                            <td className="py-2.5 px-3">
+                                              <div className="flex flex-col">
+                                                <span
+                                                  className={`font-black tabular-nums text-[11px] ${
+                                                    childExpired
+                                                      ? 'text-red-600 font-extrabold'
+                                                      : childCritical
+                                                      ? 'text-red-500'
+                                                      : childWarning
+                                                      ? 'text-amber-600'
+                                                      : childNotice
+                                                      ? 'text-[#191654]'
+                                                      : 'text-emerald-700'
+                                                  }`}
+                                                >
+                                                  {childExpired
+                                                    ? `${Math.abs(childDays)} días caducado`
+                                                    : childDays === 0
+                                                    ? 'Caduca hoy'
+                                                    : `${childDays} días`}
+                                                </span>
+                                                <span className="text-[10px] text-slate-400 font-mono">
+                                                  {child.expiration_date.split('-').reverse().join('/')}
+                                                </span>
+                                              </div>
+                                            </td>
+
+                                            {/* Auto-renovación */}
+                                            <td className="py-2.5 px-3 text-center">
+                                              <button
+                                                type="button"
+                                                onClick={() => handleToggleAutoRenew(child)}
+                                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider border cursor-pointer ${
+                                                  child.auto_renew
+                                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                                                    : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
+                                                }`}
+                                              >
+                                                <span className={`h-1.5 w-1.5 rounded-full ${child.auto_renew ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                                                <span>{child.auto_renew ? 'Activa' : 'Desact.'}</span>
+                                              </button>
+                                            </td>
+
+                                            {/* Acciones */}
+                                            <td className="py-2.5 px-3 text-right">
+                                              <div className="inline-flex items-center gap-1">
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleOpenEmail(child, childDays)}
+                                                  className="p-1 rounded-md border border-[#D8CFF0] hover:border-[#8E0E75] hover:bg-[#F8F6FC] text-[#8E0E75] transition-colors cursor-pointer"
+                                                  title="Generar correo"
+                                                >
+                                                  <Mail className="h-3.5 w-3.5" />
+                                                </button>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => setRenewalConfirmService(child)}
+                                                  className="px-2 py-0.5 rounded-md bg-[#8E0E75] hover:bg-[#700B5C] text-white text-[10px] font-black uppercase transition-all cursor-pointer shadow-2xs"
+                                                  title="Renovar +1 año"
+                                                >
+                                                  Renovar
+                                                </button>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => {
+                                                    setEditingService(child);
+                                                    setDefaultParentForCreate(service.id);
+                                                    setIsCreateModalOpen(true);
+                                                  }}
+                                                  className="p-1 rounded-md border border-[#D8CFF0] hover:border-[#8E0E75] hover:bg-[#F8F6FC] text-[#4A4A4A] hover:text-[#8E0E75] transition-colors cursor-pointer"
+                                                  title="Editar"
+                                                >
+                                                  <Edit3 className="h-3.5 w-3.5" />
+                                                </button>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleDeleteService(child.id, child.name)}
+                                                  className="p-1 rounded-md border border-[#D8CFF0] hover:border-red-400 hover:bg-red-50 text-[#4A4A4A] hover:text-red-600 transition-colors cursor-pointer"
+                                                  title="Eliminar"
+                                                >
+                                                  <Trash2 className="h-3.5 w-3.5" />
+                                                </button>
+                                              </div>
+                                            </td>
+                                          </tr>
+                                        );
+                                      })}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
                     );
                   })
                 )}
@@ -655,9 +959,14 @@ export default function HostingPage() {
       {/* Modal de Creación / Edición */}
       <HostingModal
         isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
+        onClose={() => {
+          setIsCreateModalOpen(false);
+          setDefaultParentForCreate(null);
+        }}
         onSave={handleSaveService}
         serviceToEdit={editingService}
+        parentHostings={parentHostingsList}
+        defaultParentId={defaultParentForCreate}
       />
 
       {/* Modal de Redacción de Email para Cliente */}
