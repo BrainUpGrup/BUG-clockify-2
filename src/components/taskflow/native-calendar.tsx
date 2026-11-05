@@ -48,7 +48,7 @@ export type CalendarViewType = 'day' | 'week' | 'month' | 'year';
 interface NativeCalendarProps {
   items: TaskFlowItem[];
   postIts?: PostItItem[];
-  onOpenPostIt?: (postItId: string) => void;
+  onOpenPostIt?: (postItId?: string) => void;
   onSelectItem: (item: TaskFlowItem) => void;
   onDeleteItem: (itemId: string) => void;
   onToggleStatus: (itemId: string, nextStatus: TaskFlowItem['status']) => void;
@@ -58,6 +58,9 @@ interface NativeCalendarProps {
   onMoveItemDate?: (itemId: string, newDate: string) => void;
   onQuickReschedule?: (itemId: string, days?: number) => void;
   currentUserName: string;
+  isHeaderCollapsed?: boolean;
+  onToggleHeaderCollapse?: () => void;
+  onChangeViewMode?: (mode: 'calendar' | 'postits' | 'list') => void;
 }
 
 const MONTH_NAMES = [
@@ -83,6 +86,9 @@ export function NativeCalendar({
   onMoveItemDate,
   onQuickReschedule,
   currentUserName,
+  isHeaderCollapsed = false,
+  onToggleHeaderCollapse,
+  onChangeViewMode,
 }: NativeCalendarProps) {
   // Vista activa: por defecto 'week' para mostrar el formato tira de colores tipo Asana / Google Calendar
   const [viewType, setViewType] = useState<CalendarViewType>('week');
@@ -272,182 +278,328 @@ export function NativeCalendar({
   return (
     <div className="flex flex-col h-full w-full space-y-2 min-h-0 overflow-hidden">
       
-      {/* BARRA SUPERIOR DE GOOGLE CALENDAR / TASKFLOW */}
-      <div className="bg-white border-2 border-[#D8CFF0] rounded-lg px-4 py-2.5 shadow-xs flex flex-wrap items-center justify-between gap-3 shrink-0">
-        
-        {/* Navegación < Hoy > + Título del Período */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center rounded-md border-2 border-[#D8CFF0] bg-[#F8F6FC] p-1 shadow-2xs">
+      {/* BARRA SUPERIOR DE TASKFLOW: MODO COMPLETO VS MODO PORTÁTIL PLEGADO */}
+      {!isHeaderCollapsed ? (
+        <div className="bg-white border-2 border-[#D8CFF0] rounded-lg px-4 py-2.5 shadow-xs flex flex-wrap items-center justify-between gap-3 shrink-0">
+          
+          {/* Navegación < Hoy > + Título del Período */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center rounded-md border-2 border-[#D8CFF0] bg-[#F8F6FC] p-1 shadow-2xs">
+              <button
+                type="button"
+                onClick={handlePrev}
+                className="p-1.5 rounded-md hover:bg-white text-[#4A4A4A] hover:text-[#8E0E75] transition-all cursor-pointer"
+                title="Período anterior"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={handleGoToday}
+                className="px-3.5 py-1 text-xs font-black uppercase tracking-wider text-[#8E0E75] hover:bg-white rounded-md transition-all cursor-pointer"
+                title="Ir a hoy"
+              >
+                Hoy
+              </button>
+              <button
+                type="button"
+                onClick={handleNext}
+                className="p-1.5 rounded-md hover:bg-white text-[#4A4A4A] hover:text-[#8E0E75] transition-all cursor-pointer"
+                title="Período siguiente"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+
+            <h2 className="text-sm sm:text-base font-black tracking-tight text-[#292929]">
+              {getHeaderTitle()}
+            </h2>
+          </div>
+
+          {/* SELECTOR DE VISTAS TIPO GOOGLE CALENDAR (DÍA, SEMANA, MES, AÑO) */}
+          <div className="flex items-center rounded-md bg-[#F8F6FC] p-1 border-2 border-[#D8CFF0] text-xs font-black uppercase tracking-wider shadow-2xs">
             <button
               type="button"
-              onClick={handlePrev}
-              className="p-1.5 rounded-md hover:bg-white text-[#4A4A4A] hover:text-[#8E0E75] transition-all cursor-pointer"
-              title="Período anterior"
+              onClick={() => setViewType('day')}
+              className={`px-3.5 py-1.5 rounded-md transition-all cursor-pointer ${
+                viewType === 'day'
+                  ? 'bg-[#8E0E75] text-white shadow-xs'
+                  : 'text-[#4A4A4A] hover:text-[#292929]'
+              }`}
             >
-              <ChevronLeft className="h-4 w-4" />
+              Día
             </button>
             <button
               type="button"
-              onClick={handleGoToday}
-              className="px-3.5 py-1 text-xs font-black uppercase tracking-wider text-[#8E0E75] hover:bg-white rounded-md transition-all cursor-pointer"
-              title="Ir a hoy"
+              onClick={() => setViewType('week')}
+              className={`px-3.5 py-1.5 rounded-md transition-all cursor-pointer ${
+                viewType === 'week'
+                  ? 'bg-[#8E0E75] text-white shadow-xs'
+                  : 'text-[#4A4A4A] hover:text-[#292929]'
+              }`}
             >
-              Hoy
+              Semana
             </button>
             <button
               type="button"
-              onClick={handleNext}
-              className="p-1.5 rounded-md hover:bg-white text-[#4A4A4A] hover:text-[#8E0E75] transition-all cursor-pointer"
-              title="Período siguiente"
+              onClick={() => setViewType('month')}
+              className={`px-3.5 py-1.5 rounded-md transition-all cursor-pointer ${
+                viewType === 'month'
+                  ? 'bg-[#8E0E75] text-white shadow-xs'
+                  : 'text-[#4A4A4A] hover:text-[#292929]'
+              }`}
             >
-              <ChevronRight className="h-4 w-4" />
+              Mes
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewType('year')}
+              className={`px-3.5 py-1.5 rounded-md transition-all cursor-pointer ${
+                viewType === 'year'
+                  ? 'bg-[#8E0E75] text-white shadow-xs'
+                  : 'text-[#4A4A4A] hover:text-[#292929]'
+              }`}
+            >
+              Año
             </button>
           </div>
 
-          <h2 className="text-sm sm:text-base font-black tracking-tight text-[#292929]">
-            {getHeaderTitle()}
-          </h2>
-        </div>
+          {/* Popups Interactivos de Control: Advertencias y Tareas Hechas */}
+          <div className="flex items-center gap-2 text-xs">
+            {/* Botón de auto-desplazamiento de tareas pendientes vencidas */}
+            {onRescheduleOverdue && overdueItems.length > 0 && (
+              <button
+                type="button"
+                onClick={onRescheduleOverdue}
+                className="px-3 py-1.5 rounded-md bg-purple-50 hover:bg-purple-100 text-[#8E0E75] border-2 border-[#8E0E75]/40 font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-xs animate-pulse hover:scale-105 active:scale-95"
+                title="Desplazar automáticamente las tareas no completadas a hoy para mantenerlas como recordatorio activo"
+              >
+                <RotateCw className="h-3.5 w-3.5 text-[#8E0E75]" />
+                <span>Desplazar {overdueItems.length} vencidas</span>
+              </button>
+            )}
 
-        {/* SELECTOR DE VISTAS TIPO GOOGLE CALENDAR (DÍA, SEMANA, MES, AÑO) */}
-        <div className="flex items-center rounded-md bg-[#F8F6FC] p-1 border-2 border-[#D8CFF0] text-xs font-black uppercase tracking-wider shadow-2xs">
-          <button
-            type="button"
-            onClick={() => setViewType('day')}
-            className={`px-3.5 py-1.5 rounded-md transition-all cursor-pointer ${
-              viewType === 'day'
-                ? 'bg-[#8E0E75] text-white shadow-xs'
-                : 'text-[#4A4A4A] hover:text-[#292929]'
-            }`}
-          >
-            Día
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewType('week')}
-            className={`px-3.5 py-1.5 rounded-md transition-all cursor-pointer ${
-              viewType === 'week'
-                ? 'bg-[#8E0E75] text-white shadow-xs'
-                : 'text-[#4A4A4A] hover:text-[#292929]'
-            }`}
-          >
-            Semana
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewType('month')}
-            className={`px-3.5 py-1.5 rounded-md transition-all cursor-pointer ${
-              viewType === 'month'
-                ? 'bg-[#8E0E75] text-white shadow-xs'
-                : 'text-[#4A4A4A] hover:text-[#292929]'
-            }`}
-          >
-            Mes
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewType('year')}
-            className={`px-3.5 py-1.5 rounded-md transition-all cursor-pointer ${
-              viewType === 'year'
-                ? 'bg-[#8E0E75] text-white shadow-xs'
-                : 'text-[#4A4A4A] hover:text-[#292929]'
-            }`}
-          >
-            Año
-          </button>
-        </div>
-
-        {/* Popups Interactivos de Control: Advertencias y Tareas Hechas */}
-        <div className="flex items-center gap-2 text-xs">
-          {/* Botón de auto-desplazamiento de tareas pendientes vencidas */}
-          {onRescheduleOverdue && overdueItems.length > 0 && (
             <button
               type="button"
-              onClick={onRescheduleOverdue}
-              className="px-3 py-1.5 rounded-md bg-purple-50 hover:bg-purple-100 text-[#8E0E75] border-2 border-[#8E0E75]/40 font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-xs animate-pulse hover:scale-105 active:scale-95"
-              title="Desplazar automáticamente las tareas no completadas a hoy para mantenerlas como recordatorio activo"
+              onClick={() => setActivePopup('urgent_warnings')}
+              className={`px-3 py-1.5 rounded-md border font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95 ${
+                monthPending.length > 0
+                  ? 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300'
+                  : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
+              }`}
+              title="Abrir tareas pendientes de este mes"
             >
-              <RotateCw className="h-3.5 w-3.5 text-[#8E0E75]" />
-              <span>Desplazar {overdueItems.length} vencidas</span>
+              <Clock className="h-3.5 w-3.5 text-amber-600" />
+              <span>{monthPending.length} Pendientes</span>
             </button>
-          )}
 
-          <button
-            type="button"
-            onClick={() => setActivePopup('urgent_warnings')}
-            className={`px-3 py-1.5 rounded-md border font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95 ${
-              monthPending.length > 0
-                ? 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300'
-                : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
-            }`}
-            title="Abrir tareas pendientes de este mes"
-          >
-            <Clock className="h-3.5 w-3.5 text-amber-600" />
-            <span>{monthPending.length} Pendientes</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setActivePopup('goods_done')}
+              className="px-3 py-1.5 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
+              title="Abrir tareas completadas con éxito"
+            >
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+              <span>{monthDone.length} Hechas</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setActivePopup('goods_done')}
-            className="px-3 py-1.5 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
-            title="Abrir tareas completadas con éxito"
-          >
-            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-            <span>{monthDone.length} Hechas</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setActivePopup('meetings')}
+              className="px-3 py-1.5 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs hidden sm:flex hover:scale-105 active:scale-95"
+              title="Abrir reuniones agendadas"
+            >
+              <Clock className="h-3.5 w-3.5 text-blue-600" />
+              <span>{monthMeetings.length} Reuniones</span>
+            </button>
+          </div>
 
-          <button
-            type="button"
-            onClick={() => setActivePopup('meetings')}
-            className="px-3 py-1.5 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs hidden sm:flex hover:scale-105 active:scale-95"
-            title="Abrir reuniones agendadas"
-          >
-            <Clock className="h-3.5 w-3.5 text-blue-600" />
-            <span>{monthMeetings.length} Reuniones</span>
-          </button>
+          {/* Acciones de Calendario: Exportar .ics, Ayudas, Plegar Cabeceras y Añadir Tarea */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => downloadAllEventsIcs(items, `BrainUp_Calendario_${viewType}_${year}.ics`)}
+              className="inline-flex items-center gap-1.5 p-2 rounded-md border-2 border-[#D8CFF0] bg-white hover:border-[#8E0E75] text-[#292929] shadow-2xs transition-all cursor-pointer"
+              title="Exportar a .ics (Google Calendar / Outlook)"
+              aria-label="Exportar calendario a archivo .ics"
+            >
+              <Download className="h-4 w-4 text-[#8E0E75]" />
+            </button>
+
+            {/* Botón de Microayudas y Atajos */}
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.dispatchEvent(new CustomEvent('bug_open_shortcuts'));
+                }
+              }}
+              className="inline-flex items-center gap-1 px-2.5 py-2 rounded-md border-2 border-[#D8CFF0] bg-[#F8F6FC] hover:border-[#8E0E75] text-[#8E0E75] text-xs font-bold transition-all cursor-pointer shadow-2xs"
+              title="Ver atajos de teclado y ayudas (Pulsa ?)"
+              aria-label="Atajos de teclado"
+            >
+              <kbd className="text-[10px] font-mono font-black bg-white px-1.5 py-0.2 rounded border border-[#D8CFF0] text-[#191654]">?</kbd>
+            </button>
+
+            {/* Botón Plegar Secciones 1 y 2 (Modo Portátil Amplio) */}
+            {onToggleHeaderCollapse && (
+              <button
+                type="button"
+                onClick={onToggleHeaderCollapse}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md border-2 border-[#D8CFF0] bg-[#F8F6FC] hover:border-[#8E0E75] hover:bg-[#8E0E75] hover:text-white text-[#8E0E75] text-xs font-black transition-all cursor-pointer shadow-2xs group"
+                title="Plegar secciones 1 y 2 para maximizar el área en pantalla (Modo Portátil Amplio)"
+                aria-label="Plegar cabeceras"
+              >
+                <ChevronUp className="h-4 w-4 group-hover:-translate-y-0.5 transition-transform" />
+                <span className="hidden sm:inline">Plegar</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => onOpenCreateModal(selectedDate)}
+              className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-md bg-[#8E0E75] hover:bg-[#700B5C] text-white text-sm font-bold shadow-md transition-all cursor-pointer"
+              title="Agregar tarea o entregable (Atajo: Ctrl + N)"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Agregar tarea</span>
+              <kbd className="hidden md:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-white/20 text-white border border-white/30 ml-0.5">
+                Ctrl N
+              </kbd>
+            </button>
+          </div>
         </div>
+      ) : (
+        /* MODO PORTÁTIL AMPLIO: Barra compacta de una sola línea (36px) que sustituye las Secciones 1 y 2 */
+        <div className="bg-white border-2 border-[#D8CFF0] rounded-xl px-3 py-1.5 shadow-2xs flex items-center justify-between gap-2 shrink-0 animate-in fade-in duration-200">
+          <div className="flex items-center gap-2 min-w-0">
+            {/* Botón Maestro para Desplegar Secciones 1 y 2 */}
+            {onToggleHeaderCollapse && (
+              <button
+                type="button"
+                onClick={onToggleHeaderCollapse}
+                className="px-2.5 py-1 rounded-lg bg-[#8E0E75] hover:bg-[#700B5C] text-white text-xs font-black flex items-center gap-1.5 shadow-xs transition-all cursor-pointer hover:scale-102 active:scale-98 shrink-0"
+                title="Desplegar secciones 1 y 2 (Filtros, vistas y estadísticas)"
+                aria-label="Desplegar cabeceras"
+              >
+                <ChevronDown className="h-4 w-4 stroke-[2.5]" />
+                <span className="hidden xs:inline">Desplegar Cabeceras</span>
+              </button>
+            )}
 
-        {/* Acciones de Calendario: Exportar .ics y Añadir Tarea */}
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => downloadAllEventsIcs(items, `BrainUp_Calendario_${viewType}_${year}.ics`)}
-            className="inline-flex items-center gap-1.5 p-2 rounded-md border-2 border-[#D8CFF0] bg-white hover:border-[#8E0E75] text-[#292929] shadow-2xs transition-all cursor-pointer"
-            title="Exportar a .ics (Google Calendar / Outlook)"
-            aria-label="Exportar calendario a archivo .ics"
-          >
-            <Download className="h-4 w-4 text-[#8E0E75]" />
-          </button>
+            {/* Accesos rápidos a Post-its / Lista si se quiere alternar */}
+            {onChangeViewMode && (
+              <div className="hidden lg:flex items-center gap-1 border-l border-[#D8CFF0] pl-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => onChangeViewMode('postits')}
+                  className="px-2 py-0.5 rounded text-[11px] font-bold text-[#4A4A4A] hover:text-[#8E0E75] hover:bg-[#F8F6FC] transition-colors cursor-pointer"
+                  title="Ver Mural de Post-its"
+                >
+                  Post-its ({postIts?.length || 0})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onChangeViewMode('list')}
+                  className="px-2 py-0.5 rounded text-[11px] font-bold text-[#4A4A4A] hover:text-[#8E0E75] hover:bg-[#F8F6FC] transition-colors cursor-pointer"
+                  title="Ver Vista de Lista"
+                >
+                  Lista
+                </button>
+              </div>
+            )}
 
-          {/* Botón de Microayudas y Atajos */}
-          <button
-            type="button"
-            onClick={() => {
-              if (typeof window !== 'undefined') {
-                window.dispatchEvent(new CustomEvent('bug_open_shortcuts'));
-              }
-            }}
-            className="inline-flex items-center gap-1 px-2.5 py-2 rounded-md border-2 border-[#D8CFF0] bg-[#F8F6FC] hover:border-[#8E0E75] text-[#8E0E75] text-xs font-bold transition-all cursor-pointer shadow-2xs"
-            title="Ver atajos de teclado y ayudas (Pulsa ?)"
-            aria-label="Atajos de teclado"
-          >
-            <kbd className="text-[10px] font-mono font-black bg-white px-1.5 py-0.2 rounded border border-[#D8CFF0] text-[#191654]">?</kbd>
-          </button>
+            <div className="h-4 w-px bg-[#D8CFF0] mx-0.5 hidden sm:block shrink-0" />
 
-          <button
-            type="button"
-            onClick={() => onOpenCreateModal(selectedDate)}
-            className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-md bg-[#8E0E75] hover:bg-[#700B5C] text-white text-sm font-bold shadow-md transition-all cursor-pointer"
-            title="Agregar tarea o entregable (Atajo: Ctrl + N)"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Agregar tarea</span>
-            <kbd className="hidden md:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-white/20 text-white border border-white/30 ml-0.5">
-              Ctrl N
-            </kbd>
-          </button>
+            {/* Navegación rápida < Hoy > + Título del período */}
+            <div className="flex items-center rounded-lg border border-[#D8CFF0] bg-[#F8F6FC] p-0.5 text-xs shrink-0">
+              <button
+                type="button"
+                onClick={handlePrev}
+                className="p-1 rounded hover:bg-white text-[#4A4A4A] hover:text-[#8E0E75] transition-all cursor-pointer"
+                title="Período anterior"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={handleGoToday}
+                className="px-2 py-0.5 text-[11px] font-black uppercase text-[#8E0E75] hover:bg-white rounded transition-all cursor-pointer"
+                title="Ir a hoy"
+              >
+                Hoy
+              </button>
+              <button
+                type="button"
+                onClick={handleNext}
+                className="p-1 rounded hover:bg-white text-[#4A4A4A] hover:text-[#8E0E75] transition-all cursor-pointer"
+                title="Período siguiente"
+              >
+                <ChevronRight className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            <span className="text-xs sm:text-sm font-black text-[#292929] tabular-nums truncate">
+              {getHeaderTitle()}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Selector de vistas Día | Semana | Mes | Año */}
+            <div className="flex items-center rounded-lg bg-[#F8F6FC] p-0.5 border border-[#D8CFF0] text-[11px] font-black uppercase shadow-2xs">
+              {(['day', 'week', 'month', 'year'] as CalendarViewType[]).map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setViewType(v)}
+                  className={`px-2 py-0.5 sm:px-2.5 rounded transition-all cursor-pointer ${
+                    viewType === v
+                      ? 'bg-[#8E0E75] text-white shadow-xs'
+                      : 'text-[#4A4A4A] hover:text-[#292929]'
+                  }`}
+                >
+                  {v === 'day' ? 'Día' : v === 'week' ? 'Semana' : v === 'month' ? 'Mes' : 'Año'}
+                </button>
+              ))}
+            </div>
+
+            {/* Badges rápidos pendientes / hechas */}
+            <div className="hidden xl:flex items-center gap-1.5 text-[11px]">
+              <button
+                type="button"
+                onClick={() => setActivePopup('urgent_warnings')}
+                className={`px-2 py-0.5 rounded border font-bold cursor-pointer transition-all ${
+                  monthPending.length > 0
+                    ? 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
+                    : 'bg-slate-50 text-slate-500 border-slate-200'
+                }`}
+                title="Ver tareas pendientes de este mes"
+              >
+                {monthPending.length} pend.
+              </button>
+              <button
+                type="button"
+                onClick={() => setActivePopup('goods_done')}
+                className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold hover:bg-emerald-100 cursor-pointer transition-all"
+                title="Ver tareas completadas"
+              >
+                {monthDone.length} hechas
+              </button>
+            </div>
+
+            {/* Botón rápido Añadir Tarea */}
+            <button
+              type="button"
+              onClick={() => onOpenCreateModal(selectedDate)}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#8E0E75] hover:bg-[#700B5C] text-white text-xs font-bold shadow-xs transition-all cursor-pointer hover:scale-102 active:scale-98"
+              title="Agregar tarea (Atajo: Ctrl + N)"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Nueva tarea</span>
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ÁREA DE CONTENIDO PRINCIPAL: RENDERIZADO SEGÚN VISTA ACTIVA */}
       <div className="flex-1 min-h-0 bg-white border border-[#D8CFF0] rounded-2xl shadow-xs overflow-hidden flex flex-col">
@@ -469,6 +621,7 @@ export function NativeCalendar({
               setSelectedDate(d);
               setCurrentDate(new Date(d + 'T00:00:00'));
             }}
+            isHeaderCollapsed={isHeaderCollapsed}
           />
         )}
 
@@ -929,6 +1082,7 @@ function WeekView({
   onSelectDate,
   onMoveItemDate,
   onQuickReschedule,
+  isHeaderCollapsed = false,
 }: {
   weekDays: {
     date: Date;
@@ -951,6 +1105,7 @@ function WeekView({
   onSelectDate: (dateStr: string) => void;
   onMoveItemDate?: (itemId: string, newDate: string) => void;
   onQuickReschedule?: (itemId: string, days?: number) => void;
+  isHeaderCollapsed?: boolean;
 }) {
   const [dragOverDay, setDragOverDay] = useState<string | null>(null);
   const [expandedDays, setExpandedDays] = useState<Record<string, boolean>>({});
@@ -962,7 +1117,7 @@ function WeekView({
     }));
   };
 
-  const MAX_INITIAL_VISIBLE = 3;
+  const MAX_INITIAL_VISIBLE = isHeaderCollapsed ? 4 : 3;
 
   return (
     <div className="flex-1 flex min-h-0 overflow-hidden">

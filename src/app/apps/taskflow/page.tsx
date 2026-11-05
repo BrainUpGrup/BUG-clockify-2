@@ -47,6 +47,8 @@ import {
   Pause,
   ExternalLink,
   ChevronRight,
+  ChevronUp,
+  ChevronDown,
   List,
   RotateCw,
   FolderPlus,
@@ -142,6 +144,24 @@ function TaskFlowContent() {
 
   // Modos de visualización: Calendario L-V, Mural de Post-its y Lista
   const [viewMode, setViewMode] = useState<'calendar' | 'postits' | 'list'>('calendar');
+
+  // Estado para Plegar / Desplegar Secciones 1 y 2 (Modo Portátil Amplio para ganar altura)
+  const [isHeaderCollapsed, setIsHeaderCollapsed] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('bug_taskflow_header_collapsed') === 'true';
+    }
+    return false;
+  });
+
+  const toggleHeaderCollapse = () => {
+    setIsHeaderCollapsed((prev) => {
+      const next = !prev;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('bug_taskflow_header_collapsed', String(next));
+      }
+      return next;
+    });
+  };
 
   // Pastilla morada deslizante para el conmutador de vistas
   const viewSwitcherRef = useRef<HTMLDivElement>(null);
@@ -655,244 +675,291 @@ function TaskFlowContent() {
 
       <main className="page-transition flex-1 min-h-0 h-full w-full max-w-none px-3 sm:px-5 lg:px-6 py-2 flex flex-col space-y-2 overflow-hidden">
         
-        {/* Barra de Herramientas Compacta: Conmutador de Vistas + Filtros de Ámbito y Prioridad (Sin duplicaciones) */}
-        <div className="bg-white border border-[#D8CFF0] px-3.5 py-2 rounded-2xl shadow-2xs flex flex-wrap items-center justify-between gap-2 shrink-0">
-          
-          {/* Conmutador de Vistas con Pastilla Morada Deslizante Fluida */}
-          <div 
-            ref={viewSwitcherRef}
-            onMouseLeave={() => setHoveredView(null)}
-            className="relative flex items-center rounded-2xl bg-[#F8F6FC] p-1 border-2 border-[#D8CFF0] text-[11px] font-extrabold uppercase tracking-wider select-none shadow-2xs"
-          >
-            {/* Pastilla morada deslizante */}
-            <div
-              className="absolute rounded-xl bg-[#8E0E75] shadow-sm pointer-events-none transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)]"
-              style={{
-                left: `${viewPill.left}px`,
-                width: `${viewPill.width}px`,
-                top: '4px',
-                bottom: '4px',
-                opacity: viewPill.opacity,
-              }}
-            />
-
-            <button
-              type="button"
-              data-view-tab="calendar"
-              onClick={() => setViewMode('calendar')}
-              onMouseEnter={() => setHoveredView('calendar')}
-              className={`relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-colors duration-200 cursor-pointer ${
-                targetView === 'calendar'
-                  ? 'text-white font-black'
-                  : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75]'
-              }`}
+        {/* SECCIÓN 1: Barra de Herramientas (Conmutador de Vistas + Filtros de Ámbito y Buscador) */}
+        {!isHeaderCollapsed && (
+          <div className="bg-white border border-[#D8CFF0] px-3.5 py-2 rounded-2xl shadow-2xs flex flex-wrap items-center justify-between gap-2 shrink-0 animate-in fade-in duration-200">
+            
+            {/* Conmutador de Vistas con Pastilla Morada Deslizante Fluida */}
+            <div 
+              ref={viewSwitcherRef}
+              onMouseLeave={() => setHoveredView(null)}
+              className="relative flex items-center rounded-2xl bg-[#F8F6FC] p-1 border-2 border-[#D8CFF0] text-[11px] font-extrabold uppercase tracking-wider select-none shadow-2xs"
             >
-              <CalendarIcon className={`h-3.5 w-3.5 shrink-0 transition-transform ${targetView === 'calendar' ? 'scale-110 text-white' : 'text-[#8E0E75]'}`} />
-              <span>Calendario (L-V)</span>
-            </button>
-
-            <button
-              type="button"
-              data-view-tab="postits"
-              onClick={() => setViewMode('postits')}
-              onMouseEnter={() => setHoveredView('postits')}
-              className={`relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-colors duration-200 cursor-pointer ${
-                targetView === 'postits'
-                  ? 'text-white font-black'
-                  : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75]'
-              }`}
-            >
-              <StickyNote className={`h-3.5 w-3.5 shrink-0 transition-transform ${targetView === 'postits' ? 'scale-110 text-white' : 'text-[#8E0E75]'}`} />
-              <span>Mural de Post-its</span>
-              {postIts.length > 0 && (
-                <span className={`text-[11px] px-1.5 py-0.2 rounded-full font-bold ${
-                  targetView === 'postits' ? 'bg-white/25 text-white' : 'bg-[#D8CFF0] text-[#8E0E75]'
-                }`}>
-                  {postIts.length}
-                </span>
-              )}
-            </button>
-
-            <button
-              type="button"
-              data-view-tab="list"
-              onClick={() => setViewMode('list')}
-              onMouseEnter={() => setHoveredView('list')}
-              className={`relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-colors duration-200 cursor-pointer ${
-                targetView === 'list'
-                  ? 'text-white font-black'
-                  : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75]'
-              }`}
-            >
-              <List className={`h-3.5 w-3.5 shrink-0 transition-transform ${targetView === 'list' ? 'scale-110 text-white' : 'text-[#8E0E75]'}`} />
-              <span>Lista</span>
-            </button>
-          </div>
-
-          {/* Micro-distinción visual de conceptos (Calendario vs Post-its) */}
-          <div className="hidden xl:flex items-center gap-2 text-[11px] font-medium text-[#4A4A4A] bg-[#F8F6FC] px-2.5 py-1 rounded-xl border border-[#D8CFF0]">
-            <span className="text-[#8E0E75] font-black uppercase tracking-wider text-[10px]">Guía:</span>
-            <span><strong>Calendario:</strong> entregables con fecha</span>
-            <span className="text-[#D8CFF0]">·</span>
-            <span><strong>Post-its:</strong> alertas recurrentes e ideas</span>
-          </div>
-
-          {/* Filtros de Ámbito */}
-          <div className="flex items-center gap-1 text-[11px] font-bold">
-            <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#4A4A4A] mr-0.5 hidden md:inline">
-              Ver:
-            </span>
-            <button
-              type="button"
-              onClick={() => setScopeFilter('all')}
-              className={`px-2 py-0.5 rounded-md border transition-all cursor-pointer ${
-                scopeFilter === 'all'
-                  ? 'bg-[#8E0E75] text-white border-[#8E0E75] shadow-xs'
-                  : 'bg-[#F8F6FC] text-[#4A4A4A] border-slate-200 hover:bg-slate-100'
-              }`}
-            >
-              Todas ({items.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setScopeFilter('mine')}
-              className={`px-2 py-0.5 rounded-md border transition-all cursor-pointer ${
-                scopeFilter === 'mine'
-                  ? 'bg-[#8E0E75] text-white border-[#8E0E75] shadow-xs'
-                  : 'bg-[#F8F6FC] text-[#4A4A4A] border-slate-200 hover:bg-slate-100'
-              }`}
-            >
-              Mis Tareas
-            </button>
-            <button
-              type="button"
-              onClick={() => setScopeFilter('shared')}
-              className={`px-2 py-0.5 rounded-md border transition-all cursor-pointer ${
-                scopeFilter === 'shared'
-                  ? 'bg-[#8E0E75] text-white border-[#8E0E75] shadow-xs'
-                  : 'bg-[#F8F6FC] text-[#4A4A4A] border-slate-200 hover:bg-slate-100'
-              }`}
-            >
-              Compartidas
-            </button>
-            <button
-              type="button"
-              onClick={() => setScopeFilter('meetings')}
-              className={`px-2 py-0.5 rounded-md border transition-all cursor-pointer ${
-                scopeFilter === 'meetings'
-                  ? 'bg-[#8E0E75] text-white border-[#8E0E75] shadow-xs'
-                  : 'bg-[#F8F6FC] text-[#4A4A4A] border-slate-200 hover:bg-slate-100'
-              }`}
-            >
-              Reuniones ({items.filter(it => it.type === 'meeting').length})
-            </button>
-          </div>
-
-          {/* Filtro de lista (desplegable con recuento) + creación rápida de lista */}
-          <div className="flex items-center gap-1.5">
-            <div className="w-60">
-              <AppSelect
-                value={selectedListFilter}
-                onChange={setSelectedListFilter}
-                ariaLabel="Filtrar por lista"
-                icon={<Layers className="h-4 w-4" />}
-                options={[
-                  { value: 'all', label: `Todas las listas (${items.length})` },
-                  ...taskLists.map((list) => ({
-                    value: list.id,
-                    label: `${list.name} (${items.filter((it) => resolveListId(it) === list.id).length})`,
-                    icon: <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: list.color }} />,
-                  })),
-                ]}
+              {/* Pastilla morada deslizante */}
+              <div
+                className="absolute rounded-xl bg-[#8E0E75] shadow-sm pointer-events-none transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)]"
+                style={{
+                  left: `${viewPill.left}px`,
+                  width: `${viewPill.width}px`,
+                  top: '4px',
+                  bottom: '4px',
+                  opacity: viewPill.opacity,
+                }}
               />
-            </div>
-            <div className="relative">
+
               <button
                 type="button"
-                onClick={() => setShowNewListForm((v) => !v)}
-                aria-expanded={showNewListForm}
-                className="inline-flex items-center gap-1 px-3 py-2 rounded-xl border border-[#D8CFF0] hover:border-[#8E0E75] text-[#8E0E75] text-sm font-semibold hover:bg-[#F8F6FC] transition-all cursor-pointer"
-                title="Crear una nueva lista"
+                data-view-tab="calendar"
+                onClick={() => setViewMode('calendar')}
+                onMouseEnter={() => setHoveredView('calendar')}
+                className={`relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-colors duration-200 cursor-pointer ${
+                  targetView === 'calendar'
+                    ? 'text-white font-black'
+                    : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75]'
+                }`}
               >
-                <FolderPlus className="h-4 w-4" />
-                <span className="hidden xl:inline">Nueva lista</span>
+                <CalendarIcon className={`h-3.5 w-3.5 shrink-0 transition-transform ${targetView === 'calendar' ? 'scale-110 text-white' : 'text-[#8E0E75]'}`} />
+                <span>Calendario (L-V)</span>
               </button>
-              {showNewListForm && (
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    if (!newListName.trim()) return;
-                    handleCreateList({
-                      id: 'list-' + Date.now(),
-                      name: newListName.trim(),
-                      color: newListColor,
-                      createdAt: new Date().toISOString(),
-                    });
-                    setNewListName('');
-                    setShowNewListForm(false);
-                  }}
-                  className="absolute right-0 top-full mt-1.5 z-50 w-72 bg-white border border-[#D8CFF0] rounded-xl shadow-xl p-3 space-y-2"
+
+              <button
+                type="button"
+                data-view-tab="postits"
+                onClick={() => setViewMode('postits')}
+                onMouseEnter={() => setHoveredView('postits')}
+                className={`relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-colors duration-200 cursor-pointer ${
+                  targetView === 'postits'
+                    ? 'text-white font-black'
+                    : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75]'
+                }`}
+              >
+                <StickyNote className={`h-3.5 w-3.5 shrink-0 transition-transform ${targetView === 'postits' ? 'scale-110 text-white' : 'text-[#8E0E75]'}`} />
+                <span>Mural de Post-its</span>
+                {postIts.length > 0 && (
+                  <span className={`text-[11px] px-1.5 py-0.2 rounded-full font-bold ${
+                    targetView === 'postits' ? 'bg-white/25 text-white' : 'bg-[#D8CFF0] text-[#8E0E75]'
+                  }`}>
+                    {postIts.length}
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                data-view-tab="list"
+                onClick={() => setViewMode('list')}
+                onMouseEnter={() => setHoveredView('list')}
+                className={`relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-colors duration-200 cursor-pointer ${
+                  targetView === 'list'
+                    ? 'text-white font-black'
+                    : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75]'
+                }`}
+              >
+                <List className={`h-3.5 w-3.5 shrink-0 transition-transform ${targetView === 'list' ? 'scale-110 text-white' : 'text-[#8E0E75]'}`} />
+                <span>Lista</span>
+              </button>
+            </div>
+
+            {/* Micro-distinción visual de conceptos (Calendario vs Post-its) */}
+            <div className="hidden xl:flex items-center gap-2 text-[11px] font-medium text-[#4A4A4A] bg-[#F8F6FC] px-2.5 py-1 rounded-xl border border-[#D8CFF0]">
+              <span className="text-[#8E0E75] font-black uppercase tracking-wider text-[10px]">Guía:</span>
+              <span><strong>Calendario:</strong> entregables con fecha</span>
+              <span className="text-[#D8CFF0]">·</span>
+              <span><strong>Post-its:</strong> alertas recurrentes e ideas</span>
+            </div>
+
+            {/* Filtros de Ámbito */}
+            <div className="flex items-center gap-1 text-[11px] font-bold">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#4A4A4A] mr-0.5 hidden md:inline">
+                Ver:
+              </span>
+              <button
+                type="button"
+                onClick={() => setScopeFilter('all')}
+                className={`px-2 py-0.5 rounded-md border transition-all cursor-pointer ${
+                  scopeFilter === 'all'
+                    ? 'bg-[#8E0E75] text-white border-[#8E0E75] shadow-xs'
+                    : 'bg-[#F8F6FC] text-[#4A4A4A] border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                Todas ({items.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setScopeFilter('mine')}
+                className={`px-2 py-0.5 rounded-md border transition-all cursor-pointer ${
+                  scopeFilter === 'mine'
+                    ? 'bg-[#8E0E75] text-white border-[#8E0E75] shadow-xs'
+                    : 'bg-[#F8F6FC] text-[#4A4A4A] border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                Mis Tareas
+              </button>
+              <button
+                type="button"
+                onClick={() => setScopeFilter('shared')}
+                className={`px-2 py-0.5 rounded-md border transition-all cursor-pointer ${
+                  scopeFilter === 'shared'
+                    ? 'bg-[#8E0E75] text-white border-[#8E0E75] shadow-xs'
+                    : 'bg-[#F8F6FC] text-[#4A4A4A] border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                Compartidas
+              </button>
+              <button
+                type="button"
+                onClick={() => setScopeFilter('meetings')}
+                className={`px-2 py-0.5 rounded-md border transition-all cursor-pointer ${
+                  scopeFilter === 'meetings'
+                    ? 'bg-[#8E0E75] text-white border-[#8E0E75] shadow-xs'
+                    : 'bg-[#F8F6FC] text-[#4A4A4A] border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                Reuniones ({items.filter(it => it.type === 'meeting').length})
+              </button>
+            </div>
+
+            {/* Filtro de lista (desplegable con recuento) + creación rápida de lista */}
+            <div className="flex items-center gap-1.5">
+              <div className="w-60">
+                <AppSelect
+                  value={selectedListFilter}
+                  onChange={setSelectedListFilter}
+                  ariaLabel="Filtrar por lista"
+                  icon={<Layers className="h-4 w-4" />}
+                  options={[
+                    { value: 'all', label: `Todas las listas (${items.length})` },
+                    ...taskLists.map((list) => ({
+                      value: list.id,
+                      label: `${list.name} (${items.filter((it) => resolveListId(it) === list.id).length})`,
+                      icon: <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: list.color }} />,
+                    })),
+                  ]}
+                />
+              </div>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowNewListForm((v) => !v)}
+                  aria-expanded={showNewListForm}
+                  className="inline-flex items-center gap-1 px-3 py-2 rounded-xl border border-[#D8CFF0] hover:border-[#8E0E75] text-[#8E0E75] text-sm font-semibold hover:bg-[#F8F6FC] transition-all cursor-pointer"
+                  title="Crear una nueva lista"
                 >
-                  <input
-                    autoFocus
-                    type="text"
-                    value={newListName}
-                    onChange={(e) => setNewListName(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Escape' && setShowNewListForm(false)}
-                    placeholder="Nombre de la lista"
-                    aria-label="Nombre de la nueva lista"
-                    className="w-full px-2.5 py-2 text-sm border border-[#D8CFF0] rounded-lg outline-none focus:border-[#8E0E75]"
-                  />
-                  <div className="flex items-center gap-1.5 flex-wrap" role="radiogroup" aria-label="Color de la lista">
-                    {['#D50000', '#F4511E', '#F6BF26', '#33B679', '#039BE5', '#3F51B5', '#8E24AA', '#8E0E75'].map((hex) => (
-                      <button
-                        key={hex}
-                        type="button"
-                        role="radio"
-                        aria-checked={newListColor === hex}
-                        aria-label={`Color ${hex}`}
-                        onClick={() => setNewListColor(hex)}
-                        className={`h-6 w-6 rounded-full cursor-pointer ${newListColor === hex ? 'ring-2 ring-offset-1 ring-[#191654]' : ''}`}
-                        style={{ backgroundColor: hex }}
-                      />
-                    ))}
-                  </div>
-                  <button
-                    type="submit"
-                    className="w-full py-2 rounded-lg bg-[#8E0E75] hover:bg-[#700B5C] text-white text-sm font-bold cursor-pointer"
+                  <FolderPlus className="h-4 w-4" />
+                  <span className="hidden xl:inline">Nueva lista</span>
+                </button>
+                {showNewListForm && (
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (!newListName.trim()) return;
+                      handleCreateList({
+                        id: 'list-' + Date.now(),
+                        name: newListName.trim(),
+                        color: newListColor,
+                        createdAt: new Date().toISOString(),
+                      });
+                      setNewListName('');
+                      setShowNewListForm(false);
+                    }}
+                    className="absolute right-0 top-full mt-1.5 z-50 w-72 bg-white border border-[#D8CFF0] rounded-xl shadow-xl p-3 space-y-2"
                   >
-                    Crear lista
-                  </button>
-                </form>
-              )}
+                    <input
+                      autoFocus
+                      type="text"
+                      value={newListName}
+                      onChange={(e) => setNewListName(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Escape' && setShowNewListForm(false)}
+                      placeholder="Nombre de la lista"
+                      aria-label="Nombre de la nueva lista"
+                      className="w-full px-2.5 py-2 text-sm border border-[#D8CFF0] rounded-lg outline-none focus:border-[#8E0E75]"
+                    />
+                    <div className="flex items-center gap-1.5 flex-wrap" role="radiogroup" aria-label="Color de la lista">
+                      {['#D50000', '#F4511E', '#F6BF26', '#33B679', '#039BE5', '#3F51B5', '#8E24AA', '#8E0E75'].map((hex) => (
+                        <button
+                          key={hex}
+                          type="button"
+                          role="radio"
+                          aria-checked={newListColor === hex}
+                          aria-label={`Color ${hex}`}
+                          onClick={() => setNewListColor(hex)}
+                          className={`h-6 w-6 rounded-full cursor-pointer ${newListColor === hex ? 'ring-2 ring-offset-1 ring-[#191654]' : ''}`}
+                          style={{ backgroundColor: hex }}
+                        />
+                      ))}
+                    </div>
+                    <button
+                      type="submit"
+                      className="w-full py-2 rounded-lg bg-[#8E0E75] hover:bg-[#700B5C] text-white text-sm font-bold cursor-pointer"
+                    >
+                      Crear lista
+                    </button>
+                  </form>
+                )}
+              </div>
+            </div>
+
+            {/* Botón de Desplazar Pendientes Vencidas */}
+            <button
+              type="button"
+              onClick={handleRescheduleOverdue}
+              className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#D8CFF0] hover:border-[#8E0E75] bg-[#F8F6FC] hover:bg-white text-[#8E0E75] text-[11px] font-bold transition-all cursor-pointer"
+              title="Desplazar tareas pendientes vencidas a hoy como recordatorio activo"
+            >
+              <RotateCw className="h-3 w-3" />
+              <span>Desplazar Vencidas a Hoy</span>
+            </button>
+
+            {/* Buscador Compacto y Botón de Plegar Secciones 1 y 2 */}
+            <div className="flex items-center gap-2">
+              <div className="relative w-full sm:w-48 lg:w-56">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#4A4A4A]" />
+                <input
+                  type="text"
+                  placeholder="Buscar tareas, clientes..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-7 pr-2.5 py-1 border border-[#D8CFF0] rounded-xl text-xs bg-[#F8F6FC] focus:bg-white focus:border-[#8E0E75] outline-none font-medium"
+                />
+              </div>
+
+              {/* Botón para Plegar Secciones 1 y 2 (Modo Portátil Amplio) */}
+              <button
+                type="button"
+                onClick={toggleHeaderCollapse}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#D8CFF0] hover:border-[#8E0E75] bg-[#F8F6FC] hover:bg-[#8E0E75] hover:text-white text-[#8E0E75] text-xs font-black transition-all cursor-pointer shadow-2xs group shrink-0"
+                title="Plegar secciones 1 y 2 para maximizar el área del calendario en portátiles (Modo Portátil Amplio)"
+                aria-label="Plegar cabeceras"
+              >
+                <ChevronUp className="h-4 w-4 group-hover:-translate-y-0.5 transition-transform" />
+                <span className="hidden xl:inline">Plegar Cabeceras</span>
+              </button>
+            </div>
+
+          </div>
+        )}
+
+        {/* Barra ultra-compacta cuando está plegado en vista Post-its o Lista */}
+        {isHeaderCollapsed && viewMode !== 'calendar' && (
+          <div className="bg-white border border-[#D8CFF0] px-3.5 py-1.5 rounded-xl shadow-2xs flex items-center justify-between gap-2 shrink-0 animate-in fade-in duration-200">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={toggleHeaderCollapse}
+                className="px-2.5 py-1 rounded-lg bg-[#8E0E75] hover:bg-[#700B5C] text-white text-xs font-black flex items-center gap-1.5 shadow-xs transition-all cursor-pointer hover:scale-102 active:scale-98"
+                title="Desplegar cabecera de filtros y herramientas"
+              >
+                <ChevronDown className="h-4 w-4 stroke-[2.5]" />
+                <span>Desplegar Cabeceras</span>
+              </button>
+
+              <span className="text-xs font-black text-[#292929] uppercase tracking-wider">
+                {viewMode === 'postits' ? 'Mural de Post-its y Notas' : 'Vista de Lista de Tareas'}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1.5 text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => setViewMode('calendar')}
+                className="px-2.5 py-1 rounded-lg border border-[#D8CFF0] bg-[#F8F6FC] text-[#8E0E75] hover:bg-white transition-all cursor-pointer flex items-center gap-1"
+              >
+                <CalendarIcon className="h-3.5 w-3.5" />
+                <span>Calendario (L-V)</span>
+              </button>
             </div>
           </div>
-
-          {/* Botón de Desplazar Pendientes Vencidas (Reemplaza filtro de prioridad) */}
-          <button
-            type="button"
-            onClick={handleRescheduleOverdue}
-            className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#D8CFF0] hover:border-[#8E0E75] bg-[#F8F6FC] hover:bg-white text-[#8E0E75] text-[11px] font-bold transition-all cursor-pointer"
-            title="Desplazar tareas pendientes vencidas a hoy como recordatorio activo"
-          >
-            <RotateCw className="h-3 w-3" />
-            <span>Desplazar Vencidas a Hoy</span>
-          </button>
-
-          {/* Buscador Compacto */}
-          <div className="relative w-full sm:w-48 lg:w-56">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#4A4A4A]" />
-            <input
-              type="text"
-              placeholder="Buscar tareas, clientes..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-7 pr-2.5 py-1 border border-[#D8CFF0] rounded-xl text-xs bg-[#F8F6FC] focus:bg-white focus:border-[#8E0E75] outline-none font-medium"
-            />
-          </div>
-
-        </div>
-
+        )}
 
         {/* Vista Renderizada: Calendario Nativo (L-V con panel de notificaciones), Mural de Post-its o Lista */}
         {viewMode === 'calendar' && (
@@ -910,6 +977,9 @@ function TaskFlowContent() {
               onMoveItemDate={handleMoveItemDate}
               onQuickReschedule={handleQuickReschedule}
               currentUserName={currentUserName}
+              isHeaderCollapsed={isHeaderCollapsed}
+              onToggleHeaderCollapse={toggleHeaderCollapse}
+              onChangeViewMode={(mode) => setViewMode(mode)}
             />
           </div>
         )}

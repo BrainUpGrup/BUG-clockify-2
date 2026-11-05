@@ -1490,3 +1490,29 @@
 - **Validación y Pruebas:**
   - `npx tsc --noEmit`: **0 errores de compilación**.
   - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis), DM-02 (Controles In-App), DM-03 (100% Pantalla) y DM-15 (Zero-Scroll).
+
+### [v3.7.6] - 2026-11-05 - Modo Portátil Amplio: Plegado / Desplegado de Secciones 1 y 2 en TaskFlow
+- **Solicitud del Usuario:**
+  *"a nivel usabilidad en portatil se queda un poco cortito, quiero que añadas un boton para desplegar o plegar las secciones 1 y 2 y dejar la parte 3 mucho mas amplia"* (con captura identificando la Sección 1 [barra de filtros/vistas], la Sección 2 [barra de navegación de calendario y acciones] y la Sección 3 [columnas semanales L-V]).
+- **Diagnóstico y Decisiones Técnicas:**
+  1. **Control Unificado de Plegado / Desplegado:**
+     - Implementación de estado `isHeaderCollapsed` en `src/app/apps/taskflow/page.tsx` con persistencia en `localStorage ('bug_taskflow_header_collapsed')`.
+     - Permite a usuarios en portátiles o pantallas con menor resolución vertical ocultar simultáneamente la Sección 1 y la Sección 2 con un solo clic.
+  2. **Botón de Plegar en Cabeceras:**
+     - En la **Sección 1** (junto al buscador): botón `Plegar Cabeceras` con icono `ChevronUp` y tooltip explicativo.
+     - En la **Sección 2** (junto a "+ Agregar tarea"): botón `Plegar` con icono `ChevronUp`.
+  3. **Micro-Barra Compacta en Modo Plegado (Ahorro de ~100px de Altura Vertical):**
+     - Al estar plegado, las voluminosas Secciones 1 y 2 dan paso a una micro-barra estilizada de solo 36px de altura que incluye:
+       - Botón principal de alto contraste `Desplegar Cabeceras` con icono `ChevronDown` para restablecer la vista completa al instante.
+       - Navegación esencial de fechas `< Hoy >` y rango de la semana (ej. `2 - 6 de Noviembre 2026`).
+       - Conmutador de tipo de vista (`Día`, `Semana`, `Mes`, `Año`).
+       - Acceso rápido a `Post-its` y `Lista`.
+       - Badges compactos de tareas pendientes y completadas.
+       - Botón "+ Nueva tarea" (`Ctrl + N`).
+  4. **Expansión Vertical de la Sección 3 (Zero-Scroll DM-15):**
+     - El área de calendario semanal gana más de 90-100px de altura disponible directamente en pantalla.
+     - Se adaptó `WeekView` para que, en modo plegado, muestre de base hasta 4 tareas por día antes del botón "+X más", permitiendo ver mucho más contenido de un solo vistazo en pantallas de portátil.
+     - En vistas alternativas (Post-its y Lista), también se dispone de una micro-barra con botón "Desplegar Cabeceras" para maximizar el lienzo.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis), DM-02 (Controles In-App), DM-03 (100% Pantalla) y DM-15 (Zero-Scroll).
