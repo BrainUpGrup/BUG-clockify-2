@@ -23,7 +23,9 @@ import {
   ZoomIn,
   ZoomOut,
   Eye,
-  Maximize2
+  Maximize2,
+  ChevronUp,
+  ChevronDown
 } from 'lucide-react';
 import { 
   PostItItem, 
@@ -40,6 +42,9 @@ interface PostItBoardProps {
   postIts: PostItItem[];
   onSavePostIts: (updated: PostItItem[]) => void;
   onOpenCreateModal?: () => void;
+  isHeaderCollapsed?: boolean;
+  onToggleHeaderCollapse?: () => void;
+  onChangeViewMode?: (mode: 'calendar' | 'postits' | 'list') => void;
 }
 
 const DEFAULT_WIDTH = 290;
@@ -64,6 +69,9 @@ interface ResizeState {
 export function PostItBoard({
   postIts,
   onSavePostIts,
+  isHeaderCollapsed = false,
+  onToggleHeaderCollapse,
+  onChangeViewMode,
 }: PostItBoardProps) {
   const { syncPostItReminders, addNotification } = useNotifications();
 
@@ -596,159 +604,307 @@ export function PostItBoard({
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-[#F4F1F8] p-3 overflow-hidden select-none">
       
-      {/* Barra Superior Modular del Mural */}
-      <div className="shrink-0 bg-white border border-[#D8CFF0] rounded-2xl p-3 shadow-xs flex flex-wrap items-center justify-between gap-3 mb-3">
-        <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-xl bg-[#FEF08A] text-[#713F12] border border-[#FACC15]">
-            <StickyNote className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="text-xs font-black uppercase tracking-wider text-[#292929] flex items-center gap-2">
-              <span>Pizarra Modular de Post-its</span>
-              <span className="px-2 py-0.5 rounded-full bg-[#8E0E75] text-white text-[11px] font-bold">
-                {localPostIts.length}
-              </span>
-            </h2>
-            <p className="text-[11px] text-[#4A4A4A]">
-              Pizarra interactiva libre: arrastra notas por la pantalla, cambia su tamaño, haz zoom panorámico o acércate a zonas concretas.
-            </p>
-          </div>
-        </div>
-
-        {/* Controles Modulares: Modo Libre / Cuadrícula, Zoom Rápido, Auto-Alinear y Nuevo */}
-        <div className="flex flex-wrap items-center gap-2">
-          
-          {/* Selector de Modo: Pizarra Libre vs Cuadrícula */}
-          <div className="flex items-center bg-[#F8F6FC] p-1 rounded-xl border border-[#D8CFF0]">
-            <button
-              type="button"
-              onClick={() => handleChangeBoardMode('free')}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
-                boardMode === 'free'
-                  ? 'bg-[#8E0E75] text-white shadow-2xs'
-                  : 'text-[#4A4A4A] hover:text-[#8E0E75]'
-              }`}
-              title="Mover y redimensionar post-its libremente por la pantalla"
-            >
-              <Move className="h-3.5 w-3.5" />
-              <span>Pizarra Libre</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleChangeBoardMode('grid')}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
-                boardMode === 'grid'
-                  ? 'bg-[#8E0E75] text-white shadow-2xs'
-                  : 'text-[#4A4A4A] hover:text-[#8E0E75]'
-              }`}
-              title="Organizar notas en cuadrícula uniforme"
-            >
-              <LayoutGrid className="h-3.5 w-3.5" />
-              <span>Cuadrícula</span>
-            </button>
+      {/* SECCIÓN 2: BARRA MODULAR (MODO COMPLETO VS MODO PORTÁTIL PLEGADO) */}
+      {!isHeaderCollapsed ? (
+        <div className="shrink-0 bg-white border border-[#D8CFF0] rounded-2xl p-3 shadow-xs flex flex-wrap items-center justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-[#FEF08A] text-[#713F12] border border-[#FACC15]">
+              <StickyNote className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-xs font-black uppercase tracking-wider text-[#292929] flex items-center gap-2">
+                <span>Pizarra Modular de Post-its</span>
+                <span className="px-2 py-0.5 rounded-full bg-[#8E0E75] text-white text-[11px] font-bold">
+                  {localPostIts.length}
+                </span>
+              </h2>
+              <p className="text-[11px] text-[#4A4A4A]">
+                Pizarra interactiva libre: arrastra notas por la pantalla, cambia su tamaño, haz zoom panorámico o acércate a zonas concretas.
+              </p>
+            </div>
           </div>
 
-          {/* Controles Rápidos de Zoom en Barra Superior (solo en modo pizarra libre) */}
-          {boardMode === 'free' && (
-            <div className="flex items-center bg-[#F8F6FC] p-1 rounded-xl border border-[#D8CFF0] gap-1">
+          {/* Controles Modulares: Modo Libre / Cuadrícula, Zoom Rápido, Auto-Alinear, Plegar y Nuevo */}
+          <div className="flex flex-wrap items-center gap-2">
+            
+            {/* Selector de Modo: Pizarra Libre vs Cuadrícula */}
+            <div className="flex items-center bg-[#F8F6FC] p-1 rounded-xl border border-[#D8CFF0]">
               <button
                 type="button"
-                onClick={handleZoomOut}
-                disabled={zoom <= 0.4}
-                className="p-1 rounded-lg hover:bg-white text-[#4A4A4A] hover:text-[#8E0E75] disabled:opacity-30 cursor-pointer transition-colors"
-                title="Alejar vista / Zoom Out (-)"
-              >
-                <ZoomOut className="h-3.5 w-3.5" />
-              </button>
-
-              <button
-                type="button"
-                onClick={handleResetZoom}
-                className="px-2 py-0.5 rounded-md text-[11px] font-black tabular-nums text-[#191654] hover:bg-white cursor-pointer"
-                title="Clic para volver al 100%"
-              >
-                {Math.round(zoom * 100)}%
-              </button>
-
-              <button
-                type="button"
-                onClick={handleZoomIn}
-                disabled={zoom >= 1.8}
-                className="p-1 rounded-lg hover:bg-white text-[#4A4A4A] hover:text-[#8E0E75] disabled:opacity-30 cursor-pointer transition-colors"
-                title="Acercar vista / Zoom In (+)"
-              >
-                <ZoomIn className="h-3.5 w-3.5" />
-              </button>
-
-              <div className="h-3 w-px bg-[#D8CFF0] mx-0.5" />
-
-              <button
-                type="button"
-                onClick={handleOverviewZoom}
-                className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase transition-all cursor-pointer ${
-                  zoom <= 0.65 ? 'bg-[#8E0E75] text-white' : 'text-[#4A4A4A] hover:bg-white hover:text-[#8E0E75]'
+                onClick={() => handleChangeBoardMode('free')}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+                  boardMode === 'free'
+                    ? 'bg-[#8E0E75] text-white shadow-2xs'
+                    : 'text-[#4A4A4A] hover:text-[#8E0E75]'
                 }`}
-                title="Vista panorámica alejada para ver todos los post-its"
+                title="Mover y redimensionar post-its libremente por la pantalla"
               >
-                Panorámica
+                <Move className="h-3.5 w-3.5" />
+                <span>Pizarra Libre</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleChangeBoardMode('grid')}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+                  boardMode === 'grid'
+                    ? 'bg-[#8E0E75] text-white shadow-2xs'
+                    : 'text-[#4A4A4A] hover:text-[#8E0E75]'
+                }`}
+                title="Organizar notas en cuadrícula uniforme"
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+                <span>Cuadrícula</span>
               </button>
             </div>
-          )}
 
-          {/* Botón Auto-Alinear (solo visible en modo libre) */}
-          {boardMode === 'free' && (
-            <button
-              type="button"
-              onClick={handleAutoAlign}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#D8CFF0] bg-white hover:bg-[#F8F6FC] text-[#4A4A4A] hover:text-[#8E0E75] text-xs font-extrabold uppercase tracking-tight transition-all cursor-pointer shadow-2xs"
-              title="Auto-organizar todas las notas en posiciones ordenadas"
-            >
-              <Sparkles className="h-3.5 w-3.5 text-[#8E0E75]" />
-              <span className="hidden sm:inline">Auto-Alinear</span>
-            </button>
-          )}
-
-          {/* Swatches de Filtro por Color */}
-          <div className="hidden lg:flex items-center gap-1 bg-[#F8F6FC] p-1 rounded-xl border border-[#D8CFF0]">
-            <button
-              type="button"
-              onClick={() => setSelectedColorFilter('all')}
-              className={`px-2 py-0.5 rounded-md text-[11px] font-extrabold uppercase transition-all cursor-pointer ${
-                selectedColorFilter === 'all'
-                  ? 'bg-[#8E0E75] text-white'
-                  : 'text-slate-600 hover:bg-white'
-              }`}
-            >
-              Todos
-            </button>
-            {(Object.keys(POSTIT_COLORS) as PostItColor[]).map((cKey) => {
-              const cfg = POSTIT_COLORS[cKey];
-              return (
+            {/* Controles Rápidos de Zoom en Barra Superior (solo en modo pizarra libre) */}
+            {boardMode === 'free' && (
+              <div className="flex items-center bg-[#F8F6FC] p-1 rounded-xl border border-[#D8CFF0] gap-1">
                 <button
-                  key={cKey}
                   type="button"
-                  onClick={() => setSelectedColorFilter(cKey)}
-                  className={`w-5 h-5 rounded-md ${cfg.bg} ${cfg.border} border-2 transition-all cursor-pointer ${
-                    selectedColorFilter === cKey ? 'ring-2 ring-[#8E0E75] scale-110' : 'opacity-80 hover:opacity-100'
+                  onClick={handleZoomOut}
+                  disabled={zoom <= 0.4}
+                  className="p-1 rounded-lg hover:bg-white text-[#4A4A4A] hover:text-[#8E0E75] disabled:opacity-30 cursor-pointer transition-colors"
+                  title="Alejar vista / Zoom Out (-)"
+                >
+                  <ZoomOut className="h-3.5 w-3.5" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleResetZoom}
+                  className="px-2 py-0.5 rounded-md text-[11px] font-black tabular-nums text-[#191654] hover:bg-white cursor-pointer"
+                  title="Clic para volver al 100%"
+                >
+                  {Math.round(zoom * 100)}%
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleZoomIn}
+                  disabled={zoom >= 1.8}
+                  className="p-1 rounded-lg hover:bg-white text-[#4A4A4A] hover:text-[#8E0E75] disabled:opacity-30 cursor-pointer transition-colors"
+                  title="Acercar vista / Zoom In (+)"
+                >
+                  <ZoomIn className="h-3.5 w-3.5" />
+                </button>
+
+                <div className="h-3 w-px bg-[#D8CFF0] mx-0.5" />
+
+                <button
+                  type="button"
+                  onClick={handleOverviewZoom}
+                  className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase transition-all cursor-pointer ${
+                    zoom <= 0.65 ? 'bg-[#8E0E75] text-white' : 'text-[#4A4A4A] hover:bg-white hover:text-[#8E0E75]'
                   }`}
-                  title={cfg.name}
-                />
-              );
-            })}
+                  title="Vista panorámica alejada para ver todos los post-its"
+                >
+                  Panorámica
+                </button>
+              </div>
+            )}
+
+            {/* Botón Auto-Alinear (solo visible en modo libre) */}
+            {boardMode === 'free' && (
+              <button
+                type="button"
+                onClick={handleAutoAlign}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#D8CFF0] bg-white hover:bg-[#F8F6FC] text-[#4A4A4A] hover:text-[#8E0E75] text-xs font-extrabold uppercase tracking-tight transition-all cursor-pointer shadow-2xs"
+                title="Auto-organizar todas las notas en posiciones ordenadas"
+              >
+                <Sparkles className="h-3.5 w-3.5 text-[#8E0E75]" />
+                <span className="hidden sm:inline">Auto-Alinear</span>
+              </button>
+            )}
+
+            {/* Swatches de Filtro por Color */}
+            <div className="hidden lg:flex items-center gap-1 bg-[#F8F6FC] p-1 rounded-xl border border-[#D8CFF0]">
+              <button
+                type="button"
+                onClick={() => setSelectedColorFilter('all')}
+                className={`px-2 py-0.5 rounded-md text-[11px] font-extrabold uppercase transition-all cursor-pointer ${
+                  selectedColorFilter === 'all'
+                    ? 'bg-[#8E0E75] text-white'
+                    : 'text-slate-600 hover:bg-white'
+                }`}
+              >
+                Todos
+              </button>
+              {(Object.keys(POSTIT_COLORS) as PostItColor[]).map((cKey) => {
+                const cfg = POSTIT_COLORS[cKey];
+                return (
+                  <button
+                    key={cKey}
+                    type="button"
+                    onClick={() => setSelectedColorFilter(cKey)}
+                    className={`w-5 h-5 rounded-md ${cfg.bg} ${cfg.border} border-2 transition-all cursor-pointer ${
+                      selectedColorFilter === cKey ? 'ring-2 ring-[#8E0E75] scale-110' : 'opacity-80 hover:opacity-100'
+                    }`}
+                    title={cfg.name}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Botón Plegar Secciones 1 y 2 (Modo Portátil Amplio) */}
+            {onToggleHeaderCollapse && (
+              <button
+                type="button"
+                onClick={onToggleHeaderCollapse}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 border-[#D8CFF0] bg-[#F8F6FC] hover:border-[#8E0E75] hover:bg-[#8E0E75] hover:text-white text-[#8E0E75] text-xs font-black transition-all cursor-pointer shadow-2xs group"
+                title="Plegar secciones 1 y 2 para maximizar el área de post-its en portátil"
+                aria-label="Plegar cabeceras"
+              >
+                <ChevronUp className="h-4 w-4 group-hover:-translate-y-0.5 transition-transform" />
+                <span className="hidden sm:inline font-bold">Plegar</span>
+              </button>
+            )}
+
+            {/* Botón Crear Post-it */}
+            <button
+              type="button"
+              onClick={handleOpenCreate}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#8E0E75] hover:bg-[#700B5C] text-white text-[11px] font-black uppercase tracking-wider shadow-xs transition-all cursor-pointer hover:scale-105 active:scale-95"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>Nuevo Post-it</span>
+            </button>
+          </div>
+        </div>
+      ) : (
+        /* MODO PORTÁTIL AMPLIO: Micro-Barra compacta de una sola línea (36px) que sustituye las Secciones 1 y 2 */
+        <div className="shrink-0 bg-white border border-[#D8CFF0] rounded-xl px-3 py-1.5 shadow-2xs flex items-center justify-between gap-2 mb-2 animate-in fade-in duration-200">
+          <div className="flex items-center gap-2 min-w-0">
+            {/* Botón Maestro para Desplegar Secciones 1 y 2 */}
+            {onToggleHeaderCollapse && (
+              <button
+                type="button"
+                onClick={onToggleHeaderCollapse}
+                className="px-2.5 py-1 rounded-lg bg-[#8E0E75] hover:bg-[#700B5C] text-white text-xs font-black flex items-center gap-1.5 shadow-xs transition-all cursor-pointer hover:scale-102 active:scale-98 shrink-0"
+                title="Desplegar secciones 1 y 2 (Filtros, vistas y herramientas)"
+                aria-label="Desplegar cabeceras"
+              >
+                <ChevronDown className="h-4 w-4 stroke-[2.5]" />
+                <span className="hidden xs:inline">Desplegar Cabeceras</span>
+              </button>
+            )}
+
+            {/* Accesos directos a Calendario y Lista */}
+            {onChangeViewMode && (
+              <div className="hidden sm:flex items-center gap-1 border-l border-[#D8CFF0] pl-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => onChangeViewMode('calendar')}
+                  className="px-2 py-0.5 rounded text-[11px] font-bold text-[#4A4A4A] hover:text-[#8E0E75] hover:bg-[#F8F6FC] transition-colors cursor-pointer"
+                  title="Ir al Calendario (L-V)"
+                >
+                  Calendario (L-V)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onChangeViewMode('list')}
+                  className="px-2 py-0.5 rounded text-[11px] font-bold text-[#4A4A4A] hover:text-[#8E0E75] hover:bg-[#F8F6FC] transition-colors cursor-pointer"
+                  title="Ir a Vista de Lista"
+                >
+                  Lista
+                </button>
+              </div>
+            )}
+
+            <div className="h-4 w-px bg-[#D8CFF0] mx-0.5 hidden sm:block shrink-0" />
+
+            <span className="text-xs font-black text-[#292929] uppercase tracking-wider truncate flex items-center gap-1.5">
+              <span>Pizarra de Post-its</span>
+              <span className="px-1.5 py-0.2 rounded-full bg-[#8E0E75] text-white text-[10px] font-bold">
+                {localPostIts.length}
+              </span>
+            </span>
           </div>
 
-          {/* Botón Crear Post-it */}
-          <button
-            type="button"
-            onClick={handleOpenCreate}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#8E0E75] hover:bg-[#700B5C] text-white text-[11px] font-black uppercase tracking-wider shadow-xs transition-all cursor-pointer hover:scale-105 active:scale-95"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            <span>Nuevo Post-it</span>
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Selector de Modo compacto: Libre vs Cuadrícula */}
+            <div className="flex items-center bg-[#F8F6FC] p-0.5 rounded-lg border border-[#D8CFF0] text-[11px] font-black uppercase">
+              <button
+                type="button"
+                onClick={() => handleChangeBoardMode('free')}
+                className={`px-2 py-0.5 rounded transition-all cursor-pointer ${
+                  boardMode === 'free' ? 'bg-[#8E0E75] text-white shadow-2xs' : 'text-[#4A4A4A] hover:text-[#8E0E75]'
+                }`}
+                title="Pizarra Libre interactiva"
+              >
+                Libre
+              </button>
+              <button
+                type="button"
+                onClick={() => handleChangeBoardMode('grid')}
+                className={`px-2 py-0.5 rounded transition-all cursor-pointer ${
+                  boardMode === 'grid' ? 'bg-[#8E0E75] text-white shadow-2xs' : 'text-[#4A4A4A] hover:text-[#8E0E75]'
+                }`}
+                title="Cuadrícula uniforme"
+              >
+                Cuadrícula
+              </button>
+            </div>
+
+            {/* Controles de Zoom compactos (solo en modo libre) */}
+            {boardMode === 'free' && (
+              <div className="hidden md:flex items-center bg-[#F8F6FC] p-0.5 rounded-lg border border-[#D8CFF0] gap-0.5 text-xs">
+                <button
+                  type="button"
+                  onClick={handleZoomOut}
+                  disabled={zoom <= 0.4}
+                  className="p-1 rounded hover:bg-white text-[#4A4A4A] hover:text-[#8E0E75] disabled:opacity-30 cursor-pointer"
+                  title="Alejar (-)"
+                >
+                  <ZoomOut className="h-3 w-3" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleResetZoom}
+                  className="px-1.5 py-0.5 text-[10px] font-black tabular-nums text-[#191654] hover:bg-white rounded cursor-pointer"
+                  title="Clic para 100%"
+                >
+                  {Math.round(zoom * 100)}%
+                </button>
+                <button
+                  type="button"
+                  onClick={handleZoomIn}
+                  disabled={zoom >= 1.8}
+                  className="p-1 rounded hover:bg-white text-[#4A4A4A] hover:text-[#8E0E75] disabled:opacity-30 cursor-pointer"
+                  title="Acercar (+)"
+                >
+                  <ZoomIn className="h-3 w-3" />
+                </button>
+              </div>
+            )}
+
+            {/* Auto-Alinear compacto */}
+            {boardMode === 'free' && (
+              <button
+                type="button"
+                onClick={handleAutoAlign}
+                className="hidden xl:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[#D8CFF0] bg-white hover:bg-[#F8F6FC] text-[#4A4A4A] hover:text-[#8E0E75] text-[11px] font-extrabold transition-all cursor-pointer shadow-2xs"
+                title="Auto-organizar notas"
+              >
+                <Sparkles className="h-3 w-3 text-[#8E0E75]" />
+                <span>Auto-Alinear</span>
+              </button>
+            )}
+
+            {/* Botón rápido Nuevo Post-it */}
+            <button
+              type="button"
+              onClick={handleOpenCreate}
+              className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-[#8E0E75] hover:bg-[#700B5C] text-white text-xs font-bold shadow-xs transition-all cursor-pointer hover:scale-102 active:scale-98"
+              title="Crear nuevo post-it"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>Nuevo</span>
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ÁREA DE TRABAJO: PIZARRA LIBRE O CUADRÍCULA */}
       <div className="flex-1 min-h-0 relative overflow-hidden rounded-2xl border border-[#D8CFF0] bg-white shadow-xs flex flex-col">

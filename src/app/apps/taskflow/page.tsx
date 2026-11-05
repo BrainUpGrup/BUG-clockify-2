@@ -929,8 +929,8 @@ function TaskFlowContent() {
           </div>
         )}
 
-        {/* Barra ultra-compacta cuando está plegado en vista Post-its o Lista */}
-        {isHeaderCollapsed && viewMode !== 'calendar' && (
+        {/* Barra ultra-compacta cuando está plegado en vista Lista */}
+        {isHeaderCollapsed && viewMode === 'list' && (
           <div className="bg-white border border-[#D8CFF0] px-3.5 py-1.5 rounded-xl shadow-2xs flex items-center justify-between gap-2 shrink-0 animate-in fade-in duration-200">
             <div className="flex items-center gap-2">
               <button
@@ -944,7 +944,7 @@ function TaskFlowContent() {
               </button>
 
               <span className="text-xs font-black text-[#292929] uppercase tracking-wider">
-                {viewMode === 'postits' ? 'Mural de Post-its y Notas' : 'Vista de Lista de Tareas'}
+                Vista de Lista de Tareas
               </span>
             </div>
 
@@ -956,6 +956,14 @@ function TaskFlowContent() {
               >
                 <CalendarIcon className="h-3.5 w-3.5" />
                 <span>Calendario (L-V)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('postits')}
+                className="px-2.5 py-1 rounded-lg border border-[#D8CFF0] bg-[#F8F6FC] text-[#8E0E75] hover:bg-white transition-all cursor-pointer flex items-center gap-1"
+              >
+                <StickyNote className="h-3.5 w-3.5" />
+                <span>Post-its</span>
               </button>
             </div>
           </div>
@@ -988,6 +996,9 @@ function TaskFlowContent() {
           <PostItBoard
             postIts={postIts}
             onSavePostIts={savePostIts}
+            isHeaderCollapsed={isHeaderCollapsed}
+            onToggleHeaderCollapse={toggleHeaderCollapse}
+            onChangeViewMode={(mode) => setViewMode(mode)}
           />
         )}
 

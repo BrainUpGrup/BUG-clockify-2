@@ -1516,3 +1516,25 @@
 - **Validación y Pruebas:**
   - `npx tsc --noEmit`: **0 errores de compilación**.
   - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis), DM-02 (Controles In-App), DM-03 (100% Pantalla) y DM-15 (Zero-Scroll).
+
+### [v3.7.7] - 2026-11-05 - Modo Portátil Amplio Extendido al Mural de Post-its (Plegado de Secciones 1 y 2)
+- **Solicitud del Usuario:**
+  *"Lo mismo con esta parte que las secciones 1 y 2 se puedan plegar para arriba"* (con captura del Mural de Post-its señalando la Sección 1 [barra de vistas y filtros] y la Sección 2 [cabecera de herramientas de la pizarra de post-its]).
+- **Diagnóstico y Decisiones Técnicas:**
+  1. **Integración de Plegado en `PostItBoard`:**
+     - Se dotó al componente `PostItBoard` de soporte nativo para `isHeaderCollapsed`, `onToggleHeaderCollapse` y `onChangeViewMode`.
+     - En modo normal (`!isHeaderCollapsed`), se incorpora el botón corporativo `Plegar` con icono `ChevronUp` junto a `+ Nuevo Post-it`.
+  2. **Micro-Barra de Pizarra en Modo Plegado (Ahorro de ~130px de Altura):**
+     - Al activarse el plegado, la voluminosa cabecera de la pizarra se transforma en una micro-cinta ultra-fina de 36px que alberga:
+       - Botón principal de alto contraste `Desplegar Cabeceras` con icono `ChevronDown`.
+       - Accesos directos a `Calendario (L-V)` y `Lista`.
+       - Conteo y título del tablero (`Pizarra de Post-its (N)`).
+       - Conmutador rápido de modos `Libre` vs `Cuadrícula`.
+       - Controles compactos de zoom `(-) % (+)`.
+       - Botón de auto-alineación (`Auto-Alinear`).
+       - Botón rápido `+ Nuevo`.
+  3. **Lienzo Infinito y Máxima Visibilidad:**
+     - El lienzo interactivo de post-its y la cuadrícula ganan más de 130px de altura disponible, permitiendo ver y manipular libremente todas las notas adhesivas en pantallas de portátil con política Zero-Scroll (DM-15).
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis), DM-02 (Controles In-App), DM-03 (100% Pantalla) y DM-15 (Zero-Scroll).
