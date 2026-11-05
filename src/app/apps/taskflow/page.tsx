@@ -53,7 +53,8 @@ import {
   RotateCw,
   FolderPlus,
   Layers,
-  StickyNote
+  StickyNote,
+  X
 } from 'lucide-react';
 
 import { 
@@ -852,8 +853,24 @@ function TaskFlowContent() {
                       setNewListName('');
                       setShowNewListForm(false);
                     }}
-                    className="absolute right-0 top-full mt-1.5 z-50 w-72 bg-white border border-[#D8CFF0] rounded-xl shadow-xl p-3 space-y-2"
+                    className="absolute right-0 top-full mt-1.5 z-50 w-72 bg-white border border-[#D8CFF0] rounded-2xl shadow-2xl p-3.5 space-y-2.5 animate-in zoom-in-95 duration-150"
                   >
+                    {/* Cabecera con título y botón X para cerrar */}
+                    <div className="flex items-center justify-between pb-0.5">
+                      <span className="text-xs font-black uppercase tracking-wider text-[#191654]">
+                        Nueva Lista
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowNewListForm(false)}
+                        className="p-1 rounded-lg text-[#8E0E75] hover:bg-purple-100 transition-colors cursor-pointer"
+                        aria-label="Cerrar"
+                        title="Cerrar"
+                      >
+                        <X className="h-4 w-4 stroke-[2.5]" />
+                      </button>
+                    </div>
+
                     <input
                       autoFocus
                       type="text"
@@ -862,7 +879,7 @@ function TaskFlowContent() {
                       onKeyDown={(e) => e.key === 'Escape' && setShowNewListForm(false)}
                       placeholder="Nombre de la lista"
                       aria-label="Nombre de la nueva lista"
-                      className="w-full px-2.5 py-2 text-sm border border-[#D8CFF0] rounded-lg outline-none focus:border-[#8E0E75]"
+                      className="w-full px-2.5 py-2 text-xs font-bold border border-[#D8CFF0] rounded-xl outline-hidden focus:border-[#8E0E75] bg-[#F8F6FC] text-[#292929]"
                     />
                     <div className="flex items-center gap-1.5 flex-wrap" role="radiogroup" aria-label="Color de la lista">
                       {['#D50000', '#F4511E', '#F6BF26', '#33B679', '#039BE5', '#3F51B5', '#8E24AA', '#8E0E75'].map((hex) => (
@@ -873,14 +890,14 @@ function TaskFlowContent() {
                           aria-checked={newListColor === hex}
                           aria-label={`Color ${hex}`}
                           onClick={() => setNewListColor(hex)}
-                          className={`h-6 w-6 rounded-full cursor-pointer ${newListColor === hex ? 'ring-2 ring-offset-1 ring-[#191654]' : ''}`}
+                          className={`h-6 w-6 rounded-full cursor-pointer transition-transform hover:scale-110 ${newListColor === hex ? 'ring-2 ring-offset-2 ring-[#8E0E75] scale-105' : ''}`}
                           style={{ backgroundColor: hex }}
                         />
                       ))}
                     </div>
                     <button
                       type="submit"
-                      className="w-full py-2 rounded-lg bg-[#8E0E75] hover:bg-[#700B5C] text-white text-sm font-bold cursor-pointer"
+                      className="w-full py-2 rounded-xl bg-[#8E0E75] hover:bg-[#700B5C] text-white text-xs font-black uppercase tracking-wider cursor-pointer shadow-xs transition-colors"
                     >
                       Crear lista
                     </button>

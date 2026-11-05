@@ -300,13 +300,6 @@ export function HostingNotificationsDrawer({
           <span>
             Total alertas activas: <strong>{alerts.length}</strong>
           </span>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-white border border-[#D8CFF0] text-xs font-bold text-[#4A4A4A] hover:text-[#8E0E75] cursor-pointer"
-          >
-            Cerrar
-          </button>
         </div>
       </div>
 

@@ -1572,3 +1572,22 @@
 - **Validación y Pruebas:**
   - `npx tsc --noEmit`: **0 errores de compilación**.
   - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis), DM-02 (Controles In-App), DM-03 (100% Pantalla), DM-13 (Identidad "La Abuela") y DM-15 (Zero-Scroll).
+
+### [v3.8.0] - 2026-11-05 - Botón de Cierre X en Nueva Lista, Ajuste de Drawer de Notificaciones y Zoom Dirigido al Ratón en Post-its
+- **Solicitud del Usuario:**
+  *"en este apratado de crear nueva lista tienes que pone una X igaul que en el centro de notificaciones de hosting quita el cerrar de abajo a la derecha y pon X arriba a la derecha. y por ultimo en el apartado de positis quiero que se haga zoom donde apunte el raton, no de panera centrada, para acercarnos donde queremos realmente"* (con capturas del popover de Nueva lista y del drawer de notificaciones de hosting).
+- **Diagnóstico y Decisiones Técnicas:**
+  1. **Botón X en Popover de Creación de Lista (`TaskFlow`):**
+     - Se añadió cabecera con título `Nueva Lista` y botón de cierre con icono `X` en la esquina superior derecha (`src/app/apps/taskflow/page.tsx`), permitiendo cerrar el formulario con un solo clic además de la tecla Escape.
+  2. **Depuración de Controles de Cierre en Centro de Notificaciones de Hosting:**
+     - En el drawer lateral (`src/components/hosting/hosting-notifications-drawer.tsx`), se eliminó el botón redundante `Cerrar` situado en el pie inferior derecho, manteniendo únicamente el botón de aspa `X` en la esquina superior derecha de la cabecera.
+  3. **Zoom Enfocado al Puntero del Ratón (Mouse-Anchored Zoom en Post-its):**
+     - En `src/components/taskflow/post-it-board.tsx`, se rediseñó el motor de zoom sustituyendo el escalado ciego/centrado por el algoritmo cinemático estándar de herramientas profesionales (Figma, Miro, Google Maps).
+     - La función `zoomAtPoint` calcula el punto espacial sin escalar (`worldX`, `worldY`) actualmente posicionado bajo el puntero (`e.clientX`, `e.clientY`) y recalcula de forma síncrona el `scrollLeft` y `scrollTop` mediante `flushSync`:
+       $$targetScrollLeft = worldX \times nextZoom - mouseX$$
+       $$targetScrollTop = worldY \times nextZoom - mouseY$$
+     - El elemento bajo el cursor permanece 100% inmóvil bajo el puntero mientras se acerca o aleja el lienzo.
+     - Separación de contenedor de scroll con tamaño layout exacto (`BASE_CANVAS_WIDTH * zoom` x `BASE_CANVAS_HEIGHT * zoom`) y superficie interna fija de `3800x2800` escalada con `origin: 0 0`, eliminando discrepancias de overflow y dobles escalas.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis), DM-02 (Controles In-App), DM-03 (100% Pantalla) y DM-15 (Zero-Scroll).

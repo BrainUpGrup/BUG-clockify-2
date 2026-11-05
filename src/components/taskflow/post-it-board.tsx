@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { 
   StickyNote, 
   Plus, 
@@ -91,8 +92,86 @@ export function PostItBoard({
   // Modo de visualización: 'free' (Pizarra / Tabla Libre) o 'grid' (Cuadrícula Clásica)
   const [boardMode, setBoardMode] = useState<'free' | 'grid'>('free');
 
+  // Dimensiones base del lienzo libre (coordenadas unscaled del espacio mundo)
+  const BASE_CANVAS_WIDTH = 3800;
+  const BASE_CANVAS_HEIGHT = 2800;
+
   // Nivel de Zoom interactivo: 0.4 (40% vista general) a 1.8 (180% vista de detalle)
   const [zoom, setZoom] = useState<number>(1);
+  const zoomRef = useRef<number>(zoom);
+  zoomRef.current = zoom;
+
+  // Última posición conocida del puntero sobre el lienzo (coordenadas de pantalla del viewport)
+  const lastMousePosRef = useRef<{ clientX: number; clientY: number } | null>(null);
+
+  // Zoom enfocado exactamente donde apunta el ratón (Figma / Miro style, sin recentrado rígido)
+  const zoomAtPoint = (
+    targetZoomOrDelta: number | ((prev: number) => number),
+    clientX?: number,
+    clientY?: number
+  ) => {
+    const container = canvasContainerRef.current;
+    if (!container) return;
+
+    const rect = container.getBoundingClientRect();
+
+    // 1. Determinar posición del puntero relativa a la ventana visible del contenedor
+    let mouseX: number;
+    let mouseY: number;
+
+    if (typeof clientX === 'number' && typeof clientY === 'number') {
+      mouseX = clientX - rect.left;
+      mouseY = clientY - rect.top;
+    } else if (lastMousePosRef.current) {
+      mouseX = lastMousePosRef.current.clientX - rect.left;
+      mouseY = lastMousePosRef.current.clientY - rect.top;
+    } else {
+      // Si el cursor no está sobre el lienzo, usar el centro del viewport visible
+      mouseX = container.clientWidth / 2;
+      mouseY = container.clientHeight / 2;
+    }
+
+    // Asegurar que mouseX y mouseY están dentro del viewport visible
+    mouseX = Math.max(0, Math.min(container.clientWidth, mouseX));
+    mouseY = Math.max(0, Math.min(container.clientHeight, mouseY));
+
+    const currentZoom = zoomRef.current;
+    let nextZoom: number;
+    if (typeof targetZoomOrDelta === 'function') {
+      nextZoom = targetZoomOrDelta(currentZoom);
+    } else {
+      nextZoom = targetZoomOrDelta;
+    }
+
+    // Clampear zoom entre 0.4 (40%) y 1.8 (180%)
+    nextZoom = Math.max(0.4, Math.min(1.8, Math.round(nextZoom * 100) / 100));
+    if (nextZoom === currentZoom) return;
+
+    // 2. Coordenada sin escalar (mundo) actualmente situada bajo el cursor:
+    const worldX = (container.scrollLeft + mouseX) / currentZoom;
+    const worldY = (container.scrollTop + mouseY) / currentZoom;
+
+    // 3. Nuevo scrollLeft/scrollTop para que el punto (worldX, worldY) permanezca exactamente bajo el cursor:
+    const targetScrollLeft = Math.max(0, worldX * nextZoom - mouseX);
+    const targetScrollTop = Math.max(0, worldY * nextZoom - mouseY);
+
+    // 4. Actualizar estado y DOM sincrónicamente
+    zoomRef.current = nextZoom;
+    flushSync(() => {
+      setZoom(nextZoom);
+    });
+
+    container.scrollLeft = targetScrollLeft;
+    container.scrollTop = targetScrollTop;
+
+    // Asegurar posición precisa tras ciclo de render del navegador
+    requestAnimationFrame(() => {
+      if (canvasContainerRef.current) {
+        canvasContainerRef.current.scrollLeft = targetScrollLeft;
+        canvasContainerRef.current.scrollTop = targetScrollTop;
+      }
+    });
+  };
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -110,31 +189,31 @@ export function PostItBoard({
     }
   };
 
-  // Controles de Zoom
+  // Controles de Zoom enfocados al puntero del ratón
   const handleZoomIn = () => {
-    setZoom((prev) => Math.min(1.8, Math.round((prev + 0.15) * 100) / 100));
+    zoomAtPoint((prev) => Math.min(1.8, Math.round((prev + 0.15) * 100) / 100));
   };
 
   const handleZoomOut = () => {
-    setZoom((prev) => Math.max(0.4, Math.round((prev - 0.15) * 100) / 100));
+    zoomAtPoint((prev) => Math.max(0.4, Math.round((prev - 0.15) * 100) / 100));
   };
 
   const handleResetZoom = () => {
-    setZoom(1);
+    zoomAtPoint(1);
   };
 
   const handleOverviewZoom = () => {
-    setZoom(0.55); // Vista panorámica general
+    zoomAtPoint(0.55);
     if (canvasContainerRef.current) {
       canvasContainerRef.current.scrollTo({ left: 0, top: 0, behavior: 'smooth' });
     }
   };
 
   const handleFocusZoom = () => {
-    setZoom(1.3); // Vista cercana para enfocar notas
+    zoomAtPoint(1.3);
   };
 
-  // Zoom interactivo con rueda del ratón al mantener pulsado Ctrl o Alt
+  // Zoom interactivo con rueda del ratón y trackpad pinch enfocado al cursor
   useEffect(() => {
     const container = canvasContainerRef.current;
     if (!container || boardMode !== 'free') return;
@@ -143,7 +222,7 @@ export function PostItBoard({
       if (e.ctrlKey || e.metaKey || e.altKey) {
         e.preventDefault();
         const delta = e.deltaY < 0 ? 0.08 : -0.08;
-        setZoom((prev) => Math.max(0.4, Math.min(1.8, Math.round((prev + delta) * 100) / 100)));
+        zoomAtPoint((prev) => prev + delta, e.clientX, e.clientY);
       }
     };
 
@@ -688,7 +767,7 @@ export function PostItBoard({
                   onClick={handleZoomIn}
                   disabled={zoom >= 1.8}
                   className="p-1 rounded-lg hover:bg-white text-[#4A4A4A] hover:text-[#8E0E75] disabled:opacity-30 cursor-pointer transition-colors"
-                  title="Acercar vista / Zoom In (+)"
+                  title="Acercar vista / Zoom In (+) o Ctrl + Rueda hacia el ratón"
                 >
                   <ZoomIn className="h-3.5 w-3.5" />
                 </button>
@@ -964,25 +1043,41 @@ export function PostItBoard({
           <div 
             ref={canvasContainerRef}
             onPointerDown={handleCanvasPointerDown}
-            className={`relative flex-1 w-full h-full overflow-auto ${
+            onPointerMove={(e) => {
+              lastMousePosRef.current = { clientX: e.clientX, clientY: e.clientY };
+            }}
+            onPointerLeave={() => {
+              lastMousePosRef.current = null;
+            }}
+            className={`relative flex-1 w-full h-full overflow-auto select-none ${
               isPanning ? 'cursor-grabbing' : 'cursor-grab'
             }`}
             style={{
               backgroundColor: '#F8F6FC',
-              backgroundImage: 'radial-gradient(#D0C4EA 1.5px, transparent 1.5px)',
-              backgroundSize: '24px 24px',
             }}
           >
-            {/* Superficie Escalar del Lienzo según el nivel de Zoom */}
+            {/* Contenedor que define el espacio de scroll exacto según el nivel de Zoom */}
             <div
-              className="relative origin-top-left transition-transform duration-75"
               style={{
-                width: `${Math.max(3200, 3200 * zoom)}px`,
-                height: `${Math.max(2400, 2400 * zoom)}px`,
-                transform: `scale(${zoom})`,
-                transformOrigin: '0 0',
+                width: `${Math.round(BASE_CANVAS_WIDTH * zoom)}px`,
+                height: `${Math.round(BASE_CANVAS_HEIGHT * zoom)}px`,
+                position: 'relative',
               }}
             >
+              {/* Superficie interna del lienzo: coordenadas del mundo escaladas desde (0,0) */}
+              <div
+                style={{
+                  width: `${BASE_CANVAS_WIDTH}px`,
+                  height: `${BASE_CANVAS_HEIGHT}px`,
+                  transform: `scale(${zoom})`,
+                  transformOrigin: '0 0',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  backgroundImage: 'radial-gradient(#D0C4EA 1.5px, transparent 1.5px)',
+                  backgroundSize: '24px 24px',
+                }}
+              >
               {filteredPostIts.map((item, index) => {
                 const coords = getCoords(item, index);
                 const dims = getDimensions(item);
@@ -1179,6 +1274,7 @@ export function PostItBoard({
                   </div>
                 );
               })}
+              </div>
             </div>
 
             {/* Widget Flotante de Zoom y Navegación en el Lienzo Libre */}
@@ -1188,7 +1284,7 @@ export function PostItBoard({
                 onClick={handleZoomOut}
                 disabled={zoom <= 0.4}
                 className="p-1.5 rounded-xl hover:bg-[#F8F6FC] text-[#4A4A4A] hover:text-[#8E0E75] disabled:opacity-35 transition-colors cursor-pointer"
-                title="Alejar vista / Zoom Out (-)"
+                title="Alejar vista / Zoom Out (-) o Ctrl + Rueda hacia el ratón"
                 aria-label="Alejar vista"
               >
                 <ZoomOut className="h-4 w-4" />
@@ -1208,7 +1304,7 @@ export function PostItBoard({
                 onClick={handleZoomIn}
                 disabled={zoom >= 1.8}
                 className="p-1.5 rounded-xl hover:bg-[#F8F6FC] text-[#4A4A4A] hover:text-[#8E0E75] disabled:opacity-35 transition-colors cursor-pointer"
-                title="Acercar vista / Zoom In (+)"
+                title="Acercar vista / Zoom In (+) o Ctrl + Rueda hacia el ratón"
                 aria-label="Acercar vista"
               >
                 <ZoomIn className="h-4 w-4" />
