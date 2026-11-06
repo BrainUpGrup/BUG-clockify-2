@@ -322,7 +322,7 @@ export default function HostingPage() {
         <div className="flex flex-col items-center gap-3">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#D8CFF0] border-t-[#8E0E75]" />
           <p className="text-xs font-bold uppercase tracking-wider text-[#292929]">
-            Cargando Brain Up Hosting...
+            Cargando Hosting Control...
           </p>
         </div>
       </div>
@@ -341,7 +341,7 @@ export default function HostingPage() {
                 <Server className="h-5 w-5" />
               </span>
               <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-[#292929]">
-                Brain Up <span className="text-[#8E0E75]">Hosting & Dominios</span>
+                Hosting <span className="text-[#8E0E75]">Control</span>
               </h1>
             </div>
             <p className="text-xs sm:text-sm text-[#4A4A4A]">

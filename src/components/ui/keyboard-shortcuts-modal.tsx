@@ -182,19 +182,19 @@ export function KeyboardShortcutsModal() {
         },
         {
           keys: ['Alt', '2'],
-          description: 'Ir a Tiempo (Horas por Cliente / Coordinación)',
+          description: 'Ir a Brain Time (Horas por Cliente / Coordinación)',
         },
         {
           keys: ['Alt', '3'],
-          description: 'Ir a Agenda (Calendario y Post-its)',
+          description: 'Ir a Brain Schedule (Calendario y Post-its)',
         },
         {
           keys: ['Alt', '4'],
-          description: 'Ir a Chat Corporativo (Brain Up Comms)',
+          description: 'Ir a Brain Chat (Canales de Cliente)',
         },
         {
           keys: ['Alt', '5'],
-          description: 'Ir a Brain Up Subtitulado',
+          description: 'Ir a Brain Subtitles',
         },
         {
           keys: ['?'],
@@ -204,7 +204,7 @@ export function KeyboardShortcutsModal() {
     },
     {
       id: 'taskflow',
-      title: 'Agenda, Calendario y Modales',
+      title: 'Brain Schedule, Calendario y Modales',
       iconName: 'CheckSquare',
       items: [
         {

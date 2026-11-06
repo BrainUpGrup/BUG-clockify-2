@@ -19,7 +19,7 @@ export interface HubApp {
 export const BRAIN_UP_HUB_APPS: HubApp[] = [
   {
     id: 'clockify',
-    name: 'Brain Up Tiempo',
+    name: 'Brain Time',
     tagline: 'Control Horario & Cuotas de Clientes',
     description: 'Imputación precisa de tiempo por cliente, balance de cuotas mensuales al milímetro y generación de informes ejecutivos en PDF.',
     category: 'operaciones',
@@ -31,7 +31,7 @@ export const BRAIN_UP_HUB_APPS: HubApp[] = [
   },
   {
     id: 'taskflow',
-    name: 'Brain Up Agenda',
+    name: 'Brain Schedule',
     tagline: 'Gestión de Proyectos, Calendario L-V & Post-its',
     description: 'Calendario laboral de 5 días con panel de notificaciones integrado, mural de post-its con alarmas y auto-desplazamiento.',
     category: 'operaciones',
@@ -43,7 +43,7 @@ export const BRAIN_UP_HUB_APPS: HubApp[] = [
   },
   {
     id: 'hosting',
-    name: 'Brain Up Hosting',
+    name: 'Hosting Control',
     tagline: 'Gestión de Servidores, Dominios & Renovaciones',
     description: 'Control centralizado de hostings y dominios de clientes, importación/exportación CSV, alertas escalonadas de vencimiento (7, 15, 30, 60, 90 días) y avisos de renovación.',
     category: 'operaciones',
@@ -55,7 +55,7 @@ export const BRAIN_UP_HUB_APPS: HubApp[] = [
   },
   {
     id: 'chat',
-    name: 'Brain Up Chat',
+    name: 'Brain Chat',
     tagline: 'Comunicación por Clientes & Tareas Anti-Ruido',
     description: 'Plataforma de comunicación interna estilo Slack con canales por cliente, grupos internos y panel de resumen con tareas pendientes de revisar.',
     category: 'operaciones',
@@ -67,7 +67,7 @@ export const BRAIN_UP_HUB_APPS: HubApp[] = [
   },
   {
     id: 'subtitulos',
-    name: 'Brain Up Subtitulado',
+    name: 'Brain Subtitles',
     tagline: 'Pausado · Modo Mantenimiento',
     description: 'Arquitectura completa integrada (Whisper large-v3 + Claude + ffmpeg). Pausada temporalmente para optimizar costes de API hasta contar con proyectos de subtitulado recurrente. Para consultas, utiliza el Chat.',
     category: 'creatividad',

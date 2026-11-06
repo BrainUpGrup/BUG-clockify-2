@@ -1709,3 +1709,34 @@
   - `npx tsc --noEmit`: **0 errores de compilación**.
   - `npm run build`: **20/20 páginas y endpoints generados con éxito**.
   - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis), DM-02 (Controles In-App), DM-08 (Seguridad RLS), DM-13 (Identidad "La Abuela") y DM-15 (Zero-Scroll).
+
+### [v3.8.6] - 2026-11-06 - Renombrado Corporativo de Herramientas de la Suite Brain Up
+- **Solicitud del Usuario:**
+  *"vamos a cambiar los nombre 
+  Brain up tiempo= brain time
+  Brain up agenda= brain schedule 
+  Brain up hosting= Hosting control
+  Brain up chat = Brain chat
+  Brain up subtitulado= Brain subtitles"*
+- **Diagnóstico y Decisiones Técnicas:**
+  1. **Catálogo Oficial del HUB (`src/lib/hub-apps.ts`):**
+     - Actualizados los nombres de las 5 herramientas oficiales de la suite con tipografía Title Case corporativa:
+       - `clockify`: **Brain Time** (Control horario, cronómetro y cuotas).
+       - `taskflow`: **Brain Schedule** (Calendario laboral L-V, proyectos y mural interactivo de post-its).
+       - `hosting`: **Hosting Control** (Gestión de servidores, dominios, subhostings y alertas).
+       - `chat`: **Brain Chat** (Mensajería corporativa estilo Slack, canales y resumen anti-ruido).
+       - `subtitulos`: **Brain Subtitles** (Módulo de transcripción e IA en modo mantenimiento).
+  2. **Barra de Navegación Global (`src/components/navbar.tsx`):**
+     - Sincronización de `getAppNavLabel(app)` para devolver los nombres oficiales actualizados en botones de acceso rápido y pastillas activas en toda la aplicación.
+  3. **Cabeceras de Módulos, Modales y Notificaciones:**
+     - `src/app/apps/hosting/page.tsx`: Cabecera principal actualizada a **Hosting Control** y pantalla de carga ajustada.
+     - `src/app/apps/taskflow/page.tsx`: Pantallas de carga y transiciones ajustadas a **Brain Schedule**.
+     - `src/app/apps/subtitulos/page.tsx`: Mensajes de permiso, estado y enlaces cruzados a chat actualizados a **Brain Subtitles** y **Brain Chat**.
+     - `src/app/apps/chat/page.tsx`: Pantalla de carga actualizada a **Brain Chat**.
+     - `src/components/ui/keyboard-shortcuts-modal.tsx`: Actualizadas descripciones de atajos (`Alt+2` Brain Time, `Alt+3` Brain Schedule, `Alt+4` Brain Chat, `Alt+5` Brain Subtitles).
+     - `src/lib/email/gmail-service.ts`: Plantillas de alertas y cabeceras de notificación alineadas a **Hosting Control**.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - `npm run build`: **20/20 páginas y rutas de API compiladas con éxito**.
+  - Verificación visual de tarjetas del HUB idénticas a la captura adjunta por el usuario.
+  - Cumplimiento de todas las Directrices Maestras (DM-01 Cero Emojis, DM-02 Controles In-App, DM-13 Identidad "La Abuela", DM-15 Zero-Scroll).

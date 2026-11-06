@@ -163,12 +163,12 @@ export function Navbar() {
   };
 
   const getAppNavLabel = (app: HubApp) => {
-    if (app.id === 'clockify') return 'Tiempo';
-    if (app.id === 'taskflow') return 'Agenda';
-    if (app.id === 'hosting') return 'Hosting';
-    if (app.id === 'subtitulos') return 'Subtítulos';
-    if (app.id === 'chat') return 'Chat';
-    return app.name.replace(/^Brain Up\s+/, '');
+    if (app.id === 'clockify') return 'Brain Time';
+    if (app.id === 'taskflow') return 'Brain Schedule';
+    if (app.id === 'hosting') return 'Hosting Control';
+    if (app.id === 'subtitulos') return 'Brain Subtitles';
+    if (app.id === 'chat') return 'Brain Chat';
+    return app.name;
   };
 
   // Lista modular y dinámica de enlaces de navegación según las favoritas del usuario y rol dual

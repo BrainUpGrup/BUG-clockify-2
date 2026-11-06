@@ -51,7 +51,7 @@ export default function SubtitulosPage() {
       if (!user) {
         router.replace('/login');
       } else if (user.role === 'employee' && !canUserAccessHubApp(user, 'subtitulos')) {
-        flagAccessDenied('No tienes acceso a Brain Up Subtitulado. Pídeselo a tu coordinadora.');
+        flagAccessDenied('No tienes acceso a Brain Subtitles. Pídeselo a tu coordinadora.');
         router.replace('/hub');
       }
     }
@@ -148,7 +148,7 @@ export default function SubtitulosPage() {
         <div className="flex flex-col items-center gap-3">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#D8CFF0] border-t-[#8E0E75]" />
           <p className="text-xs font-bold uppercase tracking-wider text-[#292929]">
-            Cargando Brain Up Subtitulado...
+            Cargando Brain Subtitles...
           </p>
         </div>
       </div>
@@ -176,7 +176,7 @@ export default function SubtitulosPage() {
               <div>
                 <div className="flex items-center gap-2">
                   <h1 className="text-2xl sm:text-3xl font-black text-[#292929] tracking-tight">
-                    Brain Up Subtitulado
+                    Brain Subtitles
                   </h1>
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300">
                     Modo Mantenimiento
@@ -205,7 +205,7 @@ export default function SubtitulosPage() {
             </h2>
 
             <p className="text-sm sm:text-base text-[#4A4A4A] leading-relaxed">
-              Actualmente no disponemos de un cliente con volumen recurrente de subtitulado que justifique el coste continuo de la API de IA (Claude / Anthropic). Para cualquier necesidad puntual de transcripción o subtitulado, el equipo canalizará las solicitudes directamente a través de nuestro <strong className="text-[#8E0E75]">Brain Up Chat</strong>.
+              Actualmente no disponemos de un cliente con volumen recurrente de subtitulado que justifique el coste continuo de la API de IA (Claude / Anthropic). Para cualquier necesidad puntual de transcripción o subtitulado, el equipo canalizará las solicitudes directamente a través de nuestro <strong className="text-[#8E0E75]">Brain Chat</strong>.
             </p>
 
             {/* Botones de acción directos */}
@@ -215,7 +215,7 @@ export default function SubtitulosPage() {
                 className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#8E0E75] hover:bg-[#700B5C] text-white font-bold text-sm shadow-md hover:shadow-lg transition-all cursor-pointer group"
               >
                 <MessageSquare className="h-4 w-4" />
-                <span>Ir al Chat de Brain Up</span>
+                <span>Ir a Brain Chat</span>
                 <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
               </Link>
 

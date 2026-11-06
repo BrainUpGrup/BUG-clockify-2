@@ -141,3 +141,4 @@ CREATE POLICY "taskflow_postits_select_policy" ON public.taskflow_postits
 DROP POLICY IF EXISTS "taskflow_postits_all_policy" ON public.taskflow_postits;
 CREATE POLICY "taskflow_postits_all_policy" ON public.taskflow_postits
   FOR ALL USING (true) WITH CHECK (true);
+

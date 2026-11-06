@@ -545,7 +545,7 @@ function TaskFlowContent() {
         <div className="flex flex-col items-center gap-3">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#D8CFF0] border-t-[#8E0E75]" />
           <p className="text-xs font-bold uppercase tracking-wider text-[#292929]">
-            Cargando Brain Up Agenda...
+            Cargando Brain Schedule...
           </p>
         </div>
       </div>
@@ -1045,7 +1045,7 @@ export default function TaskFlowAppPage() {
           <div className="flex flex-col items-center gap-3">
             <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#D8CFF0] border-t-[#8E0E75]" />
             <p className="text-xs font-bold uppercase tracking-wider text-[#292929]">
-              Cargando Brain Up Agenda...
+              Cargando Brain Schedule...
             </p>
           </div>
         </div>

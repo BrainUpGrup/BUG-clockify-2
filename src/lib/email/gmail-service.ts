@@ -166,7 +166,7 @@ export function generateHostingAlertsEmailHtml(
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <title>Alerta de Vencimientos - Brain Up Hosting</title>
+  <title>Alerta de Vencimientos - Hosting Control</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #F8F6FC; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #F8F6FC; padding: 24px 12px;">
@@ -389,7 +389,7 @@ export function generateSingleServiceAlertEmailHtml(
   `.trim();
 
   const text = `
-ALERTA CRÍTICA DE COORDINACIÓN - BRAIN UP HOSTING
+ALERTA CRÍTICA DE COORDINACIÓN - HOSTING CONTROL
 Servicio: ${service.name}
 Cliente: ${service.client_name || 'No asignado'}
 Estado: ${statusLabel}
