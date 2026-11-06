@@ -1740,3 +1740,30 @@
   - `npm run build`: **20/20 páginas y rutas de API compiladas con éxito**.
   - Verificación visual de tarjetas del HUB idénticas a la captura adjunta por el usuario.
   - Cumplimiento de todas las Directrices Maestras (DM-01 Cero Emojis, DM-02 Controles In-App, DM-13 Identidad "La Abuela", DM-15 Zero-Scroll).
+
+### [v3.8.7] - 2026-11-06 - Edición Completa de Empresas y Clientes desde el Panel de Coordinación
+- **Solicitud del Usuario:**
+  *"cuando se crre una empresa tiene que poder eitarse desde el panel de cordinadora"*
+- **Diagnóstico y Decisiones Técnicas:**
+  1. **Detección de Limitación en el Panel de Coordinación:**
+     - El componente `CompanyCrud` permitía dar de alta empresas, alternar su estado activo/archivado y eliminarlas si no tenían horas imputadas, pero carecía por completo de capacidad de edición.
+     - Si una coordinadora cometía un error en el nombre, deseaba cambiar el tipo de cliente (cuota vs puntual), modificar la bolsa de horas mensuales, actualizar el CIF o modificar la persona/email de contacto, no existía mecanismo en la interfaz para hacerlo.
+  2. **Modal de Edición Compacto Zero-Scroll (`src/components/coordinator/edit-company-modal.tsx`):**
+     - Nuevo modal corporativo "La Abuela" estructurado en rejilla compacta de dos columnas (`grid md:grid-cols-12`) con altura contenida (< 420px) sin scroll:
+       - Modificación directa del nombre comercial con validación en tiempo real.
+       - Selector in-app conmutable de relación comercial: **Cliente Cuota** (lila `#8E0E75`) vs **Cliente Puntual** (azul índigo `#191654`).
+       - Configuración precisa de la cuota mensual de horas con sufijo `h / mes` en formato tabular (`tabular-nums`).
+       - Edición de NIF/CIF en fuente monoespaciada, persona de contacto y email oficial.
+       - Conmutador visual de estado operativo: **Activa** (verde `#3BB54A`) vs **Archivada** (rojo carmín).
+       - Cierre ágil mediante tecla `Escape`, botón `X` en cabecera o botón cancelar.
+  3. **Integración en el Listado de Empresas (`src/components/coordinator/company-crud.tsx`):**
+     - Botón de edición dedicado con icono vectorial `Pencil` en la columna de Acciones de cada fila.
+     - Enlace interactivo en el propio nombre de la empresa para abrir el modal con un solo clic.
+     - Buscador rápido en la cabecera de la tabla para filtrar por nombre, CIF, contacto o email al instante.
+  4. **Persistencia Dual y Sincronización en Tiempo Real (`src/app/dashboard/coordinator/page.tsx`):**
+     - Implementación de `handleUpdateCompany`: actualiza en Supabase PostgreSQL mediante RLS (`is_coordinator()`) y sincroniza inmediatamente el estado en React, el almacenamiento local (`bug_clockify_cache_companies`) y propaga el nuevo nombre a todos los registros de tiempo cargados en memoria.
+     - Refuerzo de `safeSetLocalStorage` en la creación (`handleCreateCompany`) y cambio de estado (`handleToggleCompanyStatus`) para erradicar cualquier desincronización de caché.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - `npm run build`: **20/20 páginas y endpoints generados con éxito (0 advertencias)**.
+  - Cumplimiento de las Directrices Maestras DM-01 (Cero Emojis), DM-02 (Controles In-App), DM-04 (Modelo Exclusivo por Empresa), DM-13 (Identidad "La Abuela") y DM-15 (Zero-Scroll).

@@ -186,10 +186,20 @@ export default function CoordinatorDashboardPage() {
           .single();
 
         if (!error && data) {
-          setCompanies((prev) => [...prev, data as Company]);
+          const newComp = data as Company;
+          setCompanies((prev) => {
+            const next = [...prev, newComp];
+            safeSetLocalStorage('bug_clockify_cache_companies', next);
+            return next;
+          });
+          notify('Empresa creada correctamente.', { type: 'success' });
+        } else if (error) {
+          console.error(error);
+          notify('Error al crear la empresa: ' + error.message, { type: 'error' });
         }
       } catch (err) {
         console.error(err);
+        notify('Error al crear la empresa.', { type: 'error' });
       }
     } else {
       const newComp: Company = {
@@ -204,7 +214,12 @@ export default function CoordinatorDashboardPage() {
         is_active: true,
         created_at: new Date().toISOString(),
       };
-      setCompanies((prev) => [...prev, newComp]);
+      setCompanies((prev) => {
+        const next = [...prev, newComp];
+        safeSetLocalStorage('bug_clockify_cache_companies', next);
+        return next;
+      });
+      notify('Empresa creada (modo local).', { type: 'success' });
     }
   };
 
@@ -290,9 +305,107 @@ export default function CoordinatorDashboardPage() {
         console.error(err);
       }
     }
-    setCompanies((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, is_active: !currentStatus } : c))
-    );
+    setCompanies((prev) => {
+      const next = prev.map((c) => (c.id === id ? { ...c, is_active: !currentStatus } : c));
+      safeSetLocalStorage('bug_clockify_cache_companies', next);
+      return next;
+    });
+  };
+
+  // Manejar edición de empresa desde el panel de coordinadora
+  const handleUpdateCompany = async (
+    id: string,
+    updates: {
+      name: string;
+      client_type: ClientType;
+      monthly_hours_quota: number | null;
+      cif?: string | null;
+      contact_name?: string | null;
+      contact_email?: string | null;
+      is_active?: boolean;
+    }
+  ) => {
+    if (isSupabaseConnected) {
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from('companies')
+          .update({
+            name: updates.name,
+            client_type: updates.client_type,
+            monthly_hours_quota: updates.client_type === 'cuota' ? updates.monthly_hours_quota : null,
+            cif: updates.cif || null,
+            contact_name: updates.contact_name || null,
+            contact_email: updates.contact_email || null,
+            ...(typeof updates.is_active === 'boolean' ? { is_active: updates.is_active } : {}),
+          })
+          .eq('id', id)
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Error al actualizar la empresa en Supabase:', error);
+          notify('Error al guardar cambios: ' + error.message, { type: 'error' });
+          return;
+        }
+
+        if (data) {
+          const updated = data as Company;
+          setCompanies((prev) => {
+            const next = prev.map((c) => (c.id === id ? updated : c));
+            safeSetLocalStorage('bug_clockify_cache_companies', next);
+            return next;
+          });
+          // Actualizar registros de tiempo si cambió el nombre
+          setAllEntries((prev) =>
+            prev.map((e) =>
+              e.company_id === id
+                ? { ...e, company: { ...(e.company || {}), ...updated } as Company }
+                : e
+            )
+          );
+          notify('Empresa actualizada correctamente.', { type: 'success' });
+        }
+      } catch (err) {
+        console.error('Excepción al actualizar empresa:', err);
+        notify('Error inesperado al actualizar la empresa.', { type: 'error' });
+      }
+    } else {
+      setCompanies((prev) => {
+        const next = prev.map((c) =>
+          c.id === id
+            ? {
+                ...c,
+                name: updates.name,
+                client_type: updates.client_type,
+                monthly_hours_quota: updates.client_type === 'cuota' ? updates.monthly_hours_quota : null,
+                cif: updates.cif ?? c.cif,
+                contact_name: updates.contact_name ?? c.contact_name,
+                contact_email: updates.contact_email ?? c.contact_email,
+                ...(typeof updates.is_active === 'boolean' ? { is_active: updates.is_active } : {}),
+              }
+            : c
+        );
+        safeSetLocalStorage('bug_clockify_cache_companies', next);
+        return next;
+      });
+      setAllEntries((prev) =>
+        prev.map((e) =>
+          e.company_id === id
+            ? {
+                ...e,
+                company: {
+                  ...(e.company || {}),
+                  name: updates.name,
+                  client_type: updates.client_type,
+                  monthly_hours_quota: updates.client_type === 'cuota' ? updates.monthly_hours_quota : null,
+                } as Company,
+              }
+            : e
+        )
+      );
+      notify('Empresa actualizada (modo local).', { type: 'success' });
+    }
   };
 
   // Manejar eliminación de empresa
@@ -311,7 +424,11 @@ export default function CoordinatorDashboardPage() {
         console.error(err);
       }
     }
-    setCompanies((prev) => prev.filter((c) => c.id !== id));
+    setCompanies((prev) => {
+      const next = prev.filter((c) => c.id !== id);
+      safeSetLocalStorage('bug_clockify_cache_companies', next);
+      return next;
+    });
   };
 
   if (authLoading || !user || user.role !== 'coordinator') {
@@ -468,6 +585,7 @@ export default function CoordinatorDashboardPage() {
               companies={companies}
               entries={allEntries}
               onCreateCompany={handleCreateCompany}
+              onUpdateCompany={handleUpdateCompany}
               onToggleCompanyStatus={handleToggleCompanyStatus}
               onDeleteCompany={handleDeleteCompany}
             />

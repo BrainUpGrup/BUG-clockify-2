@@ -7,14 +7,18 @@ import {
   Trash2, 
   Archive, 
   Layers,
-  Clock,
-  Tag,
-  Mail,
-  User,
-  FileSpreadsheet
+  Clock, 
+  Tag, 
+  Mail, 
+  User, 
+  FileSpreadsheet,
+  Pencil,
+  Search,
+  CheckCircle2
 } from 'lucide-react';
 import { Company, TimeEntry, ClientType } from '@/types/database';
-import { confirmDialog } from '@/lib/feedback';
+import { confirmDialog, notify } from '@/lib/feedback';
+import { EditCompanyModal } from '@/components/coordinator/edit-company-modal';
 
 interface CompanyCrudProps {
   companies: Company[];
@@ -27,6 +31,18 @@ interface CompanyCrudProps {
     contactName?: string,
     contactEmail?: string
   ) => Promise<void>;
+  onUpdateCompany: (
+    id: string,
+    updates: {
+      name: string;
+      client_type: ClientType;
+      monthly_hours_quota: number | null;
+      cif?: string | null;
+      contact_name?: string | null;
+      contact_email?: string | null;
+      is_active?: boolean;
+    }
+  ) => Promise<void>;
   onToggleCompanyStatus: (id: string, currentStatus: boolean) => Promise<void>;
   onDeleteCompany: (id: string) => Promise<void>;
 }
@@ -35,6 +51,7 @@ export function CompanyCrud({
   companies,
   entries,
   onCreateCompany,
+  onUpdateCompany,
   onToggleCompanyStatus,
   onDeleteCompany,
 }: CompanyCrudProps) {
@@ -46,6 +63,8 @@ export function CompanyCrud({
   const [contactEmail, setContactEmail] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [isCreatingCompany, setIsCreatingCompany] = useState(false);
+  const [editingCompany, setEditingCompany] = useState<Company | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleCreateCompanySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,6 +91,17 @@ export function CompanyCrud({
       setIsCreatingCompany(false);
     }
   };
+
+  const filteredCompanies = companies.filter((company) => {
+    if (!searchQuery.trim()) return true;
+    const term = searchQuery.toLowerCase().trim();
+    return (
+      company.name.toLowerCase().includes(term) ||
+      (company.cif && company.cif.toLowerCase().includes(term)) ||
+      (company.contact_name && company.contact_name.toLowerCase().includes(term)) ||
+      (company.contact_email && company.contact_email.toLowerCase().includes(term))
+    );
+  });
 
   return (
     <div className="w-full space-y-6">
@@ -176,7 +206,7 @@ export function CompanyCrud({
               onClick={() => setShowAdvanced(!showAdvanced)}
               className="text-xs font-bold text-[#8E0E75] hover:text-[#700B5C] uppercase tracking-wider cursor-pointer"
             >
-              {showAdvanced ? '▲ Ocultar datos de contacto y CIF' : '▼ Añadir CIF y persona de contacto (opcional)'}
+              {showAdvanced ? 'Ocultar datos de contacto y CIF' : 'Añadir CIF y persona de contacto (opcional)'}
             </button>
           </div>
 
@@ -234,22 +264,38 @@ export function CompanyCrud({
         </form>
       </div>
 
-      {/* Listado Líquido de Empresas */}
+      {/* Listado Líquido de Empresas con Búsqueda y Edición Completa */}
       <div className="w-full rounded-2xl border-2 border-[#D0C4EB] bg-white overflow-hidden shadow-md shadow-[#191654]/6 transition-shadow hover:shadow-lg hover:shadow-[#191654]/10">
-        <div className="px-6 py-4 bg-[#F8F6FC] border-b border-[#D8CFF0] flex items-center justify-between">
+        <div className="px-6 py-4 bg-[#F8F6FC] border-b border-[#D8CFF0] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h4 className="font-extrabold uppercase tracking-tight text-sm text-[#292929]">
               EMPRESAS Y CLIENTES <span className="text-[#8E0E75]">REGISTRADOS</span> ({companies.length})
             </h4>
             <p className="text-xs text-[#4A4A4A] font-light">
-              Clientes cuota con control al milímetro y clientes de servicios puntuales
+              Haz clic sobre el nombre o en el botón de edición para modificar cualquier empresa o cuota
             </p>
+          </div>
+
+          {/* Buscador Rápido de Empresas */}
+          <div className="relative w-full sm:w-64">
+            <Search className="h-4 w-4 text-[#8E0E75] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar cliente, CIF..."
+              className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-[#D8CFF0] bg-white text-xs text-[#292929] placeholder:text-slate-400 focus:border-[#8E0E75] focus:ring-1 focus:ring-[#8E0E75]/20 outline-none transition-all"
+            />
           </div>
         </div>
 
         {companies.length === 0 ? (
           <div className="p-8 text-center text-xs text-[#4A4A4A]">
             No hay empresas registradas todavía. Añade la primera arriba.
+          </div>
+        ) : filteredCompanies.length === 0 ? (
+          <div className="p-8 text-center text-xs text-[#4A4A4A]">
+            No se encontraron empresas con el término &quot;{searchQuery}&quot;.
           </div>
         ) : (
           <div className="w-full overflow-x-auto">
@@ -266,7 +312,7 @@ export function CompanyCrud({
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#EAE4F5]">
-                {companies.map((company) => {
+                {filteredCompanies.map((company) => {
                   const companyEntries = entries.filter((e) => e.company_id === company.id);
                   const totalCompanyMinutes = companyEntries.reduce((sum, e) => sum + e.duration_minutes, 0);
 
@@ -274,9 +320,17 @@ export function CompanyCrud({
                     <tr key={company.id} className="hover:bg-[#F8F6FC] transition-colors border-b border-[#F0EAF8] last:border-b-0">
                       <td className="px-6 py-3.5">
                         <div className="flex items-center gap-2">
-                          <Building2 className="h-4 w-4 text-[#8E0E75]" />
+                          <Building2 className="h-4 w-4 text-[#8E0E75] shrink-0" />
                           <div>
-                            <span className="font-bold text-sm text-[#292929] block">{company.name}</span>
+                            <button
+                              type="button"
+                              onClick={() => setEditingCompany(company)}
+                              className="font-bold text-sm text-[#292929] hover:text-[#8E0E75] flex items-center gap-1.5 transition-colors text-left cursor-pointer group"
+                              title="Haz clic para editar los datos de esta empresa"
+                            >
+                              <span>{company.name}</span>
+                              <Pencil className="h-3 w-3 text-slate-300 group-hover:text-[#8E0E75] transition-colors" />
+                            </button>
                             {company.cif && (
                               <span className="text-[11px] text-[#4A4A4A] font-mono block">CIF: {company.cif}</span>
                             )}
@@ -337,14 +391,29 @@ export function CompanyCrud({
                       </td>
                       <td className="px-6 py-3.5 text-right">
                         <div className="flex items-center justify-end gap-2">
+                          {/* Botón Editar Empresa */}
+                          <button
+                            type="button"
+                            onClick={() => setEditingCompany(company)}
+                            className="p-1.5 rounded-lg border border-[#D8CFF0] bg-white text-[#8E0E75] hover:bg-[#F8F6FC] hover:border-[#8E0E75] transition-colors cursor-pointer"
+                            title="Editar Empresa / Cuota / Contacto"
+                            aria-label={`Editar ${company.name}`}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+
+                          {/* Botón Archivar/Reactivar */}
                           <button
                             type="button"
                             onClick={() => onToggleCompanyStatus(company.id, company.is_active)}
                             className="p-1.5 rounded-lg border border-[#D8CFF0] bg-white text-[#4A4A4A] hover:bg-[#F8F6FC] hover:text-[#8E0E75] transition-colors cursor-pointer"
                             title={company.is_active ? 'Archivar Empresa' : 'Reactivar Empresa'}
+                            aria-label={company.is_active ? `Archivar ${company.name}` : `Reactivar ${company.name}`}
                           >
                             <Archive className="h-4 w-4" />
                           </button>
+
+                          {/* Botón Eliminar */}
                           <button
                             type="button"
                             onClick={async () => {
@@ -372,6 +441,14 @@ export function CompanyCrud({
           </div>
         )}
       </div>
+
+      {/* Modal de Edición de Empresa */}
+      <EditCompanyModal
+        isOpen={!!editingCompany}
+        company={editingCompany}
+        onClose={() => setEditingCompany(null)}
+        onSave={onUpdateCompany}
+      />
     </div>
   );
 }
