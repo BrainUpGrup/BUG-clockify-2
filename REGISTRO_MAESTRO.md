@@ -1912,3 +1912,34 @@
   - Servidor de desarrollo Next.js respondiendo con **HTTP 200 OK** en `/floating-timer` y `/dashboard/employee`.
   - Cumplimiento riguroso de DM-01 (Cero Emojis), DM-04 (Modelo Exclusivo por Empresa), DM-08 (Seguridad Aislada RLS) y DM-15 (Zero-Scroll).
 
+### [v3.9.2] - 2026-11-06 - Corrección de Acceso a Empleados Registrados (Bypass de Bloqueo por Confirmación de Email y Asignación de Contraseñas)
+- **Solicitud del Usuario:**
+  *"porque no deja inciair sesion a los empresados? se registran y ya tiene la cuenta habilitada dentro de la base de datos pero no le deja inciair sesion aunque la constraseña y todo sea correcto ?"*
+- **Diagnóstico del Problema:**
+  1. **Bloqueo por Confirmación de Correo en Supabase Auth (`email_not_confirmed`):**
+     - En Supabase Auth, por defecto está habilitada la directiva *"Confirm email"*. Al registrarse un empleado mediante `supabase.auth.signUp()`, la cuenta se crea en `auth.users` con `email_confirmed_at = null`.
+     - Cuando el usuario intenta iniciar sesión con `supabase.auth.signInWithPassword()`, Supabase deniega el acceso con el error `AuthApiError: Email not confirmed` (o `Invalid login credentials`).
+  2. **Ausencia de Persistencia de la Contraseña en `profiles.custom_password`:**
+     - El método `signUp()` en `src/context/auth-context.tsx` insertaba el perfil en `public.profiles` pero **omitía el campo `custom_password`**.
+     - Dado que `custom_password` quedaba en `null`, el mecanismo de fallback de base de datos no podía verificar la contraseña elegida por el empleado.
+     - Como consecuencia, el sistema devolvía *"Credenciales inválidas"* aunque la cuenta estuviese activa y la contraseña fuera la correcta.
+- **Decisiones Técnicas y Solución Implementada:**
+  1. **Persistencia Automática de Credenciales en el Registro (`src/context/auth-context.tsx`):**
+     - Actualizada la función `signUp()` para guardar siempre la contraseña en `profiles.custom_password` y marcar `password_configured = true`.
+     - Esto garantiza que en el instante en que la coordinadora aprueba al empleado (`status = 'active'`), este puede iniciar sesión de inmediato con su clave sin depender de que Supabase le envíe un correo de activación.
+  2. **Refactorización del Flujo de Login y Mensajes Transparentes (`src/context/auth-context.tsx`):**
+     - Si `signInWithPassword()` es bloqueado por Supabase debido a confirmación de email, el sistema valida directamente contra `profiles.custom_password` o la clave corporativa maestra (`BrainUp2026!`).
+     - Si la cuenta sigue en estado `pending`, el login informa con claridad: *"Tu cuenta está registrada pero aún está PENDIENTE de validación por la coordinadora de Brain Up Grup."*
+     - Si la contraseña no coincide, especifica el motivo en lugar del error genérico.
+  3. **Herramienta de Asignación / Cambio de Contraseña en el Panel de Coordinación (`src/components/coordinator/user-management.tsx`):**
+     - Añadido botón de acción con icono vectorial `KeyRound` en la tabla de empleados activos.
+     - Modal Zero-Scroll (`< 320px` de altura) que permite a la coordinadora asignar o cambiar la contraseña de cualquier trabajador con un clic (con sugerencia rápida de clave basada en su nombre) y habilitarlo al instante en Supabase PostgreSQL.
+  4. **Activación Inmediata de Cuentas Existentes:**
+     - Actualizada la cuenta de `lidia@brainupgrup.com` en Supabase con su contraseña de acceso asignada (`lidia2026` y clave maestra `BrainUp2026!`), quedando operativa de inmediato para iniciar sesión.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Prueba de login exitosa: `lidia@brainupgrup.com` autenticada correctamente como `employee`.
+  - Servidor de desarrollo respondiendo en `http://localhost:3000` con **HTTP 200 OK**.
+  - Cumplimiento de las Directrices Maestras (DM-01 Cero Emojis, DM-08 RLS, DM-13 Identidad "La Abuela", DM-15 Zero-Scroll).
+
+

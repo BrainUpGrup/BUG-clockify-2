@@ -214,3 +214,4 @@ export async function saveStoppedTimerEntry(params: SaveStoppedTimerParams): Pro
     error: saveError || undefined,
   };
 }
+

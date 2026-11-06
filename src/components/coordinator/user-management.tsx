@@ -14,12 +14,17 @@ import {
   Clock, 
   Trash2,
   AlertCircle,
-  Briefcase
+  Briefcase,
+  KeyRound,
+  Lock,
+  RefreshCw,
+  X
 } from 'lucide-react';
 import { Profile, TimeEntry, UserRole } from '@/types/database';
 import { formatMinutes } from '@/lib/utils';
-import { confirmDialog } from '@/lib/feedback';
+import { confirmDialog, notify } from '@/lib/feedback';
 import { UserAvatar } from '@/components/ui/user-avatar';
+import { createClient } from '@/lib/supabase/client';
 
 interface UserManagementProps {
   employees: Profile[];
@@ -39,6 +44,66 @@ export function UserManagement({
   const [copied, setCopied] = useState(false);
   const [registerUrl, setRegisterUrl] = useState('http://localhost:3000/register?invite=brainup');
   const [processingId, setProcessingId] = useState<string | null>(null);
+
+  // Estado para modal de asignación de contraseña
+  const [passwordModalEmployee, setPasswordModalEmployee] = useState<Profile | null>(null);
+  const [newPasswordInput, setNewPasswordInput] = useState('');
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+
+  const handleOpenPasswordModal = (emp: Profile) => {
+    setPasswordModalEmployee(emp);
+    setNewPasswordInput('');
+  };
+
+  const handleGeneratePassword = () => {
+    if (!passwordModalEmployee) return;
+    const namePart = (passwordModalEmployee.full_name.split(' ')[0] || 'empleado').toLowerCase();
+    setNewPasswordInput(`${namePart}2026`);
+  };
+
+  const handleSavePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!passwordModalEmployee) return;
+    if (!newPasswordInput.trim() || newPasswordInput.trim().length < 6) {
+      notify('La contraseña debe tener al menos 6 caracteres.', { type: 'warning' });
+      return;
+    }
+
+    setIsUpdatingPassword(true);
+    const cleanPwd = newPasswordInput.trim();
+
+    try {
+      // 1. Guardar en Supabase profiles directamente
+      const supabase = createClient();
+      await supabase
+        .from('profiles')
+        .update({
+          custom_password: cleanPwd,
+          password_configured: true,
+        })
+        .eq('id', passwordModalEmployee.id);
+
+      // 2. Disparar endpoint de sincronización
+      await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_password',
+          email: passwordModalEmployee.email,
+          newPassword: cleanPwd,
+        }),
+      });
+
+      notify(`Contraseña asignada con éxito a ${passwordModalEmployee.full_name}. Ya puede iniciar sesión.`, { type: 'success' });
+      setPasswordModalEmployee(null);
+      setNewPasswordInput('');
+    } catch (err) {
+      console.error('Error saving employee password:', err);
+      notify('Hubo un error al actualizar la contraseña.', { type: 'error' });
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  };
 
   // Obtener URL completa del navegador si está disponible
   useEffect(() => {
@@ -273,7 +338,7 @@ export function UserManagement({
                 <th className="px-6 py-3.5 text-center">Rol</th>
                 <th className="px-6 py-3.5 text-center">Horas Registradas</th>
                 <th className="px-6 py-3.5 text-center">Estado</th>
-                {onDeleteUser && <th className="px-6 py-3.5 text-right">Acciones</th>}
+                <th className="px-6 py-3.5 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#EAE4F5]">
@@ -343,9 +408,18 @@ export function UserManagement({
                         Activo
                       </span>
                     </td>
-                    {onDeleteUser && (
-                      <td className="px-6 py-3.5 text-right">
-                        {emp.role !== 'coordinator' && (
+                    <td className="px-6 py-3.5 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenPasswordModal(emp)}
+                          className="p-1.5 rounded-lg border border-[#D8CFF0] bg-white text-[#8E0E75] hover:bg-[#F8F6FC] transition-colors cursor-pointer"
+                          title={`Asignar o cambiar contraseña de acceso para ${emp.full_name}`}
+                        >
+                          <KeyRound className="h-4 w-4" />
+                        </button>
+
+                        {onDeleteUser && emp.role !== 'coordinator' && (
                           <button
                             type="button"
                             onClick={async () => {
@@ -355,7 +429,8 @@ export function UserManagement({
                                 confirmLabel: 'Dar de baja',
                                 danger: true,
                               });
-                              if (ok) onDeleteUser(emp.id);
+                              if (!ok) return;
+                              onDeleteUser(emp.id);
                             }}
                             aria-label={`Dar de baja a ${emp.full_name}`}
                             className="p-1.5 rounded-lg border border-rose-200 bg-white text-rose-500 hover:bg-rose-50 transition-colors cursor-pointer"
@@ -364,8 +439,8 @@ export function UserManagement({
                             <Trash2 className="h-4 w-4" />
                           </button>
                         )}
-                      </td>
-                    )}
+                      </div>
+                    </td>
                   </tr>
                 );
               }))}
@@ -373,6 +448,95 @@ export function UserManagement({
           </table>
         </div>
       </div>
+
+      {/* Modal Zero-Scroll de Asignación / Cambio de Contraseña de Empleado */}
+      {passwordModalEmployee && (
+        <div className="fixed inset-0 z-50 bg-[#191654]/40 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-2xl border-2 border-[#D8CFF0] shadow-2xl w-full max-w-md overflow-hidden animate-scale-in">
+            {/* Cabecera */}
+            <div className="px-5 py-4 bg-gradient-to-r from-[#191654] to-[#8E0E75] text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-white/10">
+                  <KeyRound className="h-4 w-4 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-black uppercase tracking-wider">
+                    Asignar Contraseña
+                  </h3>
+                  <p className="text-[11px] text-white/80 font-light truncate max-w-[280px]">
+                    {passwordModalEmployee.full_name} ({passwordModalEmployee.email})
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPasswordModalEmployee(null)}
+                className="p-1 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Formulario */}
+            <form onSubmit={handleSavePassword} className="p-5 space-y-4">
+              <div>
+                <label className="block text-xs font-extrabold uppercase tracking-wider text-[#292929] mb-1.5">
+                  Nueva Contraseña de Acceso
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <Lock className="h-4 w-4" />
+                  </div>
+                  <input
+                    type="text"
+                    value={newPasswordInput}
+                    onChange={(e) => setNewPasswordInput(e.target.value)}
+                    placeholder="Mínimo 6 caracteres (ej. lidia2026)..."
+                    className="w-full pl-9 pr-3 py-2 bg-[#F8F6FC] border-2 border-[#D8CFF0] focus:border-[#8E0E75] focus:outline-hidden rounded-xl text-xs text-[#292929] font-mono font-bold transition-all"
+                    autoFocus
+                  />
+                </div>
+              </div>
+
+              {/* Botón generar sugerencia rápida */}
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-[11px] text-[#4A4A4A]">¿Deseas una sugerencia rápida?</span>
+                <button
+                  type="button"
+                  onClick={handleGeneratePassword}
+                  className="inline-flex items-center gap-1 text-[11px] font-black uppercase text-[#8E0E75] hover:underline cursor-pointer"
+                >
+                  <RefreshCw className="h-3 w-3" />
+                  <span>Generar sugerida</span>
+                </button>
+              </div>
+
+              <div className="p-3 rounded-xl bg-[#F8F6FC] border border-[#D8CFF0] text-[11px] text-[#4A4A4A] leading-relaxed">
+                Al guardar, el empleado podrá iniciar sesión de inmediato con este correo y esta contraseña sin depender de confirmación de email.
+              </div>
+
+              {/* Botones de acción */}
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#EAE4F5]">
+                <button
+                  type="button"
+                  onClick={() => setPasswordModalEmployee(null)}
+                  className="px-4 py-2 rounded-xl border border-[#D8CFF0] bg-white text-[#4A4A4A] hover:bg-slate-50 text-xs font-bold uppercase tracking-wider cursor-pointer transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUpdatingPassword}
+                  className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-[#3BB54A] hover:bg-[#2e943c] text-white text-xs font-black uppercase tracking-wider shadow-md shadow-emerald-500/20 active:scale-95 disabled:opacity-50 cursor-pointer transition-all"
+                >
+                  <Check className="h-4 w-4 stroke-[2.5]" />
+                  <span>{isUpdatingPassword ? 'Guardando...' : 'Guardar y Habilitar'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

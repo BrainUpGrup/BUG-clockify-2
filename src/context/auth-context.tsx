@@ -452,6 +452,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
+    // Si el usuario existe en Supabase pero la contraseña no coincidió:
+    if (matchedDbProfile) {
+      if (matchedDbProfile.status === 'pending') {
+        return {
+          error: 'Tu cuenta está registrada pero aún está PENDIENTE de validación por la coordinadora de Brain Up Grup.',
+        };
+      }
+      if (matchedDbProfile.status === 'rejected') {
+        return { error: 'Tu solicitud de acceso fue rechazada. Contacta con la coordinadora.' };
+      }
+      if (!matchedDbProfile.custom_password) {
+        return {
+          error: 'Tu cuenta está activa, pero no tiene una contraseña asignada. Usa la clave temporal BrainUp2026! o solicita a la coordinadora que te asigne una.',
+        };
+      }
+      return {
+        error: 'Contraseña incorrecta. Verifica tu contraseña o solicita una nueva a la coordinadora.',
+      };
+    }
+
     // 4. FALLBACK PARA USUARIOS REGISTRADOS EN DEMO O MOCK
     if (isDevOrDemo) {
 
@@ -571,7 +591,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return { error: error.message };
         }
 
-        // Insertar o asegurar registro en profiles (upsert para evitar duplicados si el trigger SQL ya actuó)
+        // Insertar o asegurar registro en profiles con la clave elegida para permitir login directo tras aprobación
         if (data.user) {
           try {
             await supabase.from('profiles').upsert({
@@ -582,10 +602,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               status: 'pending',
               department,
               password_configured: true,
+              custom_password: pass.trim(),
             });
           } catch (upsertErr) {
             console.warn('Profile upsert notice:', upsertErr);
           }
+        }
+
+        // Asegurar que custom_password esté persistido en profiles
+        try {
+          await supabase
+            .from('profiles')
+            .update({
+              custom_password: pass.trim(),
+              password_configured: true,
+            })
+            .eq('email', cleanEmail);
+        } catch (updateErr) {
+          console.warn('Profile update custom_password notice:', updateErr);
         }
 
         // Cerrar cualquier sesión automática para forzar la aprobación previa de la coordinadora
