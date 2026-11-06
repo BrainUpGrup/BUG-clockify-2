@@ -656,11 +656,11 @@ export function Navbar() {
                       href="/dashboard/employee"
                       onClick={() => setShowProfileMenu(false)}
                       className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-[#FAF8FD] text-[#191654] hover:text-[#8E0E75] text-xs font-bold transition-colors cursor-pointer border border-transparent hover:border-[#D8CFF0]"
-                      title="Ir a mi panel de fichaje de horas y tareas como empleada"
+                      title="Ir al registro de horas de clientes"
                     >
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-[#8E0E75]" />
-                        <span>Mi Fichaje (Horas Empleada)</span>
+                        <span>Registro de Horas Clientes</span>
                       </div>
                       <ChevronRight className="h-3.5 w-3.5 text-[#8E0E75]" />
                     </Link>

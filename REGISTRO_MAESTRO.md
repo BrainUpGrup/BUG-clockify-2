@@ -1767,3 +1767,20 @@
   - `npx tsc --noEmit`: **0 errores de compilación**.
   - `npm run build`: **20/20 páginas y endpoints generados con éxito (0 advertencias)**.
   - Cumplimiento de las Directrices Maestras DM-01 (Cero Emojis), DM-02 (Controles In-App), DM-04 (Modelo Exclusivo por Empresa), DM-13 (Identidad "La Abuela") y DM-15 (Zero-Scroll).
+
+### [v3.8.8] - 2026-11-06 - Nomenclatura "Registro de Horas Clientes" y Botón Verde para el Panel de Coordinación
+- **Solicitud del Usuario:**
+  *"cambia el nombre de mi fichaje por: registro de horas clientes y el boton de acesso al panel de coridnaodr lo quiero en color verde"*
+- **Diagnóstico y Decisiones Técnicas:**
+  1. **Tarjeta de Brain Time en el HUB (`src/app/hub/page.tsx`):**
+     - Sustituido el texto de acceso `Mi Fichaje (Horas)` por **`Registro de horas clientes`** (`REGISTRO DE HORAS CLIENTES` en tipografía corporativa en mayúsculas).
+     - El botón secundario de acceso al **Panel Coordinación** se ha transformado al verde corporativo de éxito (`bg-[#3BB54A] hover:bg-[#329B3F] text-white border-2 border-[#3BB54A] shadow-md shadow-[#3BB54A]/25`), con iconos y textos en blanco de alto contraste (`BarChart3` y flecha).
+     - Para la vista de empleados sin rol de coordinación, el botón de apertura directa ahora refleja también de forma intuitiva `Registro de horas clientes`.
+  2. **Acceso Rápido en Cabecera de Coordinación (`src/app/dashboard/coordinator/page.tsx`):**
+     - Actualizado el botón superior de retorno a **`Registro de Horas Clientes`** en lugar de "Mi Fichaje de Horas (Modo Empleada)".
+  3. **Menú de Perfil de la Barra Superior (`src/components/navbar.tsx`):**
+     - Sincronizado el enlace del menú desplegable de usuario a **`Registro de Horas Clientes`**.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - `npm run build`: **20/20 rutas estáticas y dinámicas compiladas con éxito**.
+  - Cumplimiento estricto de DM-01 (Cero Emojis), DM-13 (Identidad "La Abuela" y verde corporativo `#3BB54A`) y DM-15 (Zero-Scroll).

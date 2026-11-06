@@ -461,14 +461,14 @@ export default function CoordinatorDashboardPage() {
             </p>
             </div>
 
-            {/* Acceso directo a Mi Fichaje (DM-05 Rol Dual Perpetuo) */}
+            {/* Acceso directo a Registro de Horas Clientes (DM-05 Rol Dual Perpetuo) */}
             <Link
               href="/dashboard/employee"
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border-2 border-[#D8CFF0] hover:border-[#8E0E75] hover:bg-[#F8F6FC] text-[#8E0E75] text-xs sm:text-sm font-extrabold shadow-2xs hover:shadow-sm transition-all cursor-pointer shrink-0 self-start 2xl:self-auto"
-              title="Ir a mi panel de fichaje de horas y tareas como empleada"
+              title="Ir a registro de horas clientes"
             >
               <Clock className="h-4 w-4 text-[#8E0E75]" />
-              <span>Mi Fichaje de Horas (Modo Empleada)</span>
+              <span>Registro de Horas Clientes</span>
               <ArrowRight className="h-3.5 w-3.5 text-[#8E0E75]" />
             </Link>
           </div>

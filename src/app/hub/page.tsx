@@ -418,7 +418,7 @@ export default function BrainUpHubPage() {
                               <div className="flex flex-wrap items-center gap-2.5 mt-5">
                                 <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#8E0E75] text-white text-xs sm:text-sm font-black uppercase tracking-wider transition-all shadow-2xs group-hover:bg-[#700B5C]">
                                   <Clock className="h-4 w-4" />
-                                  <span>Mi Fichaje (Horas)</span>
+                                  <span>Registro de horas clientes</span>
                                   <ArrowRight className="h-3.5 w-3.5" />
                                 </span>
                                 <button
@@ -428,17 +428,23 @@ export default function BrainUpHubPage() {
                                     e.stopPropagation();
                                     router.push('/dashboard/coordinator');
                                   }}
-                                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border-2 border-[#D8CFF0] hover:border-[#8E0E75] hover:bg-[#F8F6FC] text-[#8E0E75] text-xs sm:text-sm font-black uppercase tracking-wider transition-all shadow-2xs cursor-pointer hover:scale-105 active:scale-95"
+                                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#3BB54A] hover:bg-[#329B3F] text-white border-2 border-[#3BB54A] text-xs sm:text-sm font-black uppercase tracking-wider transition-all shadow-md shadow-[#3BB54A]/25 cursor-pointer hover:scale-105 active:scale-95"
                                   title="Acceder al panel de informes, cuotas y coordinación de equipo"
                                 >
-                                  <BarChart3 className="h-4 w-4 text-[#8E0E75]" />
+                                  <BarChart3 className="h-4 w-4 text-white" />
                                   <span>Panel Coordinación</span>
-                                  <ArrowRight className="h-3.5 w-3.5 text-[#8E0E75]" />
+                                  <ArrowRight className="h-3.5 w-3.5 text-white" />
                                 </button>
                               </div>
                             ) : (
                               <span className="inline-flex items-center gap-2 mt-5 px-4 py-2 rounded-xl bg-[#F8F6FC] group-hover:bg-[#8E0E75] text-[#8E0E75] group-hover:text-white text-xs sm:text-sm font-black uppercase tracking-wider transition-all shadow-2xs">
-                              <span>{app.badge === 'Mantenimiento' ? 'Ver estado' : 'Abrir Herramienta'}</span>
+                              <span>
+                                {app.badge === 'Mantenimiento' 
+                                  ? 'Ver estado' 
+                                  : app.id === 'clockify' 
+                                    ? 'Registro de horas clientes' 
+                                    : 'Abrir Herramienta'}
+                              </span>
                               <ArrowRight className="h-4 w-4 group-hover:translate-x-1.5 transition-transform" />
                               </span>
                             )}
