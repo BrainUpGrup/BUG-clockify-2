@@ -35,6 +35,7 @@ import { useTimer, useTimerSeconds } from '@/context/timer-context';
 import { formatSecondsToTimer } from '@/lib/utils';
 import { canUserAccessHubApp, BRAIN_UP_HUB_APPS, HubApp } from '@/lib/hub-apps';
 import { UserAvatar } from '@/components/ui/user-avatar';
+import { notify } from '@/lib/feedback';
 
 function NavbarTimerDisplay({ isTimerRunning }: { isTimerRunning: boolean }) {
   const seconds = useTimerSeconds();
@@ -59,7 +60,7 @@ export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
-  const { activeCompany, activeCompanyId, isTimerRunning, startTimer, stopTimer } = useTimer();
+  const { activeCompany, activeCompanyId, isTimerRunning, startTimer, stopTimer, stopAndSaveTimer } = useTimer();
 
   // Escuchar cambios de permisos en tiempo real
   const [permVersion, setPermVersion] = React.useState(0);
@@ -433,9 +434,14 @@ export function Navbar() {
             {isTimerRunning ? (
               <button
                 type="button"
-                onClick={() => stopTimer()}
+                onClick={async () => {
+                  const res = await stopAndSaveTimer();
+                  if (res.success) {
+                    notify(`Registro guardado (${res.durationMinutes}m)`, { type: 'success' });
+                  }
+                }}
                 className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-[#DC2626] hover:bg-[#B91C1C] text-white shadow-md shadow-red-500/25 transition-all cursor-pointer font-bold text-sm"
-                title="Detener temporizador y guardar registro"
+                title="Detener temporizador y guardar registro en base de datos"
               >
                 <Square className="h-4 w-4 fill-white" />
                 <span>Parar</span>

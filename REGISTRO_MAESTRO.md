@@ -1876,3 +1876,39 @@
   - `npm run build`: **20/20 páginas y endpoints generados con éxito**.
   - Servidor de desarrollo respondiendo en `http://localhost:3000` con **HTTP 200 OK**.
   - Cumplimiento de todas las Directrices Maestras (DM-01 Cero Emojis, DM-02 Controles In-App, DM-04 Modelo Exclusivo por Empresa, DM-13 Identidad "La Abuela" y DM-15 Zero-Scroll).
+
+### [v3.9.1] - 2026-11-06 - Persistencia en Base de Datos Supabase y Sincronización Multi-Ventana de la Ventana Flotante
+- **Solicitud del Usuario:**
+  *"vale cuando abro la venta flotante, y paro un trabjo que esaba haciendo no se guarda en la base d edatos ni s eguarda enregistros es muyy importante que esto lo solucionemos"*
+- **Diagnóstico del Problema:**
+  1. En `src/app/floating-timer/page.tsx`, `src/components/timer/floating-timer-companion.tsx` y `src/components/navbar.tsx`, el botón de detención llamaba a `stopTimer()`.
+  2. Dicha función únicamente detenía el reloj en memoria y eliminaba las claves de temporización activa de `localStorage`, pero **en ningún momento insertaba el registro en la tabla `time_entries` de Supabase** ni actualizaba la caché de imputaciones de tiempo del empleado.
+  3. Adicionalmente, `/floating-timer` no cargaba las empresas reales de la base de datos (dependía de datos mock estáticos) y, cuando la ventana principal del empleado (`/dashboard/employee`) estaba abierta en paralelo, no recibía eventos para reflejar en tiempo real la nueva entrada sin recargar el navegador.
+- **Decisiones Técnicas y Solución Implementada:**
+  1. **Servicio Centralizado de Persistencia de Temporizadores (`src/lib/services/timer-persistence.ts`):**
+     - Creación de la función `saveStoppedTimerEntry`:
+       - Resuelve el usuario autenticado (`auth.uid()`) desde sesión Supabase o perfil en memoria.
+       - Determina la empresa activa y su modalidad (`cuota` vs `puntual`).
+       - Calcula la duración exacta en minutos redondeados (`Math.max(1, Math.round(durationSeconds / 60))`).
+       - Extrae las marcas de tiempo ISO de inicio y detención, y la descripción asignada.
+       - Inserta el registro en la tabla `time_entries` de Supabase PostgreSQL con RLS auditado (`DM-08`).
+       - Actualiza la caché privada del empleado (`bug_clockify_cache_entries_${userId}`) y la general de coordinación.
+       - Dispara una sincronización reactiva en 3 niveles: `storage` (`bug_clockify_entry_trigger`), `CustomEvent` (`bug_clockify_entry_created`) y `postMessage` bidireccional hacia `window.opener`.
+  2. **Ampliación Atómica de `TimerContext` (`src/context/timer-context.tsx`):**
+     - Incorporación de la acción `stopAndSaveTimer`: detiene el cronómetro y garantiza la persistencia en base de datos en una única llamada.
+     - Persistencia del objeto completo de la empresa activa en `localStorage` (`bug_clockify_active_company_obj`) para que cualquier nueva pestaña o ventana emergente mantenga el nombre, color y cliente sin mostrar "Sin Cliente".
+  3. **Modernización de la Ventana Flotante Standalone (`src/app/floating-timer/page.tsx`):**
+     - Carga inmediata del catálogo real de empresas desde caché y sincronización en segundo plano con Supabase.
+     - Buscador reactivo de empresas para selección instantánea en modo expandido.
+     - Campo de texto integrado para escribir o editar la descripción del trabajo en curso.
+     - Indicador de estado de guardado en vivo (`isSaving` con spinner `Loader2`) y confirmación visual inmediata (`saveNotice` con icono `Check` verde `#3BB54A`) en modo ultra-reducido y modo grande.
+  4. **Widget de Acompañamiento y Barra de Navegación (`floating-timer-companion.tsx` y `navbar.tsx`):**
+     - Conectados todos los botones de detención a `stopAndSaveTimer()`, garantizando que cualquier parada desde cualquier rincón de la suite salve el registro en Supabase y muestre notificación toast de éxito.
+  5. **Sincronización en Tiempo Real en el Panel de Empleado (`src/app/dashboard/employee/page.tsx`):**
+     - Escuchadores de eventos `storage`, `CustomEvent` y `message`: al detener el temporizador en la ventana flotante externa, la fila del nuevo registro aparece de forma instantánea en el listado de *Registros Recientes* de la pantalla principal sin requerir pulsar F5.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - `npm run build`: **20/20 rutas estáticas y dinámicas compiladas con éxito**.
+  - Servidor de desarrollo Next.js respondiendo con **HTTP 200 OK** en `/floating-timer` y `/dashboard/employee`.
+  - Cumplimiento riguroso de DM-01 (Cero Emojis), DM-04 (Modelo Exclusivo por Empresa), DM-08 (Seguridad Aislada RLS) y DM-15 (Zero-Scroll).
+

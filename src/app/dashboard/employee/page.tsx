@@ -97,6 +97,58 @@ export default function EmployeeDashboardPage() {
     fetchData();
   }, [user, isSupabaseConnected]);
 
+  // Escuchar creaciones o actualizaciones de registros desde ventanas externas (Floating Timer, PiP, etc.)
+  useEffect(() => {
+    if (!user) return;
+    const currentUserId = user.id;
+
+    const handleExternalEntry = (entry: TimeEntry) => {
+      if (!entry || entry.user_id !== currentUserId) return;
+      setEntries((prev) => {
+        if (prev.some((e) => e.id === entry.id)) return prev;
+        return [entry, ...prev];
+      });
+    };
+
+    const handleStorageEvent = (e: StorageEvent) => {
+      if (e.key === 'bug_clockify_entry_trigger' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (parsed && parsed.userId === currentUserId) {
+            // Leer la caché actualizada inmediatamente
+            const cachedEntr = safeGetLocalStorage<TimeEntry[] | null>(`bug_clockify_cache_entries_${currentUserId}`, null);
+            if (cachedEntr) {
+              setEntries(cachedEntr);
+            }
+          }
+        } catch {}
+      }
+    };
+
+    const handleCustomEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<TimeEntry>;
+      if (customEvent.detail) {
+        handleExternalEntry(customEvent.detail);
+      }
+    };
+
+    const handleMessageEvent = (e: MessageEvent) => {
+      if (e.data && e.data.type === 'BUG_ENTRY_CREATED' && e.data.entry) {
+        handleExternalEntry(e.data.entry);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageEvent);
+    window.addEventListener('bug_clockify_entry_created', handleCustomEvent);
+    window.addEventListener('message', handleMessageEvent);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageEvent);
+      window.removeEventListener('bug_clockify_entry_created', handleCustomEvent);
+      window.removeEventListener('message', handleMessageEvent);
+    };
+  }, [user]);
+
   // Seleccionar automáticamente la empresa y sincronizar con la cabecera
   useEffect(() => {
     if (companies.length > 0 && !selectedCompanyId) {

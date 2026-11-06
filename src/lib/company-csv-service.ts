@@ -261,3 +261,4 @@ export function parseCompanyCSV(csvText: string): ParsedCompanyItem[] {
 
   return items;
 }
+

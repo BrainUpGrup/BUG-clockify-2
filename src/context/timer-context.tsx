@@ -1,7 +1,9 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Company } from '@/types/database';
+import { Company, EntryComputeType } from '@/types/database';
+import { saveStoppedTimerEntry, SaveTimerResult } from '@/lib/services/timer-persistence';
+import { safeGetLocalStorage } from '@/lib/utils';
 
 export interface TimerContextType {
   activeCompany: Company | null;
@@ -15,6 +17,11 @@ export interface TimerContextType {
   startTimer: (companyId?: string) => void;
   startTimerWithEntry: (companyId: string, description: string) => void;
   stopTimer: () => { durationSeconds: number; startTimeIso: string | null; endTimeIso: string };
+  stopAndSaveTimer: (options?: {
+    companyId?: string;
+    description?: string;
+    computeType?: EntryComputeType;
+  }) => Promise<SaveTimerResult>;
   resetTimer: () => void;
   getElapsedSeconds: () => number;
 }
@@ -26,6 +33,7 @@ const TIMER_STORAGE_KEY_RUNNING = 'bug_clockify_timer_running';
 const TIMER_STORAGE_KEY_START_TS = 'bug_clockify_timer_start_ts';
 const TIMER_STORAGE_KEY_START_ISO = 'bug_clockify_timer_start_iso';
 const TIMER_STORAGE_KEY_COMPANY = 'bug_clockify_active_company_id';
+const TIMER_STORAGE_KEY_COMPANY_OBJ = 'bug_clockify_active_company_obj';
 const TIMER_STORAGE_KEY_DESC = 'bug_clockify_active_timer_desc';
 
 export function TimerProvider({ children }: { children: React.ReactNode }) {
@@ -45,6 +53,22 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
       const savedCompanyId = localStorage.getItem(TIMER_STORAGE_KEY_COMPANY);
       if (savedCompanyId) {
         setActiveCompanyIdState(savedCompanyId);
+      }
+
+      // Restaurar el objeto de empresa completa
+      const savedCompObj = localStorage.getItem(TIMER_STORAGE_KEY_COMPANY_OBJ);
+      if (savedCompObj) {
+        try {
+          const comp = JSON.parse(savedCompObj) as Company;
+          setActiveCompanyState(comp);
+        } catch {}
+      } else if (savedCompanyId) {
+        // Fallback a caché de empresas
+        const cachedComps = safeGetLocalStorage<Company[]>('bug_clockify_cache_companies', []);
+        const found = cachedComps.find((c) => c.id === savedCompanyId);
+        if (found) {
+          setActiveCompanyState(found);
+        }
       }
 
       const savedDesc = localStorage.getItem(TIMER_STORAGE_KEY_DESC);
@@ -79,8 +103,22 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
           const wasRunning = localStorage.getItem(TIMER_STORAGE_KEY_RUNNING) === 'true';
           const savedStartTs = localStorage.getItem(TIMER_STORAGE_KEY_START_TS);
           const savedCompany = localStorage.getItem(TIMER_STORAGE_KEY_COMPANY);
+          const savedCompObj = localStorage.getItem(TIMER_STORAGE_KEY_COMPANY_OBJ);
+          const savedDesc = localStorage.getItem(TIMER_STORAGE_KEY_DESC);
 
-          if (savedCompany && savedCompany !== activeCompanyId) {
+          if (savedDesc && savedDesc !== activeDescription) {
+            setActiveDescriptionState(savedDesc);
+          }
+
+          if (savedCompObj) {
+            try {
+              const comp = JSON.parse(savedCompObj) as Company;
+              setActiveCompanyState(comp);
+              if (comp.id !== activeCompanyId) {
+                setActiveCompanyIdState(comp.id);
+              }
+            } catch {}
+          } else if (savedCompany && savedCompany !== activeCompanyId) {
             setActiveCompanyIdState(savedCompany);
           }
 
@@ -105,7 +143,7 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
 
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
-  }, [activeCompanyId]);
+  }, [activeCompanyId, activeDescription]);
 
   // Intervalo de cálculo preciso basado en timestamp
   useEffect(() => {
@@ -136,6 +174,14 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
     try {
       localStorage.setItem(TIMER_STORAGE_KEY_COMPANY, id);
       localStorage.setItem('bug_clockify_last_company_id', id);
+
+      // Si no tenemos activeCompany o difiere de id, buscar en caché
+      const cachedComps = safeGetLocalStorage<Company[]>('bug_clockify_cache_companies', []);
+      const found = cachedComps.find((c) => c.id === id);
+      if (found) {
+        setActiveCompanyState(found);
+        localStorage.setItem(TIMER_STORAGE_KEY_COMPANY_OBJ, JSON.stringify(found));
+      }
     } catch (e) {
       console.warn('Error saving company id:', e);
     }
@@ -147,10 +193,15 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
       setActiveCompanyIdState(company.id);
       try {
         localStorage.setItem(TIMER_STORAGE_KEY_COMPANY, company.id);
+        localStorage.setItem(TIMER_STORAGE_KEY_COMPANY_OBJ, JSON.stringify(company));
         localStorage.setItem('bug_clockify_last_company_id', company.id);
       } catch (e) {
         console.warn('Error saving company:', e);
       }
+    } else {
+      try {
+        localStorage.removeItem(TIMER_STORAGE_KEY_COMPANY_OBJ);
+      } catch {}
     }
   }, []);
 
@@ -206,6 +257,7 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
     }
   }, [setActiveCompanyId, setActiveDescription]);
 
+  // Detiene el temporizador en memoria y limpia el estado activo de localStorage
   const stopTimer = useCallback(() => {
     const endTimeIso = new Date().toISOString();
     const totalDuration = startTimestampRef.current 
@@ -239,6 +291,32 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
       endTimeIso,
     };
   }, [startTimeIso, timerSeconds]);
+
+  // Detiene el cronómetro Y persiste automáticamente en Supabase / Caché con sincronización multi-ventana
+  const stopAndSaveTimer = useCallback(async (options?: {
+    companyId?: string;
+    description?: string;
+    computeType?: EntryComputeType;
+  }): Promise<SaveTimerResult> => {
+    // 1. Detener el reloj en memoria y limpiar localStorage de ejecución
+    const stopResult = stopTimer();
+
+    // 2. Persistir en Supabase y caché
+    const targetCompanyId = options?.companyId || activeCompanyId || activeCompany?.id;
+    const targetDesc = options?.description ?? activeDescription;
+
+    const result = await saveStoppedTimerEntry({
+      companyId: targetCompanyId,
+      company: activeCompany,
+      durationSeconds: stopResult.durationSeconds,
+      startTimeIso: stopResult.startTimeIso,
+      endTimeIso: stopResult.endTimeIso,
+      description: targetDesc,
+      computeType: options?.computeType,
+    });
+
+    return result;
+  }, [stopTimer, activeCompanyId, activeCompany, activeDescription]);
 
   const resetTimer = useCallback(() => {
     if (intervalRef.current) {
@@ -277,6 +355,7 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
     startTimer,
     startTimerWithEntry,
     stopTimer,
+    stopAndSaveTimer,
     resetTimer,
     getElapsedSeconds,
   }), [
@@ -291,6 +370,7 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
     startTimer,
     startTimerWithEntry,
     stopTimer,
+    stopAndSaveTimer,
     resetTimer,
     getElapsedSeconds,
   ]);

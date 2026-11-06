@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useTimer, useTimerSeconds } from '@/context/timer-context';
 import { formatSecondsToTimer } from '@/lib/utils';
+import { notify } from '@/lib/feedback';
 
 export function FloatingTimerCompanion() {
   const pathname = usePathname();
@@ -28,9 +29,21 @@ export function FloatingTimerCompanion() {
     activeCompanyId, 
     isTimerRunning, 
     startTimer, 
-    stopTimer 
+    stopTimer,
+    stopAndSaveTimer
   } = useTimer();
   const timerSeconds = useTimerSeconds();
+
+  const handleStopCompanion = async () => {
+    try {
+      const res = await stopAndSaveTimer();
+      if (res.success) {
+        notify(`Registro guardado (${res.durationMinutes}m)`, { type: 'success' });
+      }
+    } catch (e) {
+      console.error('Error stopping timer from companion:', e);
+    }
+  };
 
   // Calcular posición anclada a la esquina inferior derecha con margen seguro
   const getBottomRightPosition = useCallback(() => {
@@ -342,8 +355,8 @@ export function FloatingTimerCompanion() {
                 type="button"
                 className="pip-btn-compact-action"
                 style={{ background: '#DC2626' }}
-                onClick={() => stopTimer()}
-                title="Detener temporizador"
+                onClick={handleStopCompanion}
+                title="Detener temporizador y guardar registro"
               >
                 <Square size={10} fill="currentColor" />
                 PARAR
@@ -431,8 +444,8 @@ export function FloatingTimerCompanion() {
             <button
               type="button"
               className="pip-btn pip-btn-stop"
-              onClick={() => stopTimer()}
-              title="Detener temporizador"
+              onClick={handleStopCompanion}
+              title="Detener temporizador y guardar registro"
             >
               <Square size={12} fill="currentColor" />
               PARAR
@@ -531,9 +544,9 @@ export function FloatingTimerCompanion() {
                 {isTimerRunning ? (
                   <button
                     type="button"
-                    onClick={() => stopTimer()}
+                    onClick={handleStopCompanion}
                     className="px-2 py-1 rounded-md bg-[#DC2626] hover:bg-[#B91C1C] text-white text-[11px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm shadow-red-500/20 transition-all hover:scale-105 active:scale-95 cursor-pointer"
-                    title="Parar temporizador"
+                    title="Parar temporizador y guardar registro"
                   >
                     <Square className="h-2.5 w-2.5 fill-white" />
                     <span>Parar</span>
@@ -660,8 +673,9 @@ export function FloatingTimerCompanion() {
                 {isTimerRunning ? (
                   <button
                     type="button"
-                    onClick={() => stopTimer()}
+                    onClick={handleStopCompanion}
                     className="py-2 px-3 rounded-md bg-[#DC2626] hover:bg-[#B91C1C] text-white text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md shadow-red-500/25 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                    title="Parar temporizador y guardar registro"
                   >
                     <Square className="h-3.5 w-3.5 fill-white" />
                     <span>Parar</span>
