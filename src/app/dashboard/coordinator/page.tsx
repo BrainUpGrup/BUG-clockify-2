@@ -28,6 +28,7 @@ import {
 import { HubPermissionsMatrix } from '@/components/coordinator/hub-permissions-matrix';
 import { safeSetLocalStorage, safeGetLocalStorage } from '@/lib/utils';
 import { LayerColorCustomizer } from '@/components/coordinator/layer-color-customizer';
+import { ParsedCompanyItem } from '@/lib/company-csv-service';
 
 export default function CoordinatorDashboardPage() {
   const router = useRouter();
@@ -431,6 +432,125 @@ export default function CoordinatorDashboardPage() {
     });
   };
 
+  // Manejar importación masiva de empresas desde archivo CSV
+  const handleBatchImportCompanies = async (
+    importedCompanies: ParsedCompanyItem[],
+    replaceAll: boolean
+  ) => {
+    if (importedCompanies.length === 0) return;
+
+    if (isSupabaseConnected) {
+      try {
+        const supabase = createClient();
+
+        // 1. Si replaceAll es true, eliminar empresas que NO tengan horas imputadas
+        if (replaceAll) {
+          const companiesWithEntries = new Set(allEntries.map((e) => e.company_id));
+          const toDelete = companies.filter((c) => !companiesWithEntries.has(c.id));
+          if (toDelete.length > 0) {
+            const idsToDelete = toDelete.map((c) => c.id);
+            await supabase.from('companies').delete().in('id', idsToDelete);
+          }
+        }
+
+        // 2. Obtener lista actual para emparejar por nombre
+        const { data: currentDbCompanies } = await supabase.from('companies').select('*');
+        const currentList: Company[] = currentDbCompanies || [];
+        const currentByName = new Map<string, Company>();
+        currentList.forEach((c) => currentByName.set(c.name.trim().toLowerCase(), c));
+
+        const toInsert: any[] = [];
+        const toUpdate: { id: string; payload: any }[] = [];
+
+        importedCompanies.forEach((item) => {
+          const key = item.name.trim().toLowerCase();
+          const existing = currentByName.get(key);
+          const payload = {
+            name: item.name.trim(),
+            client_type: item.client_type,
+            monthly_hours_quota: item.client_type === 'cuota' ? item.monthly_hours_quota : null,
+            cif: item.cif || null,
+            contact_name: item.contact_name || null,
+            contact_email: item.contact_email || null,
+            account_manager: item.account_manager || 'Alejandro Ramos',
+            is_active: item.is_active,
+          };
+
+          if (existing && !replaceAll) {
+            toUpdate.push({ id: existing.id, payload });
+          } else {
+            toInsert.push(payload);
+          }
+        });
+
+        // Ejecutar inserciones
+        if (toInsert.length > 0) {
+          const { error: insErr } = await supabase.from('companies').insert(toInsert);
+          if (insErr) {
+            console.error('Error insertando empresas en lote:', insErr);
+          }
+        }
+
+        // Ejecutar actualizaciones
+        for (const u of toUpdate) {
+          await supabase.from('companies').update(u.payload).eq('id', u.id);
+        }
+
+        // Recargar listado fresco de Supabase
+        const { data: refreshed } = await supabase.from('companies').select('*').order('name');
+        if (refreshed) {
+          setCompanies(refreshed as Company[]);
+          safeSetLocalStorage('bug_clockify_cache_companies', refreshed);
+        }
+        notify(`Importación completada: ${importedCompanies.length} empresas procesadas con éxito.`, { type: 'success' });
+      } catch (err) {
+        console.error('Error en handleBatchImportCompanies:', err);
+        notify('Ocurrió un error al sincronizar las empresas con la base de datos.', { type: 'error' });
+      }
+    } else {
+      // Modo local
+      setCompanies((prev) => {
+        let baseList = replaceAll ? [] : [...prev];
+        const byName = new Map<string, Company>();
+        baseList.forEach((c) => byName.set(c.name.trim().toLowerCase(), c));
+
+        importedCompanies.forEach((item) => {
+          const key = item.name.trim().toLowerCase();
+          const existing = byName.get(key);
+          if (existing && !replaceAll) {
+            Object.assign(existing, {
+              client_type: item.client_type,
+              monthly_hours_quota: item.client_type === 'cuota' ? item.monthly_hours_quota : null,
+              cif: item.cif ?? existing.cif,
+              contact_name: item.contact_name ?? existing.contact_name,
+              contact_email: item.contact_email ?? existing.contact_email,
+              is_active: item.is_active,
+            });
+          } else {
+            const newComp: Company = {
+              id: `c_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+              name: item.name.trim(),
+              client_type: item.client_type,
+              monthly_hours_quota: item.client_type === 'cuota' ? item.monthly_hours_quota : null,
+              cif: item.cif || 'B-87654321',
+              contact_name: item.contact_name || 'Contacto Oficial',
+              contact_email: item.contact_email || 'contacto@empresa.com',
+              account_manager: item.account_manager || 'Alejandro Ramos',
+              is_active: item.is_active,
+              created_at: new Date().toISOString(),
+            };
+            byName.set(key, newComp);
+          }
+        });
+
+        const next = Array.from(byName.values()).sort((a, b) => a.name.localeCompare(b.name));
+        safeSetLocalStorage('bug_clockify_cache_companies', next);
+        return next;
+      });
+      notify(`Importación completada (modo local): ${importedCompanies.length} empresas procesadas.`, { type: 'success' });
+    }
+  };
+
   if (authLoading || !user || user.role !== 'coordinator') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--hub-bg,#DDD2EA)]">
@@ -586,6 +706,7 @@ export default function CoordinatorDashboardPage() {
               entries={allEntries}
               onCreateCompany={handleCreateCompany}
               onUpdateCompany={handleUpdateCompany}
+              onBatchImportCompanies={handleBatchImportCompanies}
               onToggleCompanyStatus={handleToggleCompanyStatus}
               onDeleteCompany={handleDeleteCompany}
             />

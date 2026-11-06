@@ -1804,3 +1804,75 @@
     - `http://localhost:3000/` $\rightarrow$ **HTTP 200 OK**.
     - `http://localhost:3000/login` $\rightarrow$ **HTTP 200 OK**.
   - `npx tsc --noEmit`: **0 errores de compilación**.
+
+### [v3.8.8] - 2026-11-06 - Nomenclatura "Registro de Horas Clientes" y Botón Verde para el Panel de Coordinación
+- **Solicitud del Usuario:**
+  *"cambia el nombre de mi fichaje por: registro de horas clientes y el boton de acesso al panel de coridnaodr lo quiero en color verde"*
+- **Diagnóstico y Decisiones Técnicas:**
+  1. **Tarjeta de Brain Time en el HUB (`src/app/hub/page.tsx`):**
+     - Sustituido el texto de acceso `Mi Fichaje (Horas)` por **`Registro de horas clientes`** (`REGISTRO DE HORAS CLIENTES` en tipografía corporativa en mayúsculas).
+     - El botón secundario de acceso al **Panel Coordinación** se ha transformado al verde corporativo de éxito (`bg-[#3BB54A] hover:bg-[#329B3F] text-white border-2 border-[#3BB54A] shadow-md shadow-[#3BB54A]/25`), con iconos y textos en blanco de alto contraste (`BarChart3` y flecha).
+     - Para la vista de empleados sin rol de coordinación, el botón de apertura directa ahora refleja también de forma intuitiva `Registro de horas clientes`.
+  2. **Acceso Rápido en Cabecera de Coordinación (`src/app/dashboard/coordinator/page.tsx`):**
+     - Actualizado el botón superior de retorno a **`Registro de Horas Clientes`** en lugar de "Mi Fichaje de Horas (Modo Empleada)".
+  3. **Menú de Perfil de la Barra Superior (`src/components/navbar.tsx`):**
+     - Sincronizado el enlace del menú desplegable de usuario a **`Registro de Horas Clientes`**.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - `npm run build`: **20/20 rutas estáticas y dinámicas compiladas con éxito**.
+  - Cumplimiento estricto de DM-01 (Cero Emojis), DM-13 (Identidad "La Abuela" y verde corporativo `#3BB54A`) y DM-15 (Zero-Scroll).
+
+### [v3.8.9] - 2026-11-06 - Corrección de Caché Webpack del Servidor de Desarrollo y Redirección Fallback
+- **Solicitud del Usuario:**
+  *"se queda asi mucho rato no cargaaaaaa"* (con captura adjunta mostrando la pantalla de inicio bloqueada en *"Verificando sesión en Brain Up Clockify..."*).
+- **Diagnóstico y Decisiones Técnicas:**
+  1. **Detección de Conflicto de Caché en `.next` (500 Internal Server Error):**
+     - La ejecución previa del comando de compilación estática de producción (`npm run build`) sobreescribió el directorio `.next` mientras el proceso en desarrollo (`next dev`, PID 12296) permanecía en memoria.
+     - Al entrar en colisión los módulos de producción con el compilador en memoria de desarrollo, el servidor arrojaba un error crítico: `TypeError: __webpack_modules__[moduleId] is not a function`.
+     - Esto impedía la hidratación de los componentes de cliente de React, bloqueando la ejecución de los hooks y dejando la vista inicial congelada en el spinner de carga.
+  2. **Remediación del Servidor y Limpieza de Caché:**
+     - Terminación forzosa de los procesos Node colgados (PIDs 12296, 12280, 28432).
+     - Purgado completo del directorio `.next`.
+     - Relanzamiento limpio del servidor en modo desarrollo (`npm run dev`) operativo y respondiendo en `http://localhost:3000` con código HTTP 200 OK.
+  3. **Mecanismo Anti-Bloqueo y Redirección Fallback (`src/app/page.tsx`):**
+     - Incorporación de un temporizador de seguridad de 1.2 segundos que, si por alguna razón el router de React o la hidratación sufren una demora, fuerza la redirección nativa del navegador (`window.location.replace`) hacia `/hub` (si hay usuario autenticado) o hacia `/login`.
+- **Validación y Pruebas:**
+  - Verificación mediante `Invoke-WebRequest`:
+    - `http://localhost:3000/` $\rightarrow$ **HTTP 200 OK**.
+    - `http://localhost:3000/login` $\rightarrow$ **HTTP 200 OK**.
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+
+### [v3.9.0] - 2026-11-06 - Importador Masivo de Empresas por CSV y Plantilla Oficial Excel
+- **Solicitud del Usuario:**
+  *"añade un importador de csv para gestion de empresas, hazme una plantilla para ordenaar esa importacion"*
+- **Diagnóstico y Decisiones Técnicas:**
+  1. **Servicio y Parser Especializado de CSV (`src/lib/company-csv-service.ts`):**
+     - Detección automática del delimitador (`;`, `,` o `\t`).
+     - Normalización flexible de cabeceras de columnas para admitir nombres en español o inglés con o sin tildes (Nombre/Empresa/Cliente, Tipo/Modalidad, Cuota/Horas, CIF/NIF, Contacto/Persona, Email, Gestor, Estado).
+     - Procesamiento inteligente de tipos:
+       - Detección de `cuota` vs `puntual`.
+       - Conversión de decimales con coma (`15,5`) o punto (`15.5`).
+       - Interpretación de estados activos e inactivos (`activa`, `archivada`, `no`, `0`).
+  2. **Plantilla Oficial CSV para Excel (`plantilla_empresas_brainup.csv`):**
+     - Generación de plantilla CSV preconfigurada y estructurada con Byte Order Mark (`\uFEFF`) UTF-8 para garantizar que Microsoft Excel en Windows abra las tildes y caracteres especiales sin alteraciones.
+     - Filas de ejemplo instructivas cubriendo clientes cuota con bolsa de horas y clientes de trabajos puntuales.
+     - Ubicada físicamente en `public/templates/plantilla_empresas_brainup.csv` y disponible mediante descarga directa en un clic desde la aplicación.
+  3. **Modal de Importación Corporativo Zero-Scroll (`src/components/coordinator/company-import-modal.tsx`):**
+     - Cabecera corporativa "La Abuela" en degradado índigo-ciruela (`from-[#191654] to-[#8E0E75]`).
+     - Banner de recomendación para descargar la plantilla oficial directamente antes de subir archivos.
+     - Zona interactiva de arrastrar y soltar (drag & drop) o selección manual de archivos `.csv`.
+     - Tabla de vista previa en vivo que muestra los primeros registros detectados (Empresa, Tipo, Cuota pactada, CIF, Contacto y Estado) para comprobación previa.
+     - Selector conmutable de modo de importación:
+       - **Añadir y Actualizar (Recomendado):** Conserva el catálogo existente, inserta empresas nuevas y actualiza cuotas/contactos de las coincidentes.
+       - **Reemplazar catálogo:** Sustituye el listado eliminando empresas sin horas registradas.
+  4. **Integración en la Vista de Coordinación (`src/components/coordinator/company-crud.tsx`):**
+     - Botón de acceso rápido **"Importar CSV"** en la barra de herramientas del listado y en la tarjeta de alta de clientes.
+     - Botón **"Plantilla CSV"** para descargar el archivo base con un clic.
+     - Botón **"Exportar"** para respaldar en cualquier momento el catálogo completo en formato CSV compatible.
+  5. **Persistencia Dual en Supabase y Caché Local (`src/app/dashboard/coordinator/page.tsx`):**
+     - Implementada la función `handleBatchImportCompanies`: ejecuta inserciones y actualizaciones en bloques hacia Supabase PostgreSQL respetando RLS (`is_coordinator()`), refresca el estado en memoria y actualiza la caché local persistente (`bug_clockify_cache_companies`).
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - `npm run build`: **20/20 páginas y endpoints generados con éxito**.
+  - Servidor de desarrollo respondiendo en `http://localhost:3000` con **HTTP 200 OK**.
+  - Cumplimiento de todas las Directrices Maestras (DM-01 Cero Emojis, DM-02 Controles In-App, DM-04 Modelo Exclusivo por Empresa, DM-13 Identidad "La Abuela" y DM-15 Zero-Scroll).

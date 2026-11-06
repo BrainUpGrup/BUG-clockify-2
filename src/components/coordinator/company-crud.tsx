@@ -14,11 +14,19 @@ import {
   FileSpreadsheet,
   Pencil,
   Search,
-  CheckCircle2
+  CheckCircle2,
+  Upload,
+  Download
 } from 'lucide-react';
 import { Company, TimeEntry, ClientType } from '@/types/database';
 import { confirmDialog, notify } from '@/lib/feedback';
 import { EditCompanyModal } from '@/components/coordinator/edit-company-modal';
+import { CompanyImportModal } from '@/components/coordinator/company-import-modal';
+import { 
+  downloadCompanyCSVTemplate, 
+  exportCompaniesToCSV, 
+  ParsedCompanyItem 
+} from '@/lib/company-csv-service';
 
 interface CompanyCrudProps {
   companies: Company[];
@@ -43,6 +51,7 @@ interface CompanyCrudProps {
       is_active?: boolean;
     }
   ) => Promise<void>;
+  onBatchImportCompanies: (companies: ParsedCompanyItem[], replaceAll: boolean) => Promise<void>;
   onToggleCompanyStatus: (id: string, currentStatus: boolean) => Promise<void>;
   onDeleteCompany: (id: string) => Promise<void>;
 }
@@ -52,6 +61,7 @@ export function CompanyCrud({
   entries,
   onCreateCompany,
   onUpdateCompany,
+  onBatchImportCompanies,
   onToggleCompanyStatus,
   onDeleteCompany,
 }: CompanyCrudProps) {
@@ -64,6 +74,7 @@ export function CompanyCrud({
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [isCreatingCompany, setIsCreatingCompany] = useState(false);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleCreateCompanySubmit = async (e: React.FormEvent) => {
@@ -107,17 +118,41 @@ export function CompanyCrud({
     <div className="w-full space-y-6">
       {/* Formulario de Alta de Empresa / Cliente con Datos Detallados */}
       <div className="w-full rounded-2xl border-2 border-[#D0C4EB] bg-white p-6 shadow-md shadow-[#191654]/6 transition-shadow hover:shadow-lg hover:shadow-[#191654]/10">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2.5 rounded-xl bg-[#F8F6FC] text-[#8E0E75] border border-[#D8CFF0]">
-            <Building2 className="h-5 w-5" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#EAE4F5] mb-4 gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-[#F8F6FC] text-[#8E0E75] border border-[#D8CFF0]">
+              <Building2 className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="font-extrabold uppercase tracking-tight text-base text-[#292929]">
+                DAR DE ALTA <span className="text-[#8E0E75]">EMPRESA / CLIENTE</span>
+              </h3>
+              <p className="text-xs text-[#4A4A4A] font-light">
+                Configura el tipo de cliente (cuota mensual o trabajos puntuales) e información fiscal y de contacto oficial.
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-extrabold uppercase tracking-tight text-base text-[#292929]">
-              DAR DE ALTA <span className="text-[#8E0E75]">EMPRESA / CLIENTE</span>
-            </h3>
-            <p className="text-xs text-[#4A4A4A] font-light">
-              Configura el tipo de cliente (cuota mensual o trabajos puntuales) e información fiscal y de contacto oficial.
-            </p>
+
+          {/* Accesos rápidos de CSV */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={downloadCompanyCSVTemplate}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#F8F6FC] border border-[#D8CFF0] hover:border-[#8E0E75] text-[#8E0E75] text-xs font-bold transition-all shadow-2xs cursor-pointer"
+              title="Descargar plantilla .CSV para rellenar en Excel"
+            >
+              <Download className="h-3.5 w-3.5" />
+              <span>Plantilla CSV</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsImportModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-[#8E0E75] text-[#8E0E75] hover:bg-[#8E0E75] hover:text-white text-xs font-extrabold uppercase tracking-wider transition-all shadow-2xs cursor-pointer"
+              title="Importar múltiples empresas desde archivo CSV"
+            >
+              <Upload className="h-3.5 w-3.5" />
+              <span>Importar CSV</span>
+            </button>
           </div>
         </div>
 
@@ -251,7 +286,16 @@ export function CompanyCrud({
             </div>
           )}
 
-          <div className="flex justify-end pt-2">
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setIsImportModalOpen(true)}
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-[#8E0E75] hover:text-[#700B5C] hover:underline cursor-pointer"
+            >
+              <Upload className="h-3.5 w-3.5" />
+              <span>¿Tienes muchas empresas? Importa un archivo CSV con un clic</span>
+            </button>
+
             <button
               type="submit"
               disabled={isCreatingCompany || !newCompanyName.trim()}
@@ -264,9 +308,9 @@ export function CompanyCrud({
         </form>
       </div>
 
-      {/* Listado Líquido de Empresas con Búsqueda y Edición Completa */}
+      {/* Listado Líquido de Empresas con Búsqueda, Importación y Edición Completa */}
       <div className="w-full rounded-2xl border-2 border-[#D0C4EB] bg-white overflow-hidden shadow-md shadow-[#191654]/6 transition-shadow hover:shadow-lg hover:shadow-[#191654]/10">
-        <div className="px-6 py-4 bg-[#F8F6FC] border-b border-[#D8CFF0] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="px-6 py-4 bg-[#F8F6FC] border-b border-[#D8CFF0] flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div>
             <h4 className="font-extrabold uppercase tracking-tight text-sm text-[#292929]">
               EMPRESAS Y CLIENTES <span className="text-[#8E0E75]">REGISTRADOS</span> ({companies.length})
@@ -276,22 +320,58 @@ export function CompanyCrud({
             </p>
           </div>
 
-          {/* Buscador Rápido de Empresas */}
-          <div className="relative w-full sm:w-64">
-            <Search className="h-4 w-4 text-[#8E0E75] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar cliente, CIF..."
-              className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-[#D8CFF0] bg-white text-xs text-[#292929] placeholder:text-slate-400 focus:border-[#8E0E75] focus:ring-1 focus:ring-[#8E0E75]/20 outline-none transition-all"
-            />
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Buscador Rápido de Empresas */}
+            <div className="relative w-full sm:w-56">
+              <Search className="h-4 w-4 text-[#8E0E75] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Buscar cliente, CIF..."
+                className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-[#D8CFF0] bg-white text-xs text-[#292929] placeholder:text-slate-400 focus:border-[#8E0E75] focus:ring-1 focus:ring-[#8E0E75]/20 outline-none transition-all"
+              />
+            </div>
+
+            {/* Descargar Plantilla */}
+            <button
+              type="button"
+              onClick={downloadCompanyCSVTemplate}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-[#D8CFF0] hover:border-[#8E0E75] hover:bg-[#F8F6FC] text-[#8E0E75] text-xs font-bold transition-all shadow-2xs cursor-pointer"
+              title="Descargar plantilla oficial CSV para rellenar en Excel"
+            >
+              <Download className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Plantilla CSV</span>
+            </button>
+
+            {/* Importar CSV */}
+            <button
+              type="button"
+              onClick={() => setIsImportModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#8E0E75] hover:bg-[#700B5C] text-white text-xs font-extrabold uppercase tracking-wider transition-all shadow-2xs cursor-pointer hover:scale-105 active:scale-95"
+              title="Importar catálogo de empresas desde archivo CSV"
+            >
+              <Upload className="h-3.5 w-3.5" />
+              <span>Importar CSV</span>
+            </button>
+
+            {/* Exportar CSV */}
+            <button
+              type="button"
+              onClick={() => exportCompaniesToCSV(companies)}
+              disabled={companies.length === 0}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-[#D8CFF0] hover:border-[#8E0E75] hover:bg-[#F8F6FC] text-[#4A4A4A] hover:text-[#8E0E75] text-xs font-bold transition-all shadow-2xs cursor-pointer disabled:opacity-50"
+              title="Exportar catálogo actual de empresas a CSV"
+            >
+              <FileSpreadsheet className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Exportar</span>
+            </button>
           </div>
         </div>
 
         {companies.length === 0 ? (
           <div className="p-8 text-center text-xs text-[#4A4A4A]">
-            No hay empresas registradas todavía. Añade la primera arriba.
+            No hay empresas registradas todavía. Añade la primera arriba o importa un archivo CSV.
           </div>
         ) : filteredCompanies.length === 0 ? (
           <div className="p-8 text-center text-xs text-[#4A4A4A]">
@@ -448,6 +528,13 @@ export function CompanyCrud({
         company={editingCompany}
         onClose={() => setEditingCompany(null)}
         onSave={onUpdateCompany}
+      />
+
+      {/* Modal de Importación CSV de Empresas */}
+      <CompanyImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImport={onBatchImportCompanies}
       />
     </div>
   );

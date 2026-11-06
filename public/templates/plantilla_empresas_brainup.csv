@@ -1,0 +1,6 @@
+Nombre Empresa;Tipo de Cliente (cuota/puntual);Cuota Mensual (Horas);CIF/NIF;Persona de Contacto;Email de Contacto;Gestor de Cuenta;Estado (Activa/Archivada)
+BrandStudio SL;cuota;15;B-87654321;Laura Gómez;laura@brandstudio.es;Alejandro Ramos;Activa
+InnovaTech Solutions;cuota;25;A-12345678;Marc Rovira;m.rovira@innovatech.cat;Alejandro Ramos;Activa
+Eventos Barcelona;puntual;0;B-98765432;Sonia Morales;contacto@eventosbcn.com;Alejandro Ramos;Activa
+Grup Gastronòmic;cuota;30;B-55443322;Carles Puig;carles@grupgastro.com;Alejandro Ramos;Activa
+Estudi Creatiu;puntual;0;B-11223344;Mireia Soler;mireia@estudicreatiu.es;Alejandro Ramos;Activa
