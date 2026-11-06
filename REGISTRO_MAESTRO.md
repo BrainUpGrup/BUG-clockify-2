@@ -1972,4 +1972,35 @@
   - Verificación de ruta HTTP: `/register?invite=brainup` respondiendo con código **200 OK**.
   - Documentación en `REGISTRO_MAESTRO.md` y sincronización con repositorio GitHub.
 
+### [v3.9.4] - 2026-11-06 - Supresión del Módulo de Paleta/Colores RGB e Implantación de Fondo Gris Muy Clarito Uniforme
+- **Solicitud del Usuario:**
+  *"elimina el apartado de paleta personalizada, colores rgb y pon en toda la pagina web un fond gris muy clarito"*
+- **Decisiones Técnicas y Solución Implementada:**
+  1. **Eliminación Total de la Pestaña "Colores RGB" y del Personalizador de Paletas:**
+     - Se eliminó la pestaña *"Colores RGB"* (`customizer`) del Panel de Coordinación (`src/app/dashboard/coordinator/page.tsx`) y del Brain Up Hub (`src/app/hub/page.tsx`).
+     - Se removió por completo el componente `LayerColorCustomizer` (`src/components/coordinator/layer-color-customizer.tsx`).
+     - El selector con pastilla morada del panel de coordinación quedó normalizado a sus 4 secciones operativas esenciales: *Estadísticas e Informes*, *Gestión de Empresas*, *Gestión de Usuarios* y *Permisos del HUB*.
+  2. **Establecimiento de Fondo Gris Muy Clarito (`#F4F5F7`) en Toda la Aplicación:**
+     - Se actualizaron las variables globales de color en `src/app/globals.css`:
+       - `--background: #F4F5F7;`
+       - `--brand-bg-canvas: #F4F5F7;`
+       - `--hub-bg: #F4F5F7;`
+       - `body { background-color: #F4F5F7; }`
+     - Se eliminaron todos los degradados violetas y fondos pastel anteriores (`bg-gradient-to-b from-[#F8F5FC] via-[#ECE4F4] to-[#DDD2EA]`), sustituyéndolos por el fondo gris muy clarito uniforme `#F4F5F7` en:
+       - `src/app/layout.tsx` (raíz HTML)
+       - `src/components/layout/app-shell.tsx` (envoltorio principal de vistas)
+       - `src/app/dashboard/coordinator/page.tsx` (panel de coordinación y pantalla de carga)
+       - `src/app/dashboard/employee/page.tsx` (panel de control de horas y pantalla de carga)
+       - `src/app/hub/page.tsx` (Brain Up Hub y pantalla de carga)
+       - `src/app/apps/taskflow/page.tsx` (Brain Schedule / TaskFlow y carga)
+       - `src/app/profile/page.tsx` (perfil y editor de avatar)
+       - `src/app/login/page.tsx` y `src/app/register/page.tsx` (páginas de autenticación)
+       - `src/app/apps/hosting/page.tsx` (Hosting Control)
+  3. **Purga Automática de Caché Local de Temas:**
+     - En `src/context/theme-customizer-context.tsx`, se agregó una rutina que elimina la clave `bug_hub_theme_layers` de `localStorage` al cargar la aplicación, asegurando que ningún usuario conserve el antiguo tono lila en su navegador y forzando la inyección de `#F4F5F7` en `:root`.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Comprobación de estado HTTP 200 en `/login`, `/register?invite=brainup`, `/hub`, `/dashboard/coordinator` y `/dashboard/employee`.
+  - Cumplimiento de las Directrices Maestras (DM-01 Cero Emojis, DM-03 Full-Width, DM-13 Identidad corporativa luminosa, DM-15 Zero-Scroll).
+
 

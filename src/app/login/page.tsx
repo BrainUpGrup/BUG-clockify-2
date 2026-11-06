@@ -87,7 +87,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F6FC] flex flex-col justify-center items-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#F4F5F7] flex flex-col justify-center items-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md bg-white border border-[#D8CFF0] rounded-2xl shadow-xl p-8 sm:p-10 space-y-6">
         {/* Cabecera con Logotipo de "La Abuela" */}
         <div className="text-center space-y-3">

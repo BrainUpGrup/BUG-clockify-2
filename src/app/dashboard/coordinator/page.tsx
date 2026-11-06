@@ -20,21 +20,19 @@ import {
   Building2, 
   Users, 
   ShieldCheck,
-  Palette,
   Sliders,
   Clock,
   ArrowRight
 } from 'lucide-react';
 import { HubPermissionsMatrix } from '@/components/coordinator/hub-permissions-matrix';
 import { safeSetLocalStorage, safeGetLocalStorage } from '@/lib/utils';
-import { LayerColorCustomizer } from '@/components/coordinator/layer-color-customizer';
 import { ParsedCompanyItem } from '@/lib/company-csv-service';
 
 export default function CoordinatorDashboardPage() {
   const router = useRouter();
   const { user, isLoading: authLoading, isSupabaseConnected } = useAuth();
   
-  const [activeTab, setActiveTab] = useState<'reports' | 'companies' | 'users' | 'permissions' | 'customizer'>('reports');
+  const [activeTab, setActiveTab] = useState<'reports' | 'companies' | 'users' | 'permissions'>('reports');
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const [pillStyle, setPillStyle] = useState<{ left: number; top: number; width: number; height: number; opacity: number }>({ left: 0, top: 0, width: 0, height: 0, opacity: 0 });
   const [hoveredTab, setHoveredTab] = useState<string | null>(null);
@@ -553,7 +551,7 @@ export default function CoordinatorDashboardPage() {
 
   if (authLoading || !user || user.role !== 'coordinator') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--hub-bg,#DDD2EA)]">
+      <div className="min-h-screen flex items-center justify-center bg-[#F4F5F7]">
         <div className="flex flex-col items-center gap-3">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#D8CFF0] border-t-[#8E0E75]" />
           <p className="text-xs font-bold uppercase tracking-wider text-[#292929]">
@@ -565,7 +563,7 @@ export default function CoordinatorDashboardPage() {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-gradient-to-b from-[#F8F5FC] via-[#ECE4F4] to-[var(--hub-bg,#DDD2EA)] w-full font-sans min-w-0 max-w-full overflow-x-hidden">
+    <div className="flex-1 flex flex-col bg-[#F4F5F7] w-full font-sans min-w-0 max-w-full overflow-x-hidden">
       {/* Contenedor Líquido a Pantalla Completa con Animación de Entrada */}
       <main className="flex-1 w-full max-w-full px-3 sm:px-6 lg:px-8 py-5 sm:py-6 space-y-5 sm:space-y-6 page-transition min-w-0 overflow-x-hidden">
         {/* Cabecera del Panel Líquida con Degradado Sedoso y Relieve Fino */}
@@ -670,21 +668,6 @@ export default function CoordinatorDashboardPage() {
               <ShieldCheck className={`h-4 w-4 shrink-0 transition-transform ${targetTab === 'permissions' ? 'scale-110 text-white' : 'text-[#8E0E75]'}`} />
               <span>Permisos del HUB</span>
             </button>
-
-            <button
-              type="button"
-              data-tab-id="customizer"
-              onClick={() => setActiveTab('customizer')}
-              onMouseEnter={() => setHoveredTab('customizer')}
-              className={`relative z-10 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl uppercase tracking-tight text-xs font-extrabold transition-colors duration-200 cursor-pointer whitespace-nowrap shrink-0 ${
-                targetTab === 'customizer'
-                  ? 'text-white'
-                  : 'text-[#4A4A4A] hover:text-[#8E0E75]'
-              }`}
-            >
-              <Palette className={`h-4 w-4 shrink-0 transition-transform ${targetTab === 'customizer' ? 'scale-110 text-white' : 'text-[#8E0E75]'}`} />
-              <span>Colores RGB</span>
-            </button>
           </div>
         </div>
 
@@ -718,10 +701,8 @@ export default function CoordinatorDashboardPage() {
               onRejectUser={handleRejectUser}
               onDeleteUser={handleDeleteUser}
             />
-          ) : activeTab === 'permissions' ? (
-            <HubPermissionsMatrix employees={employees} />
           ) : (
-            <LayerColorCustomizer />
+            <HubPermissionsMatrix employees={employees} />
           )}
         </div>
       </main>

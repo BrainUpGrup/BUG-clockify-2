@@ -37,7 +37,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
-      <body className="font-sans min-h-screen bg-gradient-to-b from-[#F8F5FC] via-[#ECE4F4] to-[var(--hub-bg,#DDD2EA)] text-[#4A4A4A] antialiased selection:bg-[#8E0E75] selection:text-white">
+      <body className="font-sans min-h-screen bg-[#F4F5F7] text-[#4A4A4A] antialiased selection:bg-[#8E0E75] selection:text-white">
         <AuthProvider>
           <ThemeLayersProvider>
             <TimerProvider>

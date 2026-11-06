@@ -27,7 +27,7 @@ export function AppShell({ children }: AppShellProps) {
   const isZeroScrollApp = pathname?.startsWith('/apps/taskflow');
 
   return (
-    <div className={`w-full bg-gradient-to-b from-[#F8F5FC] via-[#ECE4F4] to-[var(--hub-bg,#DDD2EA)] flex flex-col min-w-0 max-w-full overflow-x-hidden ${
+    <div className={`w-full bg-[#F4F5F7] flex flex-col min-w-0 max-w-full overflow-x-hidden ${
       isZeroScrollApp ? 'h-screen max-h-screen overflow-hidden' : 'min-h-screen'
     }`}>
       {showNavbar && <Navbar />}

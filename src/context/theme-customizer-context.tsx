@@ -24,9 +24,9 @@ export interface ThemePreset {
   config: LayerThemeConfig;
 }
 
-// Valores por defecto institucionales de Brain Up ("La Abuela")
+// Valores por defecto institucionales de Brain Up ("La Abuela") con fondo gris muy clarito #F4F5F7
 export const DEFAULT_THEME_LAYERS: LayerThemeConfig = {
-  bg: '#DDD2EA',
+  bg: '#F4F5F7',
   header: '#FFFFFF',
   card1: '#FFFFFF',
   card2: '#FFFFFF',
@@ -38,9 +38,9 @@ export const THEME_PRESETS: ThemePreset[] = [
   {
     id: 'brainup_classic',
     name: 'Original Brain Up ("La Abuela")',
-    description: 'Estética oficial con Lila Ciruela corporativo, blanco nítido y acentos índigo.',
+    description: 'Estética oficial con fondo gris muy clarito, blanco nítido y acentos corporativos.',
     config: {
-      bg: '#DDD2EA',
+      bg: '#F4F5F7',
       header: '#FFFFFF',
       card1: '#FFFFFF',
       card2: '#FFFFFF',
@@ -126,46 +126,31 @@ export function ThemeLayersProvider({ children }: { children: ReactNode }) {
   const [layers, setLayers] = useState<LayerThemeConfig>(DEFAULT_THEME_LAYERS);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // 1. Cargar configuración guardada al inicio
+  // 1. Limpiar personalización anterior y fijar fondo gris clarito #F4F5F7
   useEffect(() => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY_THEME);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        // Si tenía el color casi-blanco anterior (#F8F6FC o #FFFFFF), actualizar al nuevo tono diferencial #EFEBF6
-        if (parsed.bg === '#F8F6FC' || parsed.bg === '#FFFFFF' || parsed.bg === '#EFEBF6') {
-          parsed.bg = '#DDD2EA';
-        }
-        setLayers({ ...DEFAULT_THEME_LAYERS, ...parsed });
-      }
-    } catch (e) {
-      console.warn('Error reading theme layers from storage:', e);
-    } finally {
-      setIsLoaded(true);
+      localStorage.removeItem(STORAGE_KEY_THEME);
+    } catch {
+      // ignore
     }
+    setLayers(DEFAULT_THEME_LAYERS);
+    setIsLoaded(true);
   }, []);
 
-  // 2. Inyectar variables CSS dinámicas en :root cada vez que cambien los colores
+  // 2. Inyectar variables CSS fijas en :root con fondo gris clarito #F4F5F7
   useEffect(() => {
     if (typeof document === 'undefined') return;
     const root = document.documentElement;
 
-    root.style.setProperty('--hub-bg', layers.bg);
-    root.style.setProperty('--hub-header', layers.header);
-    root.style.setProperty('--hub-card-1', layers.card1);
-    root.style.setProperty('--hub-card-2', layers.card2);
-    root.style.setProperty('--hub-accent', layers.accent);
-    root.style.setProperty('--hub-text', layers.text);
-
-    // Si la cabecera es oscura, ajustar contraste del texto de la cabecera
-    const headerRgb = hexToRgb(layers.header);
-    const headerBrightness = (headerRgb.r * 299 + headerRgb.g * 587 + headerRgb.b * 114) / 1000;
-    root.style.setProperty('--hub-header-text', headerBrightness < 128 ? '#FFFFFF' : layers.text);
-
-    // Guardar en localStorage
-    if (isLoaded) {
-      localStorage.setItem(STORAGE_KEY_THEME, JSON.stringify(layers));
-    }
+    root.style.setProperty('--hub-bg', '#F4F5F7');
+    root.style.setProperty('--background', '#F4F5F7');
+    root.style.setProperty('--brand-bg-canvas', '#F4F5F7');
+    root.style.setProperty('--hub-header', '#FFFFFF');
+    root.style.setProperty('--hub-card-1', '#FFFFFF');
+    root.style.setProperty('--hub-card-2', '#FFFFFF');
+    root.style.setProperty('--hub-accent', '#8E0E75');
+    root.style.setProperty('--hub-text', '#292929');
+    root.style.setProperty('--hub-header-text', '#292929');
   }, [layers, isLoaded]);
 
   const setLayerColor = (layer: keyof LayerThemeConfig, hex: string) => {

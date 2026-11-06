@@ -326,7 +326,7 @@ export default function ProfilePage() {
   const hasCustomPhoto = Boolean(user?.avatar_url && user.avatar_url.trim().length > 0 && user.avatar_url !== '/abuela-avatar.png');
 
   return (
-    <div className="flex-1 flex flex-col font-sans w-full bg-[var(--hub-bg,#DDD2EA)] py-4 px-3 sm:px-6 lg:px-8">
+    <div className="flex-1 flex flex-col font-sans w-full bg-[#F4F5F7] py-4 px-3 sm:px-6 lg:px-8">
       {/* Toast Flotante de Éxito */}
       {successToast && (
         <div className="fixed bottom-6 right-6 z-50 bg-white border-2 border-emerald-500 text-[#292929] px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-200">

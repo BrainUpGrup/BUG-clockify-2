@@ -13,7 +13,6 @@ import {
   getAuthorizedAppsForUser 
 } from '@/lib/hub-apps';
 import { HubPermissionsMatrix } from '@/components/coordinator/hub-permissions-matrix';
-import { LayerColorCustomizer } from '@/components/coordinator/layer-color-customizer';
 import { 
   LayoutGrid, 
   Clock, 
@@ -29,7 +28,6 @@ import {
   Server,
   ArrowRight, 
   ShieldCheck, 
-  Palette, 
   Sliders, 
   Sparkles,
   Lock,
@@ -42,7 +40,7 @@ export default function BrainUpHubPage() {
   const router = useRouter();
   const { user, isLoading: authLoading, isSupabaseConnected } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'apps' | 'permissions' | 'customizer'>('apps');
+  const [activeTab, setActiveTab] = useState<'apps' | 'permissions'>('apps');
   const [allProfiles, setAllProfiles] = useState<Profile[]>([]);
   const [authorizedApps, setAuthorizedApps] = useState<HubApp[]>([]);
 
@@ -190,7 +188,7 @@ export default function BrainUpHubPage() {
 
   if (authLoading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--hub-bg,#DDD2EA)]">
+      <div className="min-h-screen flex items-center justify-center bg-[#F4F5F7]">
         <div className="flex flex-col items-center gap-3">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#D8CFF0] border-t-[#8E0E75]" />
           <p className="text-xs font-bold uppercase tracking-wider text-[#292929]">
@@ -204,7 +202,7 @@ export default function BrainUpHubPage() {
   const isCoordinatorOrAdmin = user.role === 'coordinator' || user.role === 'admin';
 
   return (
-    <div className="flex-1 flex flex-col w-full font-sans">
+    <div className="flex-1 flex flex-col w-full font-sans bg-[#F4F5F7]">
       <main className="page-transition flex-1 w-full max-w-[1550px] mx-auto px-4 sm:px-8 lg:px-12 py-4 sm:py-6 space-y-6 sm:space-y-7">
         
         {/* Cabecera compacta del HUB con selector de layout modular */}
@@ -251,15 +249,14 @@ export default function BrainUpHubPage() {
               </div>
             )}
 
-            {/* Ajustes (permisos y colores): viven en Coordinación; el Super Admin, que no
-                tiene ese panel, los abre aquí mismo */}
+            {/* Ajustes de permisos: el coordinador los abre en Coordinación */}
             {user.role === 'coordinator' && (
               <Link
                 href="/dashboard/coordinator"
                 className="inline-flex items-center gap-2 self-start sm:self-auto px-3.5 py-2 rounded-lg border-2 border-[#D8CFF0] bg-white text-sm font-semibold text-[#8E0E75] hover:border-[#8E0E75]"
               >
                 <ShieldCheck className="h-4 w-4" />
-                Permisos y colores
+                Permisos del HUB
               </Link>
             )}
             {user.role === 'admin' && (
@@ -267,7 +264,6 @@ export default function BrainUpHubPage() {
                 {([
                   ['apps', 'Aplicaciones', LayoutGrid],
                   ['permissions', 'Permisos', ShieldCheck],
-                  ['customizer', 'Colores', Palette],
                 ] as const).map(([id, label, Icon]) => (
                   <button
                     key={id}
@@ -463,11 +459,6 @@ export default function BrainUpHubPage() {
           {/* VISTA 2: MATRIZ DE PERMISOS PARA COORDINADORES */}
           {activeTab === 'permissions' && isCoordinatorOrAdmin && (
             <HubPermissionsMatrix employees={allProfiles} />
-          )}
-
-          {/* VISTA 3: PERSONALIZADOR DE COLORES RGB POR CAPAS */}
-          {activeTab === 'customizer' && isCoordinatorOrAdmin && (
-            <LayerColorCustomizer />
           )}
 
         </div>

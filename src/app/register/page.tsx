@@ -268,7 +268,7 @@ function RegisterFormContent() {
 
 export default function RegisterEmployeePage() {
   return (
-    <div className="min-h-screen bg-[#F8F6FC] flex flex-col justify-center items-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#F4F5F7] flex flex-col justify-center items-center py-12 px-4 sm:px-6 lg:px-8">
       <Suspense fallback={
         <div className="flex flex-col items-center gap-3">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#D8CFF0] border-t-[#8E0E75]" />
