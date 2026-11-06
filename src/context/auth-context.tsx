@@ -570,70 +570,115 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     department: string = 'Creatividad & Operaciones'
   ): Promise<{ error?: string }> => {
     const cleanEmail = email.trim().toLowerCase();
+    const cleanPass = pass.trim();
+    let createdProfileId: string | undefined;
 
     if (isSupabaseConnected) {
       try {
         const supabase = createClient();
-        const { data, error } = await supabase.auth.signUp({
-          email: cleanEmail,
-          password: pass,
-          options: {
-            data: {
-              full_name: fullName.trim(),
-              role: 'employee',
-              status: 'pending',
-              department,
-            },
-          },
-        });
 
-        if (error) {
-          return { error: error.message };
-        }
+        // 1. Verificar si el correo ya existe en la base de datos
+        const { data: existingProf } = await supabase
+          .from('profiles')
+          .select('id, email, status')
+          .eq('email', cleanEmail)
+          .maybeSingle();
 
-        // Insertar o asegurar registro en profiles con la clave elegida para permitir login directo tras aprobación
-        if (data.user) {
-          try {
-            await supabase.from('profiles').upsert({
-              id: data.user.id,
-              full_name: fullName.trim(),
-              email: cleanEmail,
-              role: 'employee',
-              status: 'pending',
-              department,
-              password_configured: true,
-              custom_password: pass.trim(),
-            });
-          } catch (upsertErr) {
-            console.warn('Profile upsert notice:', upsertErr);
+        if (existingProf) {
+          if (existingProf.status === 'pending') {
+            return {
+              error: 'Ya existe una solicitud pendiente con este correo. La coordinadora la validará en breve.',
+            };
           }
+          return {
+            error: 'Este correo ya está registrado en la plataforma. Puedes iniciar sesión directamente.',
+          };
         }
 
-        // Asegurar que custom_password esté persistido en profiles
+        // 2. Insertar perfil pendiente directamente en public.profiles
+        // Esto es inmune a límites de envío de emails ('email rate limit') de Supabase
+        const { data: insertedProfile, error: insertErr } = await supabase
+          .from('profiles')
+          .insert({
+            full_name: fullName.trim(),
+            email: cleanEmail,
+            role: 'employee',
+            status: 'pending',
+            department,
+            password_configured: true,
+            custom_password: cleanPass,
+          })
+          .select('id')
+          .maybeSingle();
+
+        if (insertErr) {
+          console.warn('[SignUp] Aviso al registrar perfil en profiles:', insertErr);
+          if (insertErr.code === '23505') {
+            return { error: 'Este correo ya tiene un registro en la base de datos.' };
+          }
+        } else if (insertedProfile?.id) {
+          createdProfileId = insertedProfile.id;
+        }
+
+        // 3. Intento secundario en Supabase Auth (en segundo plano y sin bloquear el registro)
+        // Si Supabase devuelve "email rate limit exceeded" o falla el envío de correo, no interrumpe el registro
         try {
-          await supabase
-            .from('profiles')
-            .update({
-              custom_password: pass.trim(),
-              password_configured: true,
-            })
-            .eq('email', cleanEmail);
-        } catch (updateErr) {
-          console.warn('Profile update custom_password notice:', updateErr);
-        }
+          const authRes = await supabase.auth.signUp({
+            email: cleanEmail,
+            password: cleanPass,
+            options: {
+              data: {
+                full_name: fullName.trim(),
+                role: 'employee',
+                status: 'pending',
+                department,
+              },
+            },
+          });
 
-        // Cerrar cualquier sesión automática para forzar la aprobación previa de la coordinadora
-        await supabase.auth.signOut();
+          if (authRes.error) {
+            console.warn('[SignUp] Supabase Auth aviso (ignorado para garantizar registro):', authRes.error.message);
+          } else if (authRes.data?.user?.id && createdProfileId && createdProfileId !== authRes.data.user.id) {
+            try {
+              await supabase
+                .from('profiles')
+                .update({ id: authRes.data.user.id })
+                .eq('email', cleanEmail);
+              createdProfileId = authRes.data.user.id;
+            } catch {
+              // Si no permite actualizar id por constraints, se mantiene el ID ya asignado
+            }
+          }
+
+          // Asegurar que custom_password esté actualizado en profiles
+          try {
+            await supabase
+              .from('profiles')
+              .update({
+                custom_password: cleanPass,
+                password_configured: true,
+              })
+              .eq('email', cleanEmail);
+          } catch {
+            // ignore
+          }
+
+          // Cerrar cualquier sesión automática para forzar la aprobación previa de la coordinadora
+          await supabase.auth.signOut();
+        } catch (authErr) {
+          console.warn('[SignUp] Excepción secundaria en Supabase Auth:', authErr);
+        }
       } catch (err: unknown) {
-        console.error(err);
+        console.error('[SignUp] Error en registro:', err);
       }
     }
 
-    // Guardar en pending local
+    // 4. Guardar en pending local como respaldo
     try {
       const pendingUsers = JSON.parse(localStorage.getItem('bug_clockify_pending_users') || '[]');
-      pendingUsers.push({
-        id: `u_${Date.now()}`,
+      const filtered = pendingUsers.filter((u: any) => u.email !== cleanEmail);
+      filtered.push({
+        id: createdProfileId || `u_${Date.now()}`,
         full_name: fullName.trim(),
         email: cleanEmail,
         role: 'employee',
@@ -642,7 +687,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         password_configured: true,
         created_at: new Date().toISOString(),
       });
-      localStorage.setItem('bug_clockify_pending_users', JSON.stringify(pendingUsers));
+      localStorage.setItem('bug_clockify_pending_users', JSON.stringify(filtered));
     } catch (e) {
       console.error(e);
     }

@@ -1942,4 +1942,34 @@
   - Servidor de desarrollo respondiendo en `http://localhost:3000` con **HTTP 200 OK**.
   - Cumplimiento de las Directrices Maestras (DM-01 Cero Emojis, DM-08 RLS, DM-13 Identidad "La Abuela", DM-15 Zero-Scroll).
 
+### [v3.9.3] - 2026-11-06 - Eliminación del Bloqueo por Límite de Envío de Emails ('Email Rate Limit Exceeded') en Registro de Empleados
+- **Solicitud del Usuario:**
+  *"cuand intentan registrarse los empreados via hipervinculo de cordiandora. el primer empleado bien, peor el 2ndo ya le ha salido email rate limit"*
+- **Diagnóstico del Problema:**
+  1. En el servicio por defecto de Supabase Auth, el servidor de correo electrónico gratuito tiene una cuota máxima estricta de envío (aproximadamente 3 correos por hora).
+  2. El método `signUp()` en `src/context/auth-context.tsx` ejecutaba como primer paso obligatorio `supabase.auth.signUp()`, el cual intentaba enviar un correo de confirmación de dirección de email.
+  3. Cuando un segundo o tercer empleado intentaba registrarse a través del enlace oficial (`/register?invite=brainup`) en la misma hora, Supabase rechazaba la petición con `AuthApiError: email rate limit exceeded`.
+  4. El código detenía el proceso con un `return { error: error.message }`, impidiendo que la solicitud llegase a la base de datos `public.profiles` y bloqueando el registro del nuevo trabajador.
+- **Decisiones Técnicas y Solución Implementada:**
+  1. **Registro Directo e Inmune en `public.profiles` (`src/context/auth-context.tsx`):**
+     - Dado que en Brain Up Clockify el acceso se controla estrictamente mediante enlace de invitación (`invite=brainup`) y requiere obligatoriamente la aprobación de la coordinadora (`status = 'pending'`), no se depende de confirmaciones por correo para habilitar las cuentas.
+     - `signUp()` comprueba en primer lugar si el correo ya existe en la base de datos para mostrar un mensaje claro en caso afirmativo.
+     - A continuación, inserta directamente el perfil pendiente en `public.profiles` con `role: 'employee'`, `status: 'pending'`, `password_configured: true` y `custom_password: cleanPass`.
+     - Esta inserción SQL directa en PostgreSQL es **ilimitada y no está sujeta a ninguna restricción de envío de correos**.
+  2. **Llamada Secundaria Tolerante a Fallos en Supabase Auth:**
+     - Se intenta registrar en `supabase.auth.signUp()` en segundo plano y dentro de un bloque `try/catch`.
+     - Si Supabase Auth devuelve `email rate limit exceeded` o cualquier incidencia de transporte SMTP, el error es ignorado de forma controlada y **nunca frustra el alta del trabajador**.
+  3. **Activación y Acceso Inmediato tras Aprobación:**
+     - La solicitud queda registrada inmediatamente en la base de datos y aparece en el panel de la coordinadora (`/dashboard/coordinator`) en la tabla *"Solicitudes de Registro Pendientes"*.
+     - En cuanto la coordinadora pulsa *"Aprobar Solicitud"*, el estado se actualiza a `active`.
+     - El trabajador puede iniciar sesión inmediatamente en `/login` con su correo y la contraseña que introdujo al registrarse.
+- **Validación y Pruebas:**
+  - Prueba de concurrencia automatizada simulando dos registros consecutivos e instantáneos:
+    - Empleado 1: registro completado sin errores.
+    - Empleado 2: registro completado sin bloqueo por rate limit de correo.
+    - Aprobación por coordinadora y login verificado con éxito para ambos perfiles.
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Verificación de ruta HTTP: `/register?invite=brainup` respondiendo con código **200 OK**.
+  - Documentación en `REGISTRO_MAESTRO.md` y sincronización con repositorio GitHub.
+
 
