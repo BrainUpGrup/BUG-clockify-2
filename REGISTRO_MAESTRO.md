@@ -1677,3 +1677,35 @@
   - `npx tsc --noEmit`: **0 errores de compilación**.
   - `npm run build`: **Compilación de producción exitosa (19/19 páginas estáticas + API routes dinámicas)**.
   - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis), DM-02 (Controles In-App), DM-08 (Seguridad y Aislamiento por Rol), DM-13 (Identidad "La Abuela") y DM-15 (Zero-Scroll).
+
+### [v3.8.5] - 2026-11-06 - Persistencia Total en Supabase: Hosting, TaskFlow, Listas y Post-its
+- **Solicitud del Usuario:**
+  *"tienes que guardar en supabase los cambios que se van haciendo em la aplicacion y en el apartado de hosting"*
+- **Diagnóstico y Decisiones Técnicas:**
+  1. **Auditoría de Esquema Supabase y Detección de Brecha de Persistencia:**
+     - Mediante sondeo al proyecto Supabase (`https://popypyunzkuyighdyjkc.supabase.co`), se detectó que solo existían las tablas `profiles`, `companies` y `time_entries`.
+     - Las tablas `hosting_services`, `taskflow_items`, `taskflow_lists` y `taskflow_postits` arrojaban error `PGRST205` por no haberse ejecutado las sentencias DDL correspondientes en el SQL Editor de Supabase.
+     - En `TaskFlow`, la totalidad de mutaciones (creación de tareas, reprogramaciones, drag & drop de fechas, cambios de estado, listas y post-its) dependían exclusivamente de `localStorage`.
+     - En `Hosting`, la importación masiva de CSV y ciertas mutaciones no sincronizaban hacia Supabase por falta de `batchSaveHostingServices` y problemas de tipado nulo en `company_id` / `parent_id`.
+  2. **Creación del Esquema SQL Completo e Idempotente (`schema_app_and_hosting.sql`):**
+     - Script maestro listo para copiar y pegar en el SQL Editor de Supabase:
+       - `hosting_services`: Gestión de dominios y hostings con `parent_id TEXT NULL` desvinculado de FK rígida para evitar conflictos con nombres de dominio padre importados de Cdmon.
+       - `taskflow_items`: Tareas, entregables y reuniones con asignación a clientes, colores, estimaciones y campos de reprogramación.
+       - `taskflow_lists`: Agrupadores temáticos y listas personalizadas.
+       - `taskflow_postits`: Mural modular interactivo con coordenadas espaciales `(pos_x, pos_y)`, dimensiones `(width, height)`, zIndex y recordatorios JSONB.
+       - Políticas RLS completas que permiten acceso sin fricción a usuarios autenticados y anónimos autorizados.
+  3. **Servicio Centralizado de TaskFlow (`src/lib/taskflow-service.ts`):**
+     - Funciones bidireccionales con mapeo camelCase <-> snake_case:
+       - `getTaskFlowItemsFromDb()`, `saveTaskFlowItemToDb()`, `batchSaveTaskFlowItemsToDb()`, `deleteTaskFlowItemFromDb()`.
+       - `getTaskListsFromDb()`, `saveTaskListToDb()`.
+       - `getPostItsFromDb()`, `savePostItToDb()`, `batchSavePostItsToDb()`, `deletePostItFromDb()`.
+     - Auto-siembra inteligente: si la tabla existe en Supabase pero está vacía, se pueblan automáticamente los datos semilla oficiales.
+  4. **Robustecimiento del Servicio de Hosting (`src/lib/hosting-service.ts`):**
+     - Función `toSupabaseHostingPayload` que sanitiza `company_id` (UUID o null, nunca string vacío), `parent_id`, tipos numéricos y stages JSONB.
+     - Incorporación de `batchSaveHostingServices` para sincronizar en bloques de 50 registros tanto en importaciones masivas CSV como en auto-siembra inicial de 153 servicios de Cdmon.
+  5. **Endpoint de Verificación de Salud (`/api/database/status`):**
+     - Ruta GET en [`src/app/api/database/status/route.ts`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/app/api/database/status/route.ts) para verificar en tiempo real el estado de las 7 tablas en Supabase.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - `npm run build`: **20/20 páginas y endpoints generados con éxito**.
+  - Auditoría de cumplimiento estricto de DM-01 (Cero Emojis), DM-02 (Controles In-App), DM-08 (Seguridad RLS), DM-13 (Identidad "La Abuela") y DM-15 (Zero-Scroll).

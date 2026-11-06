@@ -15,7 +15,8 @@ import {
   getHostingAlerts,
   calculateDaysRemaining,
   exportHostingToCSV,
-  markNotificationSent
+  markNotificationSent,
+  batchSaveHostingServices
 } from '@/lib/hosting-service';
 import { HostingStats } from '@/components/hosting/hosting-stats';
 import { HostingNotificationsDrawer } from '@/components/hosting/hosting-notifications-drawer';
@@ -290,25 +291,23 @@ export default function HostingPage() {
     }
   };
 
-  // Importar CSV
+  // Importar CSV con persistencia inmediata en Supabase y local
   const handleImportCSV = async (importedList: HostingService[], replaceAll: boolean) => {
+    let finalToSave: HostingService[] = [];
     if (replaceAll) {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('bug_hosting_services_cache', JSON.stringify(importedList));
-      }
-      setServices(importedList);
+      finalToSave = importedList;
     } else {
       const existingMap = new Map(services.map((s) => [s.name.toLowerCase(), s]));
       importedList.forEach((imp) => {
         existingMap.set(imp.name.toLowerCase(), imp);
       });
-      const combined = Array.from(existingMap.values());
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('bug_hosting_services_cache', JSON.stringify(combined));
-      }
-      setServices(combined);
+      finalToSave = Array.from(existingMap.values());
     }
+
+    setServices(finalToSave);
+    await batchSaveHostingServices(finalToSave);
     await loadData();
+    notify(`Importación completada: ${finalToSave.length} servicios registrados en Supabase.`, { type: 'success' });
   };
 
   // Abrir modal de email

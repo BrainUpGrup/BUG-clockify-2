@@ -354,7 +354,7 @@ create table if not exists public.hosting_services (
   auto_renew boolean not null default false,
   payment_method text null default 'Manual / No configurado',
   provider text not null default 'Cdmon',
-  parent_id text null references public.hosting_services(id) on delete cascade,
+  parent_id text null,
   client_name text null,
   company_id uuid null references public.companies(id) on delete set null,
   price_cost numeric(10, 2) null default 0,
@@ -373,16 +373,109 @@ create index if not exists idx_hosting_parent_id on public.hosting_services(pare
 
 alter table public.hosting_services enable row level security;
 
-create policy "Usuarios autenticados leen hostings"
-  on public.hosting_services for select
-  to authenticated
-  using (true);
+drop policy if exists "hosting_select_policy" on public.hosting_services;
+create policy "hosting_select_policy" on public.hosting_services
+  for select using (true);
 
-create policy "Usuarios autenticados gestionan hostings"
-  on public.hosting_services for all
-  to authenticated
-  using (true)
-  with check (true);
+drop policy if exists "hosting_all_policy" on public.hosting_services;
+create policy "hosting_all_policy" on public.hosting_services
+  for all using (true) with check (true);
+
+-- 5. TABLA: taskflow_items (Tareas, Reuniones y Entregables del Calendario)
+create table if not exists public.taskflow_items (
+  id text primary key,
+  type text not null default 'task' check (type in ('task', 'meeting')),
+  title text not null,
+  description text null,
+  company_id uuid null references public.companies(id) on delete set null,
+  company_name text not null,
+  status text not null default 'todo' check (status in ('todo', 'in_progress', 'review', 'done')),
+  priority text null default 'media',
+  color_strip text null default 'purple',
+  custom_color text null,
+  list_id text null,
+  reschedule_mode text null default 'manual',
+  auto_reschedule boolean not null default false,
+  reschedule_days integer not null default 1,
+  date date not null,
+  start_time text null,
+  end_time text null,
+  location text null,
+  meeting_url text null,
+  estimated_hours numeric(5, 2) null default 0,
+  created_by text null default 'Equipo Brain Up',
+  created_by_name text null,
+  is_shared boolean not null default true,
+  assignees jsonb not null default '["Todos"]',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_taskflow_items_date on public.taskflow_items(date);
+create index if not exists idx_taskflow_items_status on public.taskflow_items(status);
+create index if not exists idx_taskflow_items_company on public.taskflow_items(company_id);
+
+alter table public.taskflow_items enable row level security;
+
+drop policy if exists "taskflow_items_select_policy" on public.taskflow_items;
+create policy "taskflow_items_select_policy" on public.taskflow_items
+  for select using (true);
+
+drop policy if exists "taskflow_items_all_policy" on public.taskflow_items;
+create policy "taskflow_items_all_policy" on public.taskflow_items
+  for all using (true) with check (true);
+
+-- 6. TABLA: taskflow_lists (Listas personalizadas de TaskFlow)
+create table if not exists public.taskflow_lists (
+  id text primary key,
+  name text not null,
+  color text not null default '#8E0E75',
+  created_at timestamptz not null default now()
+);
+
+alter table public.taskflow_lists enable row level security;
+
+drop policy if exists "taskflow_lists_select_policy" on public.taskflow_lists;
+create policy "taskflow_lists_select_policy" on public.taskflow_lists
+  for select using (true);
+
+drop policy if exists "taskflow_lists_all_policy" on public.taskflow_lists;
+create policy "taskflow_lists_all_policy" on public.taskflow_lists
+  for all using (true) with check (true);
+
+-- 7. TABLA: taskflow_postits (Mural y Pizarra Modular Interactiva de Post-its)
+create table if not exists public.taskflow_postits (
+  id text primary key,
+  title text not null,
+  content text not null default '',
+  color text not null default 'yellow',
+  target_date date not null,
+  target_time text null default '09:00',
+  reminders jsonb not null default '[]',
+  is_pinned boolean not null default false,
+  is_completed boolean not null default false,
+  pos_x numeric null default 0,
+  pos_y numeric null default 0,
+  width numeric null default 260,
+  height numeric null default 220,
+  z_index integer null default 1,
+  size_preset text null default 'medium',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_taskflow_postits_target_date on public.taskflow_postits(target_date);
+create index if not exists idx_taskflow_postits_completed on public.taskflow_postits(is_completed);
+
+alter table public.taskflow_postits enable row level security;
+
+drop policy if exists "taskflow_postits_select_policy" on public.taskflow_postits;
+create policy "taskflow_postits_select_policy" on public.taskflow_postits
+  for select using (true);
+
+drop policy if exists "taskflow_postits_all_policy" on public.taskflow_postits;
+create policy "taskflow_postits_all_policy" on public.taskflow_postits
+  for all using (true) with check (true);
 
 
 

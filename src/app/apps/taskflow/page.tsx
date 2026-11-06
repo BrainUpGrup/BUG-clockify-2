@@ -62,6 +62,14 @@ import {
   SEED_TASKFLOW_ITEMS, 
   getStoredTaskFlowItems 
 } from '@/lib/taskflow-data';
+import {
+  getTaskFlowItemsFromDb,
+  batchSaveTaskFlowItemsToDb,
+  getTaskListsFromDb,
+  saveTaskListToDb,
+  getPostItsFromDb,
+  batchSavePostItsToDb
+} from '@/lib/taskflow-service';
 const STORAGE_KEY_POSTITS = 'bug_taskflow_postits_v1';
 
 function getTodayString(): string {
@@ -239,82 +247,50 @@ function TaskFlowContent() {
     }
   }, [user, authLoading, router]);
 
-  // Cargar listas de tareas personalizadas
+  // Cargar listas de tareas personalizadas desde Supabase y local
   useEffect(() => {
-    try {
-      const storedLists = localStorage.getItem('bug_taskflow_lists_v1');
-      if (storedLists) {
-        setTaskLists(JSON.parse(storedLists));
-      } else {
-        localStorage.setItem('bug_taskflow_lists_v1', JSON.stringify(DEFAULT_TASK_LISTS));
-      }
-    } catch {}
+    getTaskListsFromDb().then((lists) => {
+      setTaskLists(lists);
+    });
   }, []);
 
-  const handleCreateList = (newList: TaskList) => {
-    setTaskLists((prev) => {
-      const updated = [...prev, newList];
-      try {
-        localStorage.setItem('bug_taskflow_lists_v1', JSON.stringify(updated));
-      } catch {}
-      return updated;
-    });
-    showToast(`Lista "${newList.name}" creada con éxito`, 'success');
+  const handleCreateList = async (newList: TaskList) => {
+    const updated = [...taskLists, newList];
+    setTaskLists(updated);
+    await saveTaskListToDb(newList, updated);
+    showToast(`Lista "${newList.name}" guardada en Supabase con éxito`, 'success');
   };
 
-  // Cargar elementos desde localStorage o seed + Rutina de auto-desplazamiento
+  // Cargar elementos desde Supabase o seed + Rutina de auto-desplazamiento
   useEffect(() => {
-    try {
+    getTaskFlowItemsFromDb().then((currentItems) => {
       const today = getTodayString();
-      const stored = localStorage.getItem(STORAGE_KEY_ITEMS_V2);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        let currentItems: TaskFlowItem[] = [];
-        if (Array.isArray(parsed) && parsed.length < 10) {
-          currentItems = SEED_TASKFLOW_ITEMS;
-        } else {
-          currentItems = parsed;
+      let autoRolloverCount = 0;
+      const rolledItems = currentItems.map((it) => {
+        if (it.status !== 'done' && it.autoReschedule && it.date < today) {
+          autoRolloverCount++;
+          return {
+            ...it,
+            date: today,
+          };
         }
+        return it;
+      });
 
-        // Auto-desplazamiento: si una tarea tiene autoReschedule activado y su fecha es anterior a hoy, se desplaza automáticamente a hoy
-        let autoRolloverCount = 0;
-        const rolledItems = currentItems.map((it) => {
-          if (it.status !== 'done' && it.autoReschedule && it.date < today) {
-            autoRolloverCount++;
-            return {
-              ...it,
-              date: today,
-            };
-          }
-          return it;
-        });
-
-        setItems(rolledItems);
-        localStorage.setItem(STORAGE_KEY_ITEMS_V2, JSON.stringify(rolledItems));
-
-        if (autoRolloverCount > 0) {
-          setTimeout(() => {
-            showToast(`Se han desplazado ${autoRolloverCount} tareas pendientes automáticamente al día de hoy como recordatorio activo`, 'info');
-          }, 1200);
-        }
-      } else {
-        setItems(SEED_TASKFLOW_ITEMS);
-        localStorage.setItem(STORAGE_KEY_ITEMS_V2, JSON.stringify(SEED_TASKFLOW_ITEMS));
+      setItems(rolledItems);
+      if (autoRolloverCount > 0) {
+        batchSaveTaskFlowItemsToDb(rolledItems);
+        setTimeout(() => {
+          showToast(`Se han desplazado ${autoRolloverCount} tareas pendientes automáticamente al día de hoy como recordatorio activo`, 'info');
+        }, 1200);
       }
-    } catch (e) {
-      console.warn('Error loading TaskFlow items:', e);
-      setItems(SEED_TASKFLOW_ITEMS);
-    }
+    });
   }, []);
 
-  // Guardar elementos en localStorage
+  // Guardar elementos en Supabase y localStorage
   const saveItems = (updated: TaskFlowItem[]) => {
     setItems(updated);
-    try {
-      localStorage.setItem(STORAGE_KEY_ITEMS_V2, JSON.stringify(updated));
-    } catch (e) {
-      console.error('Error saving TaskFlow items:', e);
-    }
+    batchSaveTaskFlowItemsToDb(updated);
   };
 
   // Reprogramación manual instantánea de todas las tareas vencidas a hoy (+1 día)
@@ -361,39 +337,18 @@ function TaskFlowContent() {
     showToast(`"${item.title}" desplazada al ${nextDateStr} (siguiente día hábil)`, 'success');
   };
 
-  // Cargar post-its desde localStorage o seed y sincronizar recordatorios
+  // Cargar post-its desde Supabase o seed y sincronizar recordatorios
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY_POSTITS);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setPostIts(parsed);
-          syncPostItReminders(parsed);
-        } else {
-          setPostIts(SEED_POST_ITS);
-          localStorage.setItem(STORAGE_KEY_POSTITS, JSON.stringify(SEED_POST_ITS));
-          syncPostItReminders(SEED_POST_ITS);
-        }
-      } else {
-        setPostIts(SEED_POST_ITS);
-        localStorage.setItem(STORAGE_KEY_POSTITS, JSON.stringify(SEED_POST_ITS));
-        syncPostItReminders(SEED_POST_ITS);
-      }
-    } catch {
-      setPostIts(SEED_POST_ITS);
-      syncPostItReminders(SEED_POST_ITS);
-    }
+    getPostItsFromDb(SEED_POST_ITS).then((loaded) => {
+      setPostIts(loaded);
+      syncPostItReminders(loaded);
+    });
   }, [syncPostItReminders]);
 
-  // Guardar post-its y disparar sincronización de alertas para el panel de notificaciones
+  // Guardar post-its en Supabase, local y disparar sincronización de alertas
   const savePostIts = (updated: PostItItem[]) => {
     setPostIts(updated);
-    try {
-      localStorage.setItem(STORAGE_KEY_POSTITS, JSON.stringify(updated));
-    } catch (e) {
-      console.error(e);
-    }
+    batchSavePostItsToDb(updated);
     syncPostItReminders(updated);
   };
 

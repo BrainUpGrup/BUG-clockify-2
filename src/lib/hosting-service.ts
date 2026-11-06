@@ -49,6 +49,33 @@ export function getAlertUrgency(daysRemaining: number): {
 }
 
 /**
+ * Sanitiza y prepara un servicio para inserción o actualización limpia en Supabase.
+ */
+export function toSupabaseHostingPayload(s: HostingService) {
+  return {
+    id: s.id,
+    name: s.name,
+    service_type: s.service_type || 'Hosting',
+    renewal_cycle: s.renewal_cycle || 'Anual',
+    expiration_date: s.expiration_date,
+    auto_renew: Boolean(s.auto_renew),
+    payment_method: s.payment_method || 'Manual / No configurado',
+    provider: s.provider || 'Cdmon',
+    parent_id: s.parent_id && s.parent_id.trim() !== '' ? s.parent_id.trim() : null,
+    client_name: s.client_name || null,
+    company_id: s.company_id && s.company_id.trim() !== '' ? s.company_id.trim() : null,
+    price_cost: Number(s.price_cost) || 0,
+    price_client: Number(s.price_client) || 0,
+    status: s.status || 'active',
+    notes: s.notes || null,
+    last_notified_at: s.last_notified_at || null,
+    notification_stages: s.notification_stages || { '7': false, '15': false, '30': false, '60': false, '90': false },
+    created_at: s.created_at || new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+}
+
+/**
  * Obtiene la lista completa de servicios desde Supabase o caché local (con fallback a la semilla Cdmon)
  */
 export async function getHostingServices(): Promise<HostingService[]> {
@@ -60,11 +87,25 @@ export async function getHostingServices(): Promise<HostingService[]> {
       .select('*')
       .order('expiration_date', { ascending: true });
 
-    if (!error && data && data.length > 0) {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(STORAGE_KEY_HOSTING, JSON.stringify(data));
+    if (!error && data) {
+      if (data.length > 0) {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(STORAGE_KEY_HOSTING, JSON.stringify(data));
+        }
+        return data as HostingService[];
+      } else {
+        // La tabla existe pero aún está vacía: sincronizar los 153 servicios de Cdmon en Supabase
+        console.info('Poblando 153 servicios Cdmon en tabla hosting_services de Supabase...');
+        const payloads = INITIAL_HOSTING_SERVICES.map(toSupabaseHostingPayload);
+        const chunkSize = 50;
+        for (let i = 0; i < payloads.length; i += chunkSize) {
+          await supabase.from('hosting_services').upsert(payloads.slice(i, i + chunkSize));
+        }
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(STORAGE_KEY_HOSTING, JSON.stringify(INITIAL_HOSTING_SERVICES));
+        }
+        return INITIAL_HOSTING_SERVICES;
       }
-      return data as HostingService[];
     }
   } catch (err) {
     console.warn('Supabase hosting_services no disponible, recurriendo a almacenamiento local:', err);
@@ -100,10 +141,15 @@ export async function saveHostingService(service: HostingService): Promise<Hosti
     updated_at: new Date().toISOString(),
   };
 
-  // Intentar guardar en Supabase
+  const payload = toSupabaseHostingPayload(updatedService);
+
+  // Guardar en Supabase
   try {
     const supabase = createClient();
-    await supabase.from('hosting_services').upsert(updatedService);
+    const { error } = await supabase.from('hosting_services').upsert(payload);
+    if (error) {
+      console.warn('Aviso al guardar en Supabase hosting_services:', error.message);
+    }
   } catch (err) {
     console.warn('No se pudo guardar en Supabase, guardando en local:', err);
   }
@@ -130,12 +176,48 @@ export async function saveHostingService(service: HostingService): Promise<Hosti
 }
 
 /**
- * Elimina un servicio por ID
+ * Guarda múltiples servicios en Supabase (en bloques) y localmente (usado en importación CSV)
+ */
+export async function batchSaveHostingServices(services: HostingService[]): Promise<void> {
+  if (!services || services.length === 0) return;
+
+  // 1. Guardar en Supabase en bloques de 50
+  try {
+    const supabase = createClient();
+    const payloads = services.map(toSupabaseHostingPayload);
+    const chunkSize = 50;
+    for (let i = 0; i < payloads.length; i += chunkSize) {
+      const chunk = payloads.slice(i, i + chunkSize);
+      const { error } = await supabase.from('hosting_services').upsert(chunk);
+      if (error) {
+        console.warn('Error guardando bloque de hostings en Supabase:', error.message);
+      }
+    }
+  } catch (err) {
+    console.warn('Error en batchSaveHostingServices para Supabase:', err);
+  }
+
+  // 2. Guardar en localStorage
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(STORAGE_KEY_HOSTING, JSON.stringify(services));
+      window.dispatchEvent(new CustomEvent('bug_hosting_updated'));
+    } catch (e) {
+      console.warn('Error guardando en localStorage:', e);
+    }
+  }
+}
+
+/**
+ * Elimina un servicio por ID en Supabase y localmente
  */
 export async function deleteHostingService(id: string): Promise<boolean> {
   try {
     const supabase = createClient();
-    await supabase.from('hosting_services').delete().eq('id', id);
+    const { error } = await supabase.from('hosting_services').delete().eq('id', id);
+    if (error) {
+      console.warn('Aviso al borrar de Supabase hosting_services:', error.message);
+    }
   } catch (err) {
     console.warn('Error al borrar de Supabase:', err);
   }
