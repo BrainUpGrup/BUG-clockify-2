@@ -1784,3 +1784,23 @@
   - `npx tsc --noEmit`: **0 errores de compilación**.
   - `npm run build`: **20/20 rutas estáticas y dinámicas compiladas con éxito**.
   - Cumplimiento estricto de DM-01 (Cero Emojis), DM-13 (Identidad "La Abuela" y verde corporativo `#3BB54A`) y DM-15 (Zero-Scroll).
+
+### [v3.8.9] - 2026-11-06 - Corrección de Caché Webpack del Servidor de Desarrollo y Redirección Fallback
+- **Solicitud del Usuario:**
+  *"se queda asi mucho rato no cargaaaaaa"* (con captura adjunta mostrando la pantalla de inicio bloqueada en *"Verificando sesión en Brain Up Clockify..."*).
+- **Diagnóstico y Decisiones Técnicas:**
+  1. **Detección de Conflicto de Caché en `.next` (500 Internal Server Error):**
+     - La ejecución previa del comando de compilación estática de producción (`npm run build`) sobreescribió el directorio `.next` mientras el proceso en desarrollo (`next dev`, PID 12296) permanecía en memoria.
+     - Al entrar en colisión los módulos de producción con el compilador en memoria de desarrollo, el servidor arrojaba un error crítico: `TypeError: __webpack_modules__[moduleId] is not a function`.
+     - Esto impedía la hidratación de los componentes de cliente de React, bloqueando la ejecución de los hooks y dejando la vista inicial congelada en el spinner de carga.
+  2. **Remediación del Servidor y Limpieza de Caché:**
+     - Terminación forzosa de los procesos Node colgados (PIDs 12296, 12280, 28432).
+     - Purgado completo del directorio `.next`.
+     - Relanzamiento limpio del servidor en modo desarrollo (`npm run dev`) operativo y respondiendo en `http://localhost:3000` con código HTTP 200 OK.
+  3. **Mecanismo Anti-Bloqueo y Redirección Fallback (`src/app/page.tsx`):**
+     - Incorporación de un temporizador de seguridad de 1.2 segundos que, si por alguna razón el router de React o la hidratación sufren una demora, fuerza la redirección nativa del navegador (`window.location.replace`) hacia `/hub` (si hay usuario autenticado) o hacia `/login`.
+- **Validación y Pruebas:**
+  - Verificación mediante `Invoke-WebRequest`:
+    - `http://localhost:3000/` $\rightarrow$ **HTTP 200 OK**.
+    - `http://localhost:3000/login` $\rightarrow$ **HTTP 200 OK**.
+  - `npx tsc --noEmit`: **0 errores de compilación**.
