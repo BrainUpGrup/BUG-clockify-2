@@ -1171,15 +1171,10 @@ export default function SuperAdminDashboardPage() {
                     Contraseña Maestra Asignada
                   </span>
                   <div className="flex items-center justify-between font-mono text-[#292929]">
-                    <span>fn.5loDnrTTfI2z!</span>
-                    <button
-                      type="button"
-                      onClick={() => handleCopyText('fn.5loDnrTTfI2z!', 'admin_pass')}
-                      className="text-[#8E0E75] hover:text-[#720B5E] p-1 cursor-pointer"
-                      title="Copiar contraseña"
-                    >
-                      {copiedKey === 'admin_pass' ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
-                    </button>
+                    <span className="tracking-widest">••••••••••••</span>
+                    <span className="text-[11px] text-emerald-700 font-bold uppercase tracking-wider bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                      Protegida en Auth
+                    </span>
                   </div>
                 </div>
 

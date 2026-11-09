@@ -2053,4 +2053,31 @@
   - `npx tsc --noEmit`: **0 errores de compilación**.
   - Documentación en `REGISTRO_MAESTRO.md` y sincronización con GitHub `origin/main`.
 
+### [v3.9.7] - 2026-11-09 - Fase 3 de Seguridad: Erradicación de Claves Maestras en Texto Claro del Bundle Cliente y Blindaje RPC
+- **Solicitud del Usuario:**
+  *"fase 3"*
+- **Diagnóstico del Problema (Auditoría de Ciberseguridad SEC-03):**
+  1. El bundle JavaScript del cliente incluía contraseñas maestras hardcodeadas en texto plano (`BrainUp2026!`, `BrainUp2026`, `brainup2026`, `fn.5loDnrTTfI2z!`) en `src/context/auth-context.tsx`.
+  2. Dicha condición (`isAllowedMasterPass`) permitía a cualquier persona iniciar sesión como cualquier usuario registrado (incluyendo coordinadores y administradores) simplemente tecleando la clave maestra genérica, ignorando por completo la contraseña privada del usuario.
+  3. En `src/app/dashboard/admin/page.tsx`, la contraseña maestra de superadministrador se renderizaba de forma visible en el DOM en texto claro y en un botón con función de copia al portapapeles.
+  4. Durante las pruebas activas de autenticación con la RPC `authenticate_employee`, se detectó que la función intentaba proyectar la columna `avatar_url`, la cual no existía en la tabla `public.profiles` de producción en Supabase, provocando un error en tiempo de ejecución.
+- **Decisiones Técnicas y Solución Implementada:**
+  1. **Erradicación de la Puerta Trasera `isAllowedMasterPass`:**
+     - Se eliminó por completo el bloque condicional `isAllowedMasterPass` de `src/context/auth-context.tsx`.
+     - Las autenticaciones con base de datos se delegan estrictamente a:
+       1. Supabase Auth estándar (`supabase.auth.signInWithPassword`).
+       2. Función RPC segura `supabase.rpc('authenticate_employee')` con `SECURITY DEFINER`.
+     - El acceso mock/demo offline queda estrictamente acotado al entorno de desarrollo local sin conexión (`isDevOrDemo && !isSupabaseConnected`).
+  2. **Enmascaramiento de Credenciales en el Panel de Superadministrador:**
+     - En `src/app/dashboard/admin/page.tsx`, se sustituyó la cadena visible de la contraseña por un enmascaramiento fijo tipográfico (`••••••••••••`) y una etiqueta de estado *"Protegida en Auth"*, eliminando el copiado de claves en claro.
+  3. **Robustecimiento de `authenticate_employee` y Sincronización SQL:**
+     - Se corrigió la función `authenticate_employee` en `shield_database_rls.sql` y `schema.sql` para no requerir la columna `avatar_url` en `public.profiles`, devolviendo `'avatar_url', null` de forma segura.
+     - Se añadió la migración preventiva `alter table public.profiles add column if not exists avatar_url text null default null;` en `shield_database_rls.sql` y `schema.sql`.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Verificación estricta mediante grep: ninguna clave maestra permanece en el código fuente de componentes cliente.
+  - Comprobación de flujo de error y logs controlados en llamadas RPC.
+  - Cumplimiento de directrices DM-01 (Cero Emojis), DM-08 (Seguridad Aislada RLS) y DM-13 (Diseño "La Abuela").
+
+
 

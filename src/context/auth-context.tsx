@@ -305,7 +305,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           p_password: cleanPass,
         });
 
-        if (!rpcErr && rpcRes) {
+        if (rpcErr) {
+          console.error('Error al ejecutar RPC authenticate_employee en Supabase:', rpcErr);
+        } else if (rpcRes) {
           if (rpcRes.success === false) {
             return { error: rpcRes.error };
           }
@@ -322,83 +324,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // 4. AUTENTICACIÓN POR BASE DE DATOS O CLAVE MAESTRA CORPORATIVA
-    const isAllowedMasterPass =
-      cleanPass === 'BrainUp2026!' ||
-      cleanPass === 'BrainUp2026' ||
-      cleanPass === 'brainup2026' ||
-      cleanPass === 'fn.5loDnrTTfI2z!';
-
-    let matchedDbProfile: (Profile & { custom_password?: string }) | null = null;
-    let isDbPassMatch = false;
-
-    if (isSupabaseConnected) {
-      try {
-        const supabase = createClient();
-        const { data: dbProf } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('email', cleanEmail)
-          .maybeSingle();
-
-        if (dbProf) {
-          matchedDbProfile = dbProf as Profile & { custom_password?: string };
-          if (dbProf.custom_password && dbProf.custom_password === cleanPass) {
-            isDbPassMatch = true;
-          }
-        }
-      } catch {
-        // fallback
-      }
-    }
-
-    if (isAllowedMasterPass || isDbPassMatch) {
-      // Consultar si la cuenta tiene password_configured en false en el store
-      let shouldForceReset = false;
-      if (matchedDbProfile && typeof matchedDbProfile.password_configured === 'boolean') {
-        shouldForceReset = matchedDbProfile.password_configured === false;
-      } else {
-        try {
-          const checkRes = await fetch(`/api/auth/reset-password?email=${encodeURIComponent(cleanEmail)}`);
-          if (checkRes.ok) {
-            const checkData = await checkRes.json();
-            if (checkData.password_configured === false) {
-              shouldForceReset = true;
-            }
-          }
-        } catch {
-          // ignore
-        }
-      }
-
-      // Si el perfil existe en Supabase, iniciar sesión con sus datos exactos
-      if (matchedDbProfile) {
-        if (matchedDbProfile.status === 'pending') {
-          return { error: 'Tu cuenta está registrada pero aún está PENDIENTE de validación por la coordinadora.' };
-        }
-        if (matchedDbProfile.status === 'rejected') {
-          return { error: 'Tu solicitud de acceso fue rechazada.' };
-        }
-
-        const safeProfile: Profile = {
-          id: matchedDbProfile.id,
-          full_name: matchedDbProfile.full_name,
-          email: matchedDbProfile.email,
-          role: cleanEmail === 'appadmin@brainupgrup.com' ? 'admin' : matchedDbProfile.role,
-          status: matchedDbProfile.status,
-          department: matchedDbProfile.department,
-          avatar_url: matchedDbProfile.avatar_url,
-          password_configured: !shouldForceReset,
-          created_at: matchedDbProfile.created_at,
-        };
-
-        persistUser(safeProfile);
-        setUser(safeProfile);
-        setMustResetPassword(shouldForceReset);
-        return { user: safeProfile };
-      }
-
-      // Cuenta Super Admin
+    // 4. ACCESO DEMO EXCLUSIVAMENTE EN ENTORNO LOCAL DE DESARROLLO SIN SUPABASE
+    if (isDevOrDemo && !isSupabaseConnected) {
       if (cleanEmail === 'appadmin@brainupgrup.com') {
         const adminProfile: Profile = {
           id: '8b2a428b-9fb2-4a26-b298-696f8510d770',
@@ -415,7 +342,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { user: adminProfile };
       }
 
-      // Cuenta Coordinadora Montse
       if (cleanEmail === 'montse@brainupgrup.com') {
         const coordProfile: Profile = {
           id: '755e8812-8e22-43f1-ac6f-f41ce5451fcf',
@@ -424,16 +350,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           role: 'coordinator',
           status: 'active',
           department: 'Coordinación & Dirección',
-          password_configured: !shouldForceReset,
           created_at: '2026-10-14T10:35:57Z',
         };
         persistUser(coordProfile);
         setUser(coordProfile);
-        setMustResetPassword(shouldForceReset);
+        setMustResetPassword(false);
         return { user: coordProfile };
       }
 
-      // Cuenta Empleado Gerard Medina
       if (cleanEmail === 'peipito@gmail.com') {
         const empProfile: Profile = {
           id: 'd6ab9054-ef6c-46ff-9483-441426e3cf8b',
@@ -442,67 +366,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           role: 'employee',
           status: 'active',
           department: 'Creatividad & Operaciones',
-          password_configured: !shouldForceReset,
           created_at: '2026-01-01T00:00:00Z',
         };
         persistUser(empProfile);
         setUser(empProfile);
-        setMustResetPassword(shouldForceReset);
+        setMustResetPassword(false);
         return { user: empProfile };
       }
 
-      // Buscar si el usuario existe en Supabase profiles
-      if (isSupabaseConnected) {
-        try {
-          const supabase = createClient();
-          const { data: dbProf } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('email', cleanEmail)
-            .single();
-
-          if (dbProf) {
-            if (dbProf.status === 'pending') {
-              return { error: 'Tu cuenta está registrada pero aún está PENDIENTE de validación por la coordinadora de Brain Up Grup.' };
-            }
-            if (dbProf.status === 'rejected') {
-              return { error: 'Tu solicitud de acceso fue rechazada.' };
-            }
-            const logged = dbProf as Profile;
-            setUser(logged);
-            persistUser(logged);
-            return { user: logged };
-          }
-        } catch {
-          // ignore
-        }
-      }
-    }
-
-    // Si el usuario existe en Supabase pero la contraseña no coincidió:
-    if (matchedDbProfile) {
-      if (matchedDbProfile.status === 'pending') {
-        return {
-          error: 'Tu cuenta está registrada pero aún está PENDIENTE de validación por la coordinadora de Brain Up Grup.',
-        };
-      }
-      if (matchedDbProfile.status === 'rejected') {
-        return { error: 'Tu solicitud de acceso fue rechazada. Contacta con la coordinadora.' };
-      }
-      if (!matchedDbProfile.custom_password) {
-        return {
-          error: 'Tu cuenta está activa, pero no tiene una contraseña asignada. Usa la clave temporal BrainUp2026! o solicita a la coordinadora que te asigne una.',
-        };
-      }
-      return {
-        error: 'Contraseña incorrecta. Verifica tu contraseña o solicita una nueva a la coordinadora.',
-      };
-    }
-
-    // 4. FALLBACK PARA USUARIOS REGISTRADOS EN DEMO O MOCK
-    if (isDevOrDemo) {
-
-      // Perfiles mock locales registrados
+      // Perfiles mock locales registrados offline
       let allProfiles: Profile[] = [...MOCK_PROFILES];
       try {
         const storedPending = localStorage.getItem('bug_clockify_pending_users');

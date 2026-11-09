@@ -22,6 +22,7 @@ create table if not exists public.profiles (
 );
 
 -- Migración segura por si la tabla ya existía:
+alter table public.profiles add column if not exists avatar_url text null default null;
 alter table public.profiles add column if not exists password_configured boolean not null default true;
 alter table public.profiles add column if not exists temp_password text null;
 alter table public.profiles add column if not exists custom_password text null;
@@ -121,7 +122,7 @@ begin
     return jsonb_build_object('success', false, 'error', 'El correo y la contraseña son obligatorios.');
   end if;
 
-  select id, full_name, email, role, status, department, avatar_url, password_configured, created_at
+  select id, full_name, email, role, status, department, password_configured, created_at
   into v_prof
   from public.profiles
   where lower(trim(email)) = lower(trim(p_email))
@@ -154,7 +155,7 @@ begin
       'role', v_prof.role,
       'status', v_prof.status,
       'department', v_prof.department,
-      'avatar_url', v_prof.avatar_url,
+      'avatar_url', null,
       'password_configured', v_prof.password_configured,
       'created_at', v_prof.created_at
     )
