@@ -70,10 +70,8 @@ export default function CoordinatorDashboardPage() {
     if (!authLoading) {
       if (!user) {
         router.replace('/login');
-      } else if (user.role === 'admin') {
-        router.replace('/dashboard/admin');
-      } else if (user.role !== 'coordinator') {
-        flagAccessDenied('El panel de Coordinación es solo para coordinadoras. Te hemos llevado a tu registro de horas.');
+      } else if (user.role !== 'coordinator' && user.role !== 'admin') {
+        flagAccessDenied('El panel de Coordinación es solo para coordinadores. Te hemos llevado a tu registro de horas.');
         router.replace('/dashboard/employee');
       }
     }
@@ -81,7 +79,7 @@ export default function CoordinatorDashboardPage() {
 
   // Cargar todos los datos clasificados por empresa y empleados en paralelo y con caché instantánea
   useEffect(() => {
-    if (!user || user.role !== 'coordinator') return;
+    if (!user || (user.role !== 'coordinator' && user.role !== 'admin')) return;
 
     // 1. Restaurar instantáneamente de caché local para 0ms de espera
     try {
@@ -549,7 +547,7 @@ export default function CoordinatorDashboardPage() {
     }
   };
 
-  if (authLoading || !user || user.role !== 'coordinator') {
+  if (authLoading || !user || (user.role !== 'coordinator' && user.role !== 'admin')) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F4F5F7]">
         <div className="flex flex-col items-center gap-3">

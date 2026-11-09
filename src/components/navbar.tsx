@@ -83,8 +83,8 @@ export function Navbar() {
   const isHostingActive = pathname.includes('/hosting');
   const isSubtitulosActive = pathname.includes('/subtitulos');
   const isAdminActive = pathname.includes('/admin');
-  const isAdmin = user?.role === 'admin';
-  const isCoordinator = user?.role === 'coordinator';
+  const isAdmin = user?.role === 'admin' || user?.email === 'appadmin@brainupgrup.com';
+  const isCoordinator = user?.role === 'coordinator' || isAdmin;
 
   // Permisos efectivos de acceso por rol y matriz de coordinación
   const canAccessClockify = isAdmin || isCoordinator || canUserAccessHubApp(user, 'clockify');
@@ -267,7 +267,7 @@ export function Navbar() {
     if (isAdmin) {
       links.push({
         href: '/dashboard/admin',
-        label: 'Admin',
+        label: 'Super Admin',
         icon: ShieldCheck,
         isActive: isAdminActive,
         visible: true,
@@ -656,6 +656,21 @@ export function Navbar() {
               </Link>
 
               <div className="pt-3 space-y-2">
+                {isAdmin && (
+                  <Link
+                    href="/dashboard/admin"
+                    onClick={() => setShowProfileMenu(false)}
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-[#8E0E75] text-white hover:bg-[#700B5C] text-xs font-black uppercase tracking-wider transition-colors cursor-pointer shadow-xs"
+                    title="Acceso a la Subcapa de Super Administrador (IaiaHub Control, Usuarios y Auditoría)"
+                  >
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="h-4 w-4" />
+                      <span>Subcapa Super Admin</span>
+                    </div>
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </Link>
+                )}
+
                 {isCoordinator && (
                   <>
                     <Link

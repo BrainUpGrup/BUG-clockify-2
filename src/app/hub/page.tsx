@@ -250,7 +250,7 @@ export default function BrainUpHubPage() {
             )}
 
             {/* Ajustes de permisos: el coordinador los abre en Coordinación */}
-            {user.role === 'coordinator' && (
+            {user.role === 'coordinator' && user.email !== 'appadmin@brainupgrup.com' && (
               <Link
                 href="/dashboard/coordinator"
                 className="inline-flex items-center gap-2 self-start sm:self-auto px-3.5 py-2 rounded-lg border-2 border-[#D8CFF0] bg-white text-sm font-semibold text-[#8E0E75] hover:border-[#8E0E75]"
@@ -259,8 +259,17 @@ export default function BrainUpHubPage() {
                 Permisos del HUB
               </Link>
             )}
-            {user.role === 'admin' && (
-              <div className="flex items-center gap-2 self-start sm:self-auto">
+            {(user.role === 'admin' || user.email === 'appadmin@brainupgrup.com') && (
+              <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+                <Link
+                  href="/dashboard/admin"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#8E0E75] text-white text-xs font-black uppercase tracking-wider hover:bg-[#700B5C] shadow-md shadow-[#8E0E75]/25 transition-all"
+                  title="Acceso directo a la Subcapa de Super Administrador (IaiaHub Control, Usuarios y Auditoría)"
+                >
+                  <ShieldCheck className="h-4 w-4" />
+                  <span>Subcapa Superadmin</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
                 {([
                   ['apps', 'Aplicaciones', LayoutGrid],
                   ['permissions', 'Permisos', ShieldCheck],
@@ -286,6 +295,41 @@ export default function BrainUpHubPage() {
         <div className="tab-transition">
           {activeTab === 'apps' && (
             <div className="space-y-5 sm:space-y-6">
+
+              {/* Banner Maestro Exclusivo para Super Administrador */}
+              {(user.role === 'admin' || user.email === 'appadmin@brainupgrup.com') && (
+                <div className="w-full p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-[#191654] via-[#4A0E4E] to-[#8E0E75] text-white shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-white/10">
+                  <div className="flex items-start sm:items-center gap-3.5">
+                    <div className="p-3 rounded-xl bg-white/10 border border-white/20 text-white shrink-0 shadow-xs">
+                      <ShieldCheck className="h-7 w-7 text-white" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[10px] font-black uppercase tracking-widest bg-white/20 text-white px-2 py-0.5 rounded-md border border-white/30">
+                          Subcapa Master
+                        </span>
+                        <span className="text-xs text-white/90 font-bold">
+                          Super Administrador Global
+                        </span>
+                      </div>
+                      <h2 className="text-lg sm:text-xl font-black tracking-tight text-white mt-1">
+                        IaiaHub Control, Usuarios & Auditoría
+                      </h2>
+                      <p className="text-xs text-white/80 max-w-2xl mt-0.5 leading-relaxed font-light">
+                        Crea, elimina y modifica usuarios con sus contraseñas, administra los turnos de coordinación y audita toda la actividad del sistema.
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    href="/dashboard/admin"
+                    className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white text-[#8E0E75] hover:bg-[#FAF8FD] text-xs font-black uppercase tracking-wider transition-all shadow-md hover:shadow-lg hover:scale-105 active:scale-95 shrink-0"
+                  >
+                    <ShieldCheck className="h-4 w-4 text-[#8E0E75]" />
+                    <span>Abrir Subcapa Superadmin</span>
+                    <ArrowRight className="h-4 w-4 text-[#8E0E75]" />
+                  </Link>
+                </div>
+              )}
 
               {/* Guía informativa dinámica */}
               {viewFilter === 'all' && (

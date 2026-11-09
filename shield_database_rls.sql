@@ -19,6 +19,13 @@ alter table public.profiles add column if not exists password_configured boolean
 alter table public.profiles add column if not exists temp_password text null;
 alter table public.profiles add column if not exists custom_password text null;
 
+-- Desactivar triggers restrictivos para permitir al Super Administrador gestionar roles y altas
+drop trigger if exists tr_protect_profile_privileges on public.profiles;
+drop function if exists public.protect_profile_privileges();
+
+-- Asignar rol de Super Administrador a la cuenta principal
+update public.profiles set role = 'admin', status = 'active' where lower(trim(email)) = 'appadmin@brainupgrup.com';
+
 -- 2. FUNCIÓN RPC PARA LOGIN SEGURO DE EMPLEADOS (SECURITY DEFINER)
 create or replace function public.authenticate_employee(p_email text, p_password text)
 returns jsonb

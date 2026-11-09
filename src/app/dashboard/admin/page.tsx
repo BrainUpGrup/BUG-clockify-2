@@ -6,7 +6,7 @@ import { useAuth } from '@/context/auth-context';
 import { notify, confirmDialog, friendlyError, flagAccessDenied } from '@/lib/feedback';
 import { createClient } from '@/lib/supabase/client';
 import { MOCK_PROFILES } from '@/lib/mock-data';
-import { Profile, UserRole, ProfileStatus } from '@/types/database';
+import { Profile, UserRole, ProfileStatus, TimeEntry } from '@/types/database';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { 
   ShieldCheck, 
@@ -27,12 +27,16 @@ import {
   Check, 
   Copy, 
   Briefcase, 
-  Database, 
   Eye, 
   EyeOff,
   UserCheck,
-  ShieldAlert,
-  Server
+  Server,
+  Activity,
+  Clock,
+  Building2,
+  Calendar,
+  Sparkles,
+  Shield
 } from 'lucide-react';
 import { AppSelect, SelectOption } from '@/components/ui/app-select';
 
@@ -50,6 +54,12 @@ const STATUS_FILTER_OPTIONS: SelectOption[] = [
   { value: 'rejected', label: 'Rechazado' },
 ];
 
+const CREATE_ROLE_OPTIONS: SelectOption[] = [
+  { value: 'employee', label: 'Empleado' },
+  { value: 'coordinator', label: 'Coordinador/a de Turno' },
+  { value: 'admin', label: 'Super Admin' },
+];
+
 const EDIT_ROLE_OPTIONS: SelectOption[] = [
   { value: 'employee', label: 'Empleado' },
   { value: 'coordinator', label: 'Coordinadora' },
@@ -62,6 +72,25 @@ const EDIT_STATUS_OPTIONS: SelectOption[] = [
   { value: 'rejected', label: 'Rechazado' },
 ];
 
+type AdminTab = 'users' | 'create_user' | 'audit' | 'health';
+
+function formatMinutes(totalMinutes: number): string {
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
+}
+
+function generatePassword(length = 14): string {
+  const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789!@#$%&*';
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
 export default function SuperAdminDashboardPage() {
   const router = useRouter();
   const { user, isLoading: authLoading, isSupabaseConnected } = useAuth();
@@ -72,23 +101,26 @@ export default function SuperAdminDashboardPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | UserRole>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | ProfileStatus>('all');
-  const [activeTab, setActiveTab] = useState<'users' | 'create_coordinator' | 'health'>('users');
+  const [activeTab, setActiveTab] = useState<AdminTab>('users');
 
-  // Formulario de creación directa de coordinadora
-  const [coordFullName, setCoordFullName] = useState('');
-  const [coordEmail, setCoordEmail] = useState('');
-  const [coordPassword, setCoordPassword] = useState('');
-  const [coordDepartment, setCoordDepartment] = useState('Coordinación & Dirección');
-  const [showPassword, setShowPassword] = useState(false);
-  const [isCreatingCoord, setIsCreatingCoord] = useState(false);
-  const [coordFeedback, setCoordFeedback] = useState<{ success?: string; error?: string } | null>(null);
+  // Formulario universal de creación de usuarios (con asignación directa de contraseña)
+  const [createFullName, setCreateFullName] = useState('');
+  const [createEmail, setCreateEmail] = useState('');
+  const [createRole, setCreateRole] = useState<UserRole>('employee');
+  const [createPassword, setCreatePassword] = useState('');
+  const [createDepartment, setCreateDepartment] = useState('Creatividad & Operaciones');
+  const [showCreatePassword, setShowCreatePassword] = useState(false);
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
+  const [createFeedback, setCreateFeedback] = useState<{ success?: string; error?: string } | null>(null);
 
-  // Modal de edición / corrección de cuenta
+  // Modal de edición / corrección de cuenta (con asignación directa opcional de contraseña)
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
   const [editFullName, setEditFullName] = useState('');
   const [editRole, setEditRole] = useState<UserRole>('employee');
   const [editStatus, setEditStatus] = useState<ProfileStatus>('active');
   const [editDepartment, setEditDepartment] = useState('');
+  const [editNewPassword, setEditNewPassword] = useState('');
+  const [showEditPassword, setShowEditPassword] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   // Feedback de copiado
@@ -102,13 +134,18 @@ export default function SuperAdminDashboardPage() {
   } | null>(null);
   const [isResettingId, setIsResettingId] = useState<string | null>(null);
 
+  // Datos para Auditoría en Vivo de IaiaHub
+  const [auditEntries, setAuditEntries] = useState<TimeEntry[]>([]);
+  const [isLoadingAudit, setIsLoadingAudit] = useState(false);
+  const [auditSearchTerm, setAuditSearchTerm] = useState('');
+
   // Protección de ruta estricta: Solo 'admin' puede acceder
   useEffect(() => {
     if (!authLoading) {
       if (!user) {
         router.replace('/login');
-      } else if (user.role !== 'admin') {
-        flagAccessDenied('La Administración es solo para el Super Administrador.');
+      } else if (user.role !== 'admin' && user.email !== 'appadmin@brainupgrup.com') {
+        flagAccessDenied('La Subcapa Super Admin es exclusiva del Super Administrador.');
         router.replace(user.role === 'coordinator' ? '/dashboard/coordinator' : '/dashboard/employee');
       }
     }
@@ -186,116 +223,177 @@ export default function SuperAdminDashboardPage() {
     setIsLoading(false);
   };
 
+  // Cargar datos de auditoría de IaiaHub
+  const loadAuditData = async () => {
+    setIsLoadingAudit(true);
+    try {
+      if (isSupabaseConnected) {
+        const supabase = createClient();
+        const { data: entries, error } = await supabase
+          .from('time_entries')
+          .select(`
+            id,
+            user_id,
+            company_id,
+            work_date,
+            start_time,
+            end_time,
+            duration_minutes,
+            description,
+            compute_type,
+            created_at,
+            company:companies(id, name, client_type),
+            profile:profiles(id, full_name, email, role, avatar_url, department)
+          `)
+          .order('created_at', { ascending: false })
+          .limit(60);
+
+        if (!error && entries) {
+          setAuditEntries(entries as unknown as TimeEntry[]);
+          setIsLoadingAudit(false);
+          return;
+        }
+      }
+
+      // Fallback: LocalStorage
+      const stored = localStorage.getItem('bug_clockify_time_entries');
+      if (stored) {
+        const parsed = JSON.parse(stored) as TimeEntry[];
+        setAuditEntries(parsed.slice(0, 60));
+      } else {
+        setAuditEntries([]);
+      }
+    } catch (e) {
+      console.error('Error al cargar datos de auditoría:', e);
+    } finally {
+      setIsLoadingAudit(false);
+    }
+  };
+
   useEffect(() => {
-    if (user?.role === 'admin') {
+    if (user?.role === 'admin' || user?.email === 'appadmin@brainupgrup.com') {
       loadProfiles();
     }
   }, [user, isSupabaseConnected]);
 
-  // Generar contraseña segura sugerida
-  const generateSuggestedPassword = () => {
-    const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789!@#$%&*';
-    let result = '';
-    for (let i = 0; i < 14; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
+  useEffect(() => {
+    if (activeTab === 'audit') {
+      loadAuditData();
     }
-    setCoordPassword(result);
+  }, [activeTab, isSupabaseConnected]);
+
+  // Actualizar departamento por defecto según el rol seleccionado
+  const handleRoleSelectChange = (newRole: UserRole) => {
+    setCreateRole(newRole);
+    if (newRole === 'coordinator') {
+      setCreateDepartment('Coordinación & Dirección');
+    } else if (newRole === 'admin') {
+      setCreateDepartment('Sistemas & Seguridad');
+    } else {
+      setCreateDepartment('Creatividad & Operaciones');
+    }
   };
 
-  // Crear cuenta de coordinadora directamente
-  const handleCreateCoordinatorSubmit = async (e: React.FormEvent) => {
+  // Crear cuenta universal (Empleado, Coordinador/a o Admin) con contraseña directa
+  const handleCreateUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setCoordFeedback(null);
+    setCreateFeedback(null);
 
-    const cleanEmail = coordEmail.trim().toLowerCase();
-    const cleanName = coordFullName.trim();
-    const cleanPass = coordPassword.trim();
+    const cleanEmail = createEmail.trim().toLowerCase();
+    const cleanName = createFullName.trim();
+    const cleanPass = createPassword.trim();
 
     if (!cleanName || !cleanEmail || !cleanPass) {
-      setCoordFeedback({ error: 'Por favor completa todos los campos requeridos.' });
+      setCreateFeedback({ error: 'Por favor completa todos los campos requeridos.' });
       return;
     }
 
     if (!cleanEmail.includes('@') || !cleanEmail.includes('.')) {
-      setCoordFeedback({ error: 'El formato del correo electrónico no es válido.' });
+      setCreateFeedback({ error: 'El formato del correo electrónico no es válido.' });
       return;
     }
 
-    if (cleanPass.length < 8) {
-      setCoordFeedback({ error: 'La contraseña debe tener un mínimo de 8 caracteres.' });
+    if (cleanPass.length < 6) {
+      setCreateFeedback({ error: 'La contraseña debe tener un mínimo de 6 caracteres.' });
       return;
     }
 
-    setIsCreatingCoord(true);
+    setIsCreatingUser(true);
 
     try {
-      const newCoordProfile: Profile = {
-        id: `u_coord_${Date.now()}`,
+      const newProfile: Profile = {
+        id: `u_${createRole}_${Date.now()}`,
         full_name: cleanName,
         email: cleanEmail,
-        role: 'coordinator',
+        role: createRole,
         status: 'active',
-        department: coordDepartment.trim() || 'Coordinación & Dirección',
+        department: createDepartment.trim() || (createRole === 'coordinator' ? 'Coordinación & Dirección' : createRole === 'admin' ? 'Sistemas & Seguridad' : 'Creatividad & Operaciones'),
+        password_configured: true,
+        custom_password: cleanPass,
         created_at: new Date().toISOString(),
       };
 
       if (isSupabaseConnected) {
         const supabase = createClient();
 
-        // 1. Crear en Supabase Auth
-        const { data: authData, error: authErr } = await supabase.auth.signUp({
-          email: cleanEmail,
-          password: cleanPass,
-          options: {
-            data: {
-              full_name: cleanName,
-              role: 'coordinator',
-              status: 'active',
-              department: newCoordProfile.department,
+        // 1. Intentar registrar en Supabase Auth si está habilitado (no bloqueante si da email rate limit)
+        try {
+          const { data: authData, error: authErr } = await supabase.auth.signUp({
+            email: cleanEmail,
+            password: cleanPass,
+            options: {
+              data: {
+                full_name: cleanName,
+                role: createRole,
+                status: 'active',
+                department: newProfile.department,
+              },
             },
-          },
-        });
+          });
 
-        if (authErr) {
-          throw new Error(authErr.message);
+          if (authData?.user) {
+            newProfile.id = authData.user.id;
+          } else if (authErr) {
+            console.warn('Aviso en Supabase Auth signUp (continuando con inserción de perfil directa):', authErr.message);
+          }
+        } catch (authE) {
+          console.warn('Excepción en Supabase Auth signUp:', authE);
         }
 
-        if (authData.user) {
-          newCoordProfile.id = authData.user.id;
-        }
-
-        // 2. Insertar / Upsert en tabla profiles
+        // 2. Insertar / Upsert en tabla profiles con contraseña y estado activo
         const { error: profErr } = await supabase
           .from('profiles')
-          .upsert(newCoordProfile);
+          .upsert(newProfile);
 
         if (profErr) {
           console.warn('Advertencia al insertar perfil en Supabase:', profErr);
         }
       }
 
-      // Guardar también en localStorage para consistencia
+      // Guardar también en localStorage para consistencia inmediata
       try {
         const custom = JSON.parse(localStorage.getItem('bug_clockify_custom_profiles') || '[]') as Profile[];
-        custom.push(newCoordProfile);
+        custom.push(newProfile);
         localStorage.setItem('bug_clockify_custom_profiles', JSON.stringify(custom));
       } catch (e) {
         console.error(e);
       }
 
-      setProfiles((prev) => [newCoordProfile, ...prev.filter((p) => p.email.toLowerCase() !== cleanEmail)]);
-      setCoordFeedback({
-        success: `Cuenta de coordinadora creada y activada con éxito para ${cleanName} (${cleanEmail}). Ya puede iniciar sesión.`,
+      setProfiles((prev) => [newProfile, ...prev.filter((p) => p.email.toLowerCase() !== cleanEmail)]);
+      
+      const roleBadge = createRole === 'coordinator' ? 'Coordinador/a de Turno' : createRole === 'admin' ? 'Super Administrador' : 'Empleado';
+      setCreateFeedback({
+        success: `Cuenta de ${roleBadge} creada y activada con éxito para ${cleanName} (${cleanEmail}). Ya puede iniciar sesión de inmediato con la contraseña asignada.`,
       });
 
-      // Limpiar formulario excepto contraseña para que pueda copiarla
-      setCoordFullName('');
-      setCoordEmail('');
+      // Limpiar formulario salvo contraseña para facilitar su copiado
+      setCreateFullName('');
+      setCreateEmail('');
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Error al crear la cuenta de coordinadora.';
-      setCoordFeedback({ error: msg });
+      const msg = err instanceof Error ? err.message : 'Error al crear la cuenta.';
+      setCreateFeedback({ error: msg });
     } finally {
-      setIsCreatingCoord(false);
+      setIsCreatingUser(false);
     }
   };
 
@@ -306,9 +404,11 @@ export default function SuperAdminDashboardPage() {
     setEditRole(profile.role);
     setEditStatus(profile.status || 'active');
     setEditDepartment(profile.department || '');
+    setEditNewPassword('');
+    setShowEditPassword(false);
   };
 
-  // Guardar cambios en el perfil editado
+  // Guardar cambios en el perfil editado (incluyendo nueva contraseña si se especificó)
   const handleSaveEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProfile) return;
@@ -323,18 +423,42 @@ export default function SuperAdminDashboardPage() {
       department: editDepartment.trim() || undefined,
     };
 
+    const hasNewPassword = editNewPassword.trim().length > 0;
+    if (hasNewPassword) {
+      if (editNewPassword.trim().length < 6) {
+        notify('La nueva contraseña debe tener al menos 6 caracteres.', { type: 'warning' });
+        setIsSavingEdit(false);
+        return;
+      }
+      updatedProfile.custom_password = editNewPassword.trim();
+      updatedProfile.password_configured = true;
+      updatedProfile.temp_password = undefined;
+    }
+
     try {
       if (isSupabaseConnected) {
         const supabase = createClient();
-        await supabase
+        const updatePayload: Record<string, unknown> = {
+          full_name: updatedProfile.full_name,
+          role: updatedProfile.role,
+          status: updatedProfile.status,
+          department: updatedProfile.department,
+        };
+
+        if (hasNewPassword) {
+          updatePayload.custom_password = editNewPassword.trim();
+          updatePayload.password_configured = true;
+          updatePayload.temp_password = null;
+        }
+
+        const { error } = await supabase
           .from('profiles')
-          .update({
-            full_name: updatedProfile.full_name,
-            role: updatedProfile.role,
-            status: updatedProfile.status,
-            department: updatedProfile.department,
-          })
+          .update(updatePayload)
           .eq('id', updatedProfile.id);
+
+        if (error) {
+          console.warn('Aviso al actualizar en Supabase:', error.message);
+        }
       }
 
       // Actualizar en localStorage
@@ -360,6 +484,12 @@ export default function SuperAdminDashboardPage() {
 
       setProfiles((prev) => prev.map((p) => (p.id === updatedProfile.id ? updatedProfile : p)));
       setEditingProfile(null);
+
+      if (hasNewPassword) {
+        notify(`Cuenta actualizada y nueva contraseña asignada para ${updatedProfile.email}.`, { type: 'success' });
+      } else {
+        notify(`Datos de cuenta actualizados para ${updatedProfile.full_name}.`, { type: 'success' });
+      }
     } catch (e) {
       console.error('Error actualizando perfil:', e);
       notify(friendlyError('actualizar el perfil'), { type: 'error' });
@@ -403,9 +533,10 @@ export default function SuperAdminDashboardPage() {
     }
 
     setProfiles((prev) => prev.map((p) => (p.id === profileId ? updated : p)));
+    notify(`Estado cambiado a ${newStatus} para ${target.full_name}.`, { type: 'success' });
   };
 
-  // Cambio rápido de rol (Coordinador / Empleado)
+  // Cambio rápido de rol (Nombrar Coordinador de Turno / Pasar a Empleado)
   const handleQuickRoleChange = async (profileId: string, newRole: UserRole) => {
     const target = profiles.find((p) => p.id === profileId);
     if (!target) return;
@@ -439,6 +570,8 @@ export default function SuperAdminDashboardPage() {
     }
 
     setProfiles((prev) => prev.map((p) => (p.id === profileId ? updated : p)));
+    const roleLabel = newRole === 'coordinator' ? 'Coordinador/a de Turno' : 'Empleado';
+    notify(`Rol actualizado: ${target.full_name} ahora es ${roleLabel}.`, { type: 'success' });
   };
 
   // Eliminar cuenta con confirmación de seguridad
@@ -450,7 +583,7 @@ export default function SuperAdminDashboardPage() {
 
     const ok = await confirmDialog({
       title: `¿Eliminar la cuenta de ${profileEmail}?`,
-      message: 'Se eliminará de forma permanente. Esta acción no se puede deshacer.',
+      message: 'Se eliminará de forma permanente del sistema IaiaHub y se revocarán todos sus accesos.',
       confirmLabel: 'Eliminar cuenta',
       danger: true,
     });
@@ -476,6 +609,7 @@ export default function SuperAdminDashboardPage() {
     }
 
     setProfiles((prev) => prev.filter((p) => p.id !== profileId));
+    notify(`Cuenta de ${profileEmail} eliminada correctamente.`, { type: 'success' });
   };
 
   // Copiar al portapapeles
@@ -494,7 +628,7 @@ export default function SuperAdminDashboardPage() {
 
     const ok = await confirmDialog({
       title: `Resetear contraseña de ${targetProfile.full_name}`,
-      message: `Se generará una contraseña temporal de un solo uso para ${targetProfile.email} y se configurará en la base de datos como pendiente de reinicio (password_configured = false). En cuanto inicie sesión con esa cuenta se habilitará automáticamente la ventana de reinicio obligatorio de credenciales.`,
+      message: `Se generará una contraseña temporal de un solo uso para ${targetProfile.email} y se configurará en la base de datos como pendiente de reinicio (password_configured = false). En cuanto inicie sesión con esa cuenta se habilitará automáticamente la ventana de reinicio obligatorio.`,
       confirmLabel: 'Generar Clave de un Solo Uso',
       danger: false,
     });
@@ -549,11 +683,56 @@ export default function SuperAdminDashboardPage() {
     });
   }, [profiles, searchTerm, roleFilter, statusFilter]);
 
+  // Coordinadores activos (Jefes de Turno Mañana y Tarde)
+  const activeCoordinators = useMemo(() => {
+    return profiles.filter((p) => p.role === 'coordinator' && (p.status || 'active') === 'active');
+  }, [profiles]);
+
   // Contadores métricos
   const totalCount = profiles.length;
-  const coordinatorsCount = profiles.filter((p) => p.role === 'coordinator').length;
+  const coordinatorsCount = activeCoordinators.length;
   const employeesCount = profiles.filter((p) => p.role === 'employee').length;
   const pendingCount = profiles.filter((p) => p.status === 'pending').length;
+
+  // Métricas y filtrado de Auditoría
+  const auditFiltered = useMemo(() => {
+    if (!auditSearchTerm.trim()) return auditEntries;
+    const term = auditSearchTerm.toLowerCase();
+    return auditEntries.filter((entry) => {
+      const userMatch = entry.profile?.full_name?.toLowerCase().includes(term) || entry.profile?.email?.toLowerCase().includes(term);
+      const companyMatch = entry.company?.name?.toLowerCase().includes(term);
+      const descMatch = entry.description?.toLowerCase().includes(term);
+      return userMatch || companyMatch || descMatch;
+    });
+  }, [auditEntries, auditSearchTerm]);
+
+  const auditStats = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    const currentMonth = today.slice(0, 7); // YYYY-MM
+
+    let todayMins = 0;
+    let monthMins = 0;
+    const activeCompanies = new Set<string>();
+    const activeUsers = new Set<string>();
+
+    auditEntries.forEach((entry) => {
+      if (entry.work_date === today) {
+        todayMins += entry.duration_minutes || 0;
+      }
+      if (entry.work_date && entry.work_date.startsWith(currentMonth)) {
+        monthMins += entry.duration_minutes || 0;
+      }
+      if (entry.company_id) activeCompanies.add(entry.company_id);
+      if (entry.user_id) activeUsers.add(entry.user_id);
+    });
+
+    return {
+      todayHours: formatMinutes(todayMins),
+      monthHours: formatMinutes(monthMins),
+      companiesCount: activeCompanies.size,
+      usersCount: activeUsers.size,
+    };
+  }, [auditEntries]);
 
   return (
     <div className="flex-1 flex flex-col bg-[#F8F6FC] font-sans w-full">
@@ -565,7 +744,7 @@ export default function SuperAdminDashboardPage() {
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-xl bg-[#8E0E75]/10 text-[#8E0E75] text-[11px] font-extrabold uppercase tracking-wider border border-[#8E0E75]/20">
                 <ShieldCheck className="h-3.5 w-3.5 text-[#8E0E75]" />
-                SUPER ADMINISTRADOR MAESTRO
+                SUBCAPA MASTER SUPERADMIN
               </span>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold text-[#4A4A4A] bg-[#F8F6FC] border border-[#D8CFF0]">
                 {user?.email || 'appadmin@brainupgrup.com'}
@@ -575,7 +754,7 @@ export default function SuperAdminDashboardPage() {
               PANEL DE CONTROL <span className="text-[#8E0E75]">SUPER ADMIN</span>
             </h1>
             <p className="text-xs text-[#4A4A4A] font-light max-w-2xl">
-              Gobernanza técnica centralizada del sistema Brain Up Clockify: creación directa de cuentas para coordinadores y resolución de incidencias en cuentas de usuario.
+              Control técnico total de IaiaHub: gestión y eliminación de usuarios, configuración directa de contraseñas, coordinación dual para jefes de turno y auditoría en tiempo real.
             </p>
           </div>
 
@@ -596,23 +775,12 @@ export default function SuperAdminDashboardPage() {
           </div>
         </div>
 
-        {/* Tarjeta de Garantía de Privacidad y Aislamiento de Datos */}
-        <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-4 flex items-start gap-3 shadow-xs">
-          <ShieldAlert className="h-5 w-5 text-blue-700 shrink-0 mt-0.5" />
-          <div className="text-xs text-blue-900 leading-relaxed">
-            <span className="font-extrabold uppercase tracking-wide block mb-0.5">
-              Aislamiento de Privacidad Empresarial Garantizado
-            </span>
-            Este panel de Super Administrador está estrictamente diseñado para la administración de accesos, credenciales y resolución de incidencias técnicas. <strong>No contiene ni muestra datos confidenciales de la empresa</strong> (como registros de horas trabajadas, tarifas ni cuotas mensuales de clientes), preservando la separación estricta de responsabilidades.
-          </div>
-        </div>
-
-        {/* Tarjetas de Métricas de Cuentas */}
+        {/* Tarjetas de Métricas Ejecutivas de Cuentas */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-white border border-[#D8CFF0] p-4 rounded-2xl shadow-xs flex items-center justify-between">
             <div className="space-y-0.5">
               <span className="text-[11px] font-bold uppercase tracking-wider text-[#4A4A4A]">Total Cuentas</span>
-              <p className="text-2xl font-extrabold text-[#292929]">{totalCount}</p>
+              <p className="text-2xl font-extrabold text-[#292929] tabular-nums">{totalCount}</p>
             </div>
             <div className="p-3 bg-[#F8F6FC] text-[#8E0E75] border border-[#D8CFF0] rounded-lg">
               <Users className="h-5 w-5" />
@@ -621,8 +789,8 @@ export default function SuperAdminDashboardPage() {
 
           <div className="bg-white border border-[#D8CFF0] p-4 rounded-2xl shadow-xs flex items-center justify-between">
             <div className="space-y-0.5">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[#4A4A4A]">Coordinadores</span>
-              <p className="text-2xl font-extrabold text-[#8E0E75]">{coordinatorsCount}</p>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#4A4A4A]">Jefes de Turno</span>
+              <p className="text-2xl font-extrabold text-[#8E0E75] tabular-nums">{coordinatorsCount}</p>
             </div>
             <div className="p-3 bg-[#8E0E75]/10 text-[#8E0E75] border border-[#8E0E75]/30 rounded-lg">
               <ShieldCheck className="h-5 w-5" />
@@ -632,7 +800,7 @@ export default function SuperAdminDashboardPage() {
           <div className="bg-white border border-[#D8CFF0] p-4 rounded-2xl shadow-xs flex items-center justify-between">
             <div className="space-y-0.5">
               <span className="text-[11px] font-bold uppercase tracking-wider text-[#4A4A4A]">Empleados Activos</span>
-              <p className="text-2xl font-extrabold text-blue-700">{employeesCount}</p>
+              <p className="text-2xl font-extrabold text-blue-700 tabular-nums">{employeesCount}</p>
             </div>
             <div className="p-3 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg">
               <Briefcase className="h-5 w-5" />
@@ -642,7 +810,7 @@ export default function SuperAdminDashboardPage() {
           <div className="bg-white border border-[#D8CFF0] p-4 rounded-2xl shadow-xs flex items-center justify-between">
             <div className="space-y-0.5">
               <span className="text-[11px] font-bold uppercase tracking-wider text-[#4A4A4A]">Cuentas en Espera</span>
-              <p className="text-2xl font-extrabold text-amber-600">{pendingCount}</p>
+              <p className="text-2xl font-extrabold text-amber-600 tabular-nums">{pendingCount}</p>
             </div>
             <div className="p-3 bg-amber-50 text-amber-600 border border-amber-200 rounded-lg">
               <AlertCircle className="h-5 w-5" />
@@ -650,7 +818,7 @@ export default function SuperAdminDashboardPage() {
           </div>
         </div>
 
-        {/* Barra de Pestañas Principales con resalte Lila Abuela y transiciones suaves */}
+        {/* Barra de Pestañas Principales */}
         <div className="flex border-b border-[#D8CFF0] gap-2 flex-wrap">
           <button
             type="button"
@@ -662,20 +830,33 @@ export default function SuperAdminDashboardPage() {
             }`}
           >
             <Users className={`h-4 w-4 ${activeTab === 'users' ? 'text-white' : 'text-[#8E0E75]'}`} />
-            <span>Gestión y Corrección de Cuentas ({filteredProfiles.length})</span>
+            <span>Gestión de Cuentas & Turnos ({filteredProfiles.length})</span>
           </button>
 
           <button
             type="button"
-            onClick={() => setActiveTab('create_coordinator')}
+            onClick={() => setActiveTab('create_user')}
             className={`flex items-center gap-2 px-5 py-3 text-xs uppercase tracking-wider rounded-t-xl transition-all cursor-pointer ${
-              activeTab === 'create_coordinator'
+              activeTab === 'create_user'
                 ? 'bg-[#8E0E75] text-white font-extrabold shadow-sm scale-[1.02]'
                 : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75] hover:bg-[#F8F6FC]'
             }`}
           >
-            <UserPlus className={`h-4 w-4 ${activeTab === 'create_coordinator' ? 'text-white' : 'text-[#8E0E75]'}`} />
-            <span>Alta Directa de Coordinadora</span>
+            <UserPlus className={`h-4 w-4 ${activeTab === 'create_user' ? 'text-white' : 'text-[#8E0E75]'}`} />
+            <span>Crear Usuario & Contraseñas</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('audit')}
+            className={`flex items-center gap-2 px-5 py-3 text-xs uppercase tracking-wider rounded-t-xl transition-all cursor-pointer ${
+              activeTab === 'audit'
+                ? 'bg-[#8E0E75] text-white font-extrabold shadow-sm scale-[1.02]'
+                : 'text-[#4A4A4A] font-bold hover:text-[#8E0E75] hover:bg-[#F8F6FC]'
+            }`}
+          >
+            <Activity className={`h-4 w-4 ${activeTab === 'audit' ? 'text-white' : 'text-[#8E0E75]'}`} />
+            <span>Auditoría Global IaiaHub</span>
           </button>
 
           <button
@@ -692,504 +873,787 @@ export default function SuperAdminDashboardPage() {
           </button>
         </div>
 
-        {/* Contenido de pestaña con animación de transición suave */}
-        <div key={activeTab} className="tab-transition">
-          {/* PESTAÑA 1: GESTIÓN Y CORRECCIÓN DE CUENTAS */}
+        {/* Contenido Dinámico de Pestañas */}
+        <div key={activeTab} className="tab-transition space-y-6">
+          
+          {/* ============================================================== */}
+          {/* PESTAÑA 1: GESTIÓN DE CUENTAS & JEFES DE TURNO DUAL            */}
+          {/* ============================================================== */}
           {activeTab === 'users' && (
-          <div className="space-y-4">
-            {/* Filtros y Buscador */}
-            <div className="bg-white border border-[#D8CFF0] p-4 rounded-2xl shadow-xs flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#4A4A4A]" />
-                <input
-                  type="text"
-                  placeholder="Buscar usuario por nombre, correo electrónico o departamento..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 border border-[#D8CFF0] rounded-xl text-xs focus:outline-hidden focus:border-[#8E0E75] bg-[#F8F6FC]"
-                />
+            <div className="space-y-6">
+              
+              {/* Sección Ejecutiva de Coordinación Dual & Turnos */}
+              <div className="bg-white border-2 border-[#8E0E75]/25 rounded-2xl p-5 shadow-xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-[#8E0E75]/10 text-[#8E0E75] border border-[#8E0E75]/30">
+                      <ShieldCheck className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-sm font-extrabold uppercase tracking-tight text-[#292929]">
+                          JEFES DE TURNO & COORDINACIÓN DUAL
+                        </h2>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-[#8E0E75] text-white">
+                          {activeCoordinators.length} {activeCoordinators.length === 1 ? 'Jefe Activo' : 'Jefes Activos'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#4A4A4A] font-light mt-0.5">
+                        Brain Up Grup opera con 2 turnos (mañana y tarde). Ambos coordinadores disponen de acceso simultáneo a la gestión de clientes, bolsas y tareas.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCreateRole('coordinator');
+                      setCreateDepartment('Coordinación & Dirección');
+                      setActiveTab('create_user');
+                    }}
+                    className="inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl bg-[#8E0E75] hover:bg-[#720B5E] text-white text-xs font-extrabold uppercase tracking-wider transition-all cursor-pointer shadow-xs shrink-0"
+                  >
+                    <UserPlus className="h-3.5 w-3.5" />
+                    <span>Crear Nuevo Coordinador</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-1">
+                  {activeCoordinators.map((c, idx) => (
+                    <div key={c.id} className="p-3.5 rounded-xl bg-[#F8F6FC] border border-[#D8CFF0] flex items-center justify-between gap-3 shadow-2xs">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <UserAvatar src={c.avatar_url} name={c.full_name} size="md" className="ring-2 ring-[#8E0E75]/40" />
+                        <div className="min-w-0">
+                          <span className="font-bold text-xs text-[#292929] block truncate">{c.full_name}</span>
+                          <span className="text-[11px] font-mono text-[#8E0E75] block truncate">{c.email}</span>
+                          <span className="text-[10px] text-[#4A4A4A] font-medium block truncate">
+                            Turno {idx === 0 ? 'Mañana' : idx === 1 ? 'Tarde' : 'Rotativo'} • {c.department || 'Coordinación'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEdit(c)}
+                          className="text-[11px] font-bold text-[#8E0E75] hover:underline cursor-pointer text-right"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleQuickRoleChange(c.id, 'employee')}
+                          className="text-[10px] font-bold text-[#4A4A4A] hover:text-rose-700 bg-white hover:bg-rose-50 border border-[#D8CFF0] px-2 py-0.5 rounded-md transition-colors cursor-pointer"
+                          title="Degradar a rol de Empleado"
+                        >
+                          Pasar a Empleado
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+
+                  {activeCoordinators.length === 0 && (
+                    <div className="col-span-full py-4 text-center text-xs text-[#4A4A4A] bg-[#F8F6FC] rounded-xl border border-dashed border-[#D8CFF0]">
+                      No hay coordinadores de turno asignados. Puedes promover a cualquier empleado desde la tabla inferior o dar de alta una nueva cuenta.
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="flex items-center gap-1.5 text-xs text-[#4A4A4A]">
-                  <Filter className="h-3.5 w-3.5" />
-                  <span className="font-bold uppercase tracking-wider">Rol:</span>
+              {/* Filtros y Buscador */}
+              <div className="bg-white border border-[#D8CFF0] p-4 rounded-2xl shadow-xs flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#4A4A4A]" />
+                  <input
+                    type="text"
+                    placeholder="Buscar usuario por nombre, correo electrónico o departamento..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2 border border-[#D8CFF0] rounded-xl text-xs focus:outline-hidden focus:border-[#8E0E75] bg-[#F8F6FC]"
+                  />
                 </div>
-                <AppSelect
-                  value={roleFilter}
-                  onChange={(val) => setRoleFilter(val as 'all' | UserRole)}
-                  options={ROLE_FILTER_OPTIONS}
-                  className="w-44 text-xs font-bold"
-                  ariaLabel="Filtrar por rol"
-                />
 
-                <div className="flex items-center gap-1.5 text-xs text-[#4A4A4A] ml-2">
-                  <span className="font-bold uppercase tracking-wider">Estado:</span>
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex items-center gap-1.5 text-xs text-[#4A4A4A]">
+                    <Filter className="h-3.5 w-3.5" />
+                    <span className="font-bold uppercase tracking-wider">Rol:</span>
+                  </div>
+                  <AppSelect
+                    value={roleFilter}
+                    onChange={(val) => setRoleFilter(val as 'all' | UserRole)}
+                    options={ROLE_FILTER_OPTIONS}
+                    className="w-44 text-xs font-bold"
+                    ariaLabel="Filtrar por rol"
+                  />
+
+                  <div className="flex items-center gap-1.5 text-xs text-[#4A4A4A] ml-2">
+                    <span className="font-bold uppercase tracking-wider">Estado:</span>
+                  </div>
+                  <AppSelect
+                    value={statusFilter}
+                    onChange={(val) => setStatusFilter(val as 'all' | ProfileStatus)}
+                    options={STATUS_FILTER_OPTIONS}
+                    className="w-44 text-xs font-bold"
+                    ariaLabel="Filtrar por estado"
+                  />
                 </div>
-                <AppSelect
-                  value={statusFilter}
-                  onChange={(val) => setStatusFilter(val as 'all' | ProfileStatus)}
-                  options={STATUS_FILTER_OPTIONS}
-                  className="w-44 text-xs font-bold"
-                  ariaLabel="Filtrar por estado"
-                />
               </div>
-            </div>
 
-            {/* Tabla de Cuentas */}
-            <div className="bg-white border border-[#D8CFF0] rounded-2xl shadow-xs overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-[#F8F6FC] border-b border-[#D8CFF0] text-[11px] font-extrabold uppercase tracking-wider text-[#292929]">
-                      <th className="py-3 px-4">Usuario</th>
-                      <th className="py-3 px-4">Correo Corporativo</th>
-                      <th className="py-3 px-4">Rol en el Sistema</th>
-                      <th className="py-3 px-4">Estado de Cuenta</th>
-                      <th className="py-3 px-4">Departamento</th>
-                      <th className="py-3 px-4 text-right">Acciones de Administración</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#EAE4F5] text-xs">
-                    {isLoading ? (
-                      <tr>
-                        <td colSpan={6} className="py-8 text-center text-[#4A4A4A]">
-                          <div className="flex items-center justify-center gap-2">
-                            <RefreshCw className="h-4 w-4 animate-spin text-[#8E0E75]" />
-                            <span>Cargando cuentas de usuario...</span>
-                          </div>
-                        </td>
+              {/* Tabla de Cuentas */}
+              <div className="bg-white border border-[#D8CFF0] rounded-2xl shadow-xs overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-[#F8F6FC] border-b border-[#D8CFF0] text-[11px] font-extrabold uppercase tracking-wider text-[#292929]">
+                        <th className="py-3 px-4">Usuario</th>
+                        <th className="py-3 px-4">Correo Corporativo</th>
+                        <th className="py-3 px-4">Rol en el Sistema</th>
+                        <th className="py-3 px-4">Estado de Cuenta</th>
+                        <th className="py-3 px-4">Departamento</th>
+                        <th className="py-3 px-4 text-right">Acciones de Administración</th>
                       </tr>
-                    ) : filteredProfiles.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="py-8 text-center text-[#4A4A4A]">
-                          No se encontraron cuentas que coincidan con los criterios de búsqueda.
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredProfiles.map((p) => {
-                        const isMainAdmin = p.email === 'appadmin@brainupgrup.com';
-                        const initials = p.full_name
-                          ? p.full_name
-                              .split(' ')
-                              .filter(Boolean)
-                              .map((n) => n[0])
-                              .join('')
-                              .slice(0, 2)
-                              .toUpperCase()
-                          : 'BU';
+                    </thead>
+                    <tbody className="divide-y divide-[#EAE4F5] text-xs">
+                      {isLoading ? (
+                        <tr>
+                          <td colSpan={6} className="py-8 text-center text-[#4A4A4A]">
+                            <div className="flex items-center justify-center gap-2">
+                              <RefreshCw className="h-4 w-4 animate-spin text-[#8E0E75]" />
+                              <span>Cargando cuentas de usuario...</span>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : filteredProfiles.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="py-8 text-center text-[#4A4A4A]">
+                            No se encontraron cuentas que coincidan con los criterios de búsqueda.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredProfiles.map((p) => {
+                          const isMainAdmin = p.email === 'appadmin@brainupgrup.com';
 
-                        return (
-                          <tr key={p.id} className="hover:bg-[#F8F6FC]/60 transition-colors">
-                            {/* Usuario */}
-                            <td className="py-3 px-4">
-                              <div className="flex items-center gap-3">
-                                <UserAvatar
-                                  src={p.avatar_url}
-                                  name={p.full_name}
-                                  size="sm"
-                                  className="ring-1 ring-[#D8CFF0]"
-                                />
-                                <div>
-                                  <span className="font-bold text-[#292929] block">
-                                    {p.full_name}
-                                  </span>
-                                  {isMainAdmin && (
-                                    <span className="text-[11px] text-[#8E0E75] font-extrabold uppercase tracking-wide">
-                                      Cuenta Maestra
+                          return (
+                            <tr key={p.id} className="hover:bg-[#F8F6FC]/60 transition-colors">
+                              {/* Usuario */}
+                              <td className="py-3 px-4">
+                                <div className="flex items-center gap-3">
+                                  <UserAvatar
+                                    src={p.avatar_url}
+                                    name={p.full_name}
+                                    size="sm"
+                                    className="ring-1 ring-[#D8CFF0]"
+                                  />
+                                  <div>
+                                    <span className="font-bold text-[#292929] block">
+                                      {p.full_name}
                                     </span>
-                                  )}
+                                    {isMainAdmin && (
+                                      <span className="text-[10px] text-[#8E0E75] font-extrabold uppercase tracking-wide">
+                                        Super Admin Maestro
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
-                              </div>
-                            </td>
+                              </td>
 
-                            {/* Correo */}
-                            <td className="py-3 px-4 font-mono text-[#292929]">
-                              {p.email}
-                            </td>
+                              {/* Correo */}
+                              <td className="py-3 px-4 font-mono text-[#292929]">
+                                {p.email}
+                              </td>
 
-                            {/* Rol */}
-                            <td className="py-3 px-4">
-                              {isMainAdmin ? (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-extrabold uppercase tracking-wider bg-[#8E0E75]/10 text-[#8E0E75] border border-[#8E0E75]/30">
-                                  <ShieldCheck className="h-3 w-3" />
-                                  Super Admin
-                                </span>
-                              ) : (
+                              {/* Rol y Botón de Alternancia de Turno */}
+                              <td className="py-3 px-4">
+                                {isMainAdmin ? (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-extrabold uppercase tracking-wider bg-[#8E0E75]/10 text-[#8E0E75] border border-[#8E0E75]/30">
+                                    <ShieldCheck className="h-3 w-3" />
+                                    Super Admin
+                                  </span>
+                                ) : (
+                                  <div className="flex items-center gap-2">
+                                    <span
+                                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-extrabold uppercase tracking-wider border ${
+                                        p.role === 'coordinator'
+                                          ? 'bg-[#8E0E75]/10 text-[#8E0E75] border-[#8E0E75]/30'
+                                          : 'bg-neutral-100 text-[#4A4A4A] border-neutral-300'
+                                      }`}
+                                    >
+                                      {p.role === 'coordinator' ? 'Coordinador/a' : 'Empleado'}
+                                    </span>
+                                    
+                                    {/* Botón de alternancia de rol en 1 clic */}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleQuickRoleChange(p.id, p.role === 'coordinator' ? 'employee' : 'coordinator')}
+                                      className={`px-2 py-1 rounded-lg border text-[11px] font-bold cursor-pointer transition-colors ${
+                                        p.role === 'coordinator'
+                                          ? 'border-[#D8CFF0] bg-[#F8F6FC] hover:bg-white text-[#4A4A4A] hover:text-[#8E0E75]'
+                                          : 'border-[#8E0E75]/30 bg-[#8E0E75]/10 hover:bg-[#8E0E75] text-[#8E0E75] hover:text-white'
+                                      }`}
+                                      title={p.role === 'coordinator' ? 'Pasar a Empleado' : 'Nombrar Coordinador de Turno'}
+                                    >
+                                      {p.role === 'coordinator' ? 'Pasar a Empleado' : 'Hacer Coordinador'}
+                                    </button>
+                                  </div>
+                                )}
+                              </td>
+
+                              {/* Estado de cuenta */}
+                              <td className="py-3 px-4">
                                 <div className="flex items-center gap-1.5">
                                   <span
-                                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-extrabold uppercase tracking-wider border ${
-                                      p.role === 'coordinator'
-                                        ? 'bg-[#191654]/10 text-[#191654] border-[#191654]/30'
-                                        : 'bg-neutral-100 text-[#4A4A4A] border-neutral-300'
+                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-extrabold uppercase tracking-wider border ${
+                                      (p.status || 'active') === 'active'
+                                        ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                        : p.status === 'pending'
+                                        ? 'bg-amber-50 text-amber-800 border-amber-300'
+                                        : 'bg-red-50 text-red-800 border-red-300'
                                     }`}
                                   >
-                                    {p.role === 'coordinator' ? 'Coordinadora' : 'Empleado'}
-                                  </span>
-                                  
-                                  {/* Botón rápido para alternar rol */}
-                                  <button
-                                    type="button"
-                                    onClick={() => handleQuickRoleChange(p.id, p.role === 'coordinator' ? 'employee' : 'coordinator')}
-                                    className="p-1 rounded-xl border border-[#D8CFF0] bg-[#F8F6FC] hover:bg-white text-[#4A4A4A] hover:text-[#8E0E75] transition-colors cursor-pointer text-[11px] font-bold"
-                                    title={p.role === 'coordinator' ? 'Cambiar a Empleado' : 'Promocionar a Coordinadora'}
-                                  >
-                                    {p.role === 'coordinator' ? 'Hacer Empleado' : 'Hacer Coordinador'}
-                                  </button>
-                                </div>
-                              )}
-                            </td>
-
-                            {/* Estado de cuenta */}
-                            <td className="py-3 px-4">
-                              <div className="flex items-center gap-1.5">
-                                <span
-                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-extrabold uppercase tracking-wider border ${
-                                    (p.status || 'active') === 'active'
-                                      ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                                      : p.status === 'pending'
-                                      ? 'bg-amber-50 text-amber-800 border-amber-300'
-                                      : 'bg-red-50 text-red-800 border-red-300'
-                                  }`}
-                                >
-                                  {(p.status || 'active') === 'active' ? (
-                                    <>
-                                      <CheckCircle2 className="h-3 w-3 text-emerald-600" />
-                                      Activo
-                                    </>
-                                  ) : p.status === 'pending' ? (
-                                    <>
-                                      <AlertCircle className="h-3 w-3 text-amber-600" />
-                                      Pendiente
-                                    </>
-                                  ) : (
-                                    <>
-                                      <XCircle className="h-3 w-3 text-red-600" />
-                                      Rechazado
-                                    </>
-                                  )}
-                                </span>
-
-                                {!isMainAdmin && p.status !== 'active' && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleQuickStatusChange(p.id, 'active')}
-                                    className="p-1 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-colors text-[11px] font-bold cursor-pointer"
-                                    title="Activar cuenta inmediatamente"
-                                  >
-                                    Activar
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-
-                            {/* Departamento */}
-                            <td className="py-3 px-4 text-[#4A4A4A]">
-                              {p.department || 'General'}
-                            </td>
-
-                            {/* Acciones */}
-                            <td className="py-3 px-4 text-right">
-                              <div className="flex items-center justify-end gap-1.5">
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenEdit(p)}
-                                  className="p-1.5 rounded-xl border border-[#D8CFF0] bg-[#F8F6FC] hover:bg-white text-[#292929] hover:text-[#8E0E75] transition-colors cursor-pointer"
-                                  title="Editar o corregir datos de cuenta"
-                                >
-                                  <Edit3 className="h-3.5 w-3.5" />
-                                </button>
-
-                                {!isMainAdmin && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleResetUserPassword(p)}
-                                    disabled={isResettingId === p.id}
-                                    className="p-1.5 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-800 transition-colors cursor-pointer disabled:opacity-50"
-                                    title="Resetear contraseña (Generar clave temporal OTP)"
-                                  >
-                                    {isResettingId === p.id ? (
-                                      <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                                    {(p.status || 'active') === 'active' ? (
+                                      <>
+                                        <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                                        Activo
+                                      </>
+                                    ) : p.status === 'pending' ? (
+                                      <>
+                                        <AlertCircle className="h-3 w-3 text-amber-600" />
+                                        Pendiente
+                                      </>
                                     ) : (
-                                      <Key className="h-3.5 w-3.5" />
+                                      <>
+                                        <XCircle className="h-3 w-3 text-red-600" />
+                                        Rechazado
+                                      </>
                                     )}
-                                  </button>
-                                )}
+                                  </span>
 
-                                {!isMainAdmin && (
+                                  {!isMainAdmin && p.status !== 'active' && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleQuickStatusChange(p.id, 'active')}
+                                      className="p-1 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-colors text-[11px] font-bold cursor-pointer"
+                                      title="Activar cuenta inmediatamente"
+                                    >
+                                      Activar
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+
+                              {/* Departamento */}
+                              <td className="py-3 px-4 text-[#4A4A4A]">
+                                {p.department || 'General'}
+                              </td>
+
+                              {/* Acciones */}
+                              <td className="py-3 px-4 text-right">
+                                <div className="flex items-center justify-end gap-1.5">
                                   <button
                                     type="button"
-                                    onClick={() => handleDeleteUser(p.id, p.email)}
-                                    className="p-1.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 transition-colors cursor-pointer"
-                                    title="Eliminar cuenta del sistema"
+                                    onClick={() => handleOpenEdit(p)}
+                                    className="p-1.5 rounded-xl border border-[#D8CFF0] bg-[#F8F6FC] hover:bg-white text-[#292929] hover:text-[#8E0E75] transition-colors cursor-pointer"
+                                    title="Editar cuenta / Asignar nueva contraseña"
                                   >
-                                    <Trash2 className="h-3.5 w-3.5" />
+                                    <Edit3 className="h-3.5 w-3.5" />
                                   </button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
 
-        {/* PESTAÑA 2: ALTA DIRECTA DE COORDINADORA */}
-        {activeTab === 'create_coordinator' && (
-          <div className="max-w-2xl mx-auto bg-white border border-[#D8CFF0] rounded-2xl p-6 shadow-xs space-y-6">
-            <div className="flex items-center gap-3 pb-4 border-b border-[#EAE4F5]">
-              <div className="p-3 bg-[#8E0E75]/10 text-[#8E0E75] border border-[#8E0E75]/30 rounded-lg">
-                <UserPlus className="h-6 w-6" />
-              </div>
-              <div>
-                <h2 className="text-lg font-extrabold uppercase tracking-tight text-[#292929]">
-                  CREAR CUENTA DE <span className="text-[#8E0E75]">COORDINADORA</span>
-                </h2>
-                <p className="text-xs text-[#4A4A4A] font-light">
-                  Esta cuenta se creará con el rol de Coordinadora y quedará activada de inmediato, sin requerir validación posterior.
-                </p>
-              </div>
-            </div>
+                                  {!isMainAdmin && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleResetUserPassword(p)}
+                                      disabled={isResettingId === p.id}
+                                      className="p-1.5 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-800 transition-colors cursor-pointer disabled:opacity-50"
+                                      title="Generar contraseña provisional de un solo uso (OTP)"
+                                    >
+                                      {isResettingId === p.id ? (
+                                        <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                                      ) : (
+                                        <Key className="h-3.5 w-3.5" />
+                                      )}
+                                    </button>
+                                  )}
 
-            {/* Mensajes de feedback */}
-            {coordFeedback?.error && (
-              <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 text-rose-600 shrink-0" />
-                <span>{coordFeedback.error}</span>
-              </div>
-            )}
-
-            {coordFeedback?.success && (
-              <div className="p-4 bg-emerald-50 border border-emerald-300 text-emerald-900 rounded-xl text-xs space-y-2">
-                <div className="flex items-center gap-2 font-bold">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-700 shrink-0" />
-                  <span>{coordFeedback.success}</span>
+                                  {!isMainAdmin && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteUser(p.id, p.email)}
+                                      className="p-1.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 transition-colors cursor-pointer"
+                                      title="Eliminar usuario permanentemente"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
                 </div>
-                {coordPassword && (
-                  <div className="mt-2 p-2 bg-white border border-emerald-200 rounded-xl flex items-center justify-between font-mono">
-                    <span className="text-[#292929]">Contraseña asignada: <strong>{coordPassword}</strong></span>
+              </div>
+            </div>
+          )}
+
+          {/* ============================================================== */}
+          {/* PESTAÑA 2: CREAR USUARIO UNIVERSAL & ASIGNAR CONTRASEÑA        */}
+          {/* ============================================================== */}
+          {activeTab === 'create_user' && (
+            <div className="max-w-2xl mx-auto bg-white border border-[#D8CFF0] rounded-2xl p-6 shadow-xs space-y-6">
+              <div className="flex items-center gap-3 pb-4 border-b border-[#EAE4F5]">
+                <div className="p-3 bg-[#8E0E75]/10 text-[#8E0E75] border border-[#8E0E75]/30 rounded-lg">
+                  <UserPlus className="h-6 w-6" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-extrabold uppercase tracking-tight text-[#292929]">
+                    ALTA DIRECTA DE <span className="text-[#8E0E75]">USUARIO & CREDENCIALES</span>
+                  </h2>
+                  <p className="text-xs text-[#4A4A4A] font-light">
+                    Crea cualquier cuenta (Empleado, Coordinador/a o Administrador) con su contraseña definitiva lista para iniciar sesión de inmediato.
+                  </p>
+                </div>
+              </div>
+
+              {/* Mensajes de feedback */}
+              {createFeedback?.error && (
+                <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-rose-600 shrink-0" />
+                  <span>{createFeedback.error}</span>
+                </div>
+              )}
+
+              {createFeedback?.success && (
+                <div className="p-4 bg-emerald-50 border border-emerald-300 text-emerald-900 rounded-xl text-xs space-y-2">
+                  <div className="flex items-center gap-2 font-bold">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-700 shrink-0" />
+                    <span>{createFeedback.success}</span>
+                  </div>
+                  {createPassword && (
+                    <div className="mt-2 p-2 bg-white border border-emerald-200 rounded-xl flex items-center justify-between font-mono">
+                      <span className="text-[#292929]">Contraseña asignada: <strong>{createPassword}</strong></span>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyText(createPassword, 'created_pass')}
+                        className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold uppercase rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-800 transition-colors cursor-pointer"
+                      >
+                        {copiedKey === 'created_pass' ? (
+                          <>
+                            <Check className="h-3 w-3 text-emerald-600" />
+                            <span>Copiada</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-3 w-3" />
+                            <span>Copiar</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <form onSubmit={handleCreateUserSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-extrabold uppercase tracking-wider text-[#292929] mb-1">
+                      Nombre y Apellidos
+                    </label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#4A4A4A]" />
+                      <input
+                        type="text"
+                        required
+                        placeholder="Ej. Laura Gómez"
+                        value={createFullName}
+                        onChange={(e) => setCreateFullName(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2.5 border border-[#D8CFF0] rounded-xl text-xs focus:outline-hidden focus:border-[#8E0E75] bg-[#F8F6FC]"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-extrabold uppercase tracking-wider text-[#292929] mb-1">
+                      Rol en el Sistema
+                    </label>
+                    <AppSelect
+                      value={createRole}
+                      onChange={(val) => handleRoleSelectChange(val as UserRole)}
+                      options={CREATE_ROLE_OPTIONS}
+                      className="w-full text-xs font-bold"
+                      ariaLabel="Rol en el Sistema"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-extrabold uppercase tracking-wider text-[#292929] mb-1">
+                    Correo Electrónico Corporativo
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#4A4A4A]" />
+                    <input
+                      type="email"
+                      required
+                      placeholder="Ej. laura@brainupgrup.com"
+                      value={createEmail}
+                      onChange={(e) => setCreateEmail(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2.5 border border-[#D8CFF0] rounded-xl text-xs focus:outline-hidden focus:border-[#8E0E75] bg-[#F8F6FC]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-extrabold uppercase tracking-wider text-[#292929]">
+                      Contraseña Directa de Acceso
+                    </label>
                     <button
                       type="button"
-                      onClick={() => handleCopyText(coordPassword, 'created_pass')}
-                      className="flex items-center gap-1 px-2 py-1 text-[11px] font-bold uppercase rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-800 transition-colors cursor-pointer"
+                      onClick={() => setCreatePassword(generatePassword())}
+                      className="text-[11px] font-bold text-[#8E0E75] hover:underline cursor-pointer flex items-center gap-1"
                     >
-                      {copiedKey === 'created_pass' ? (
-                        <>
-                          <Check className="h-3 w-3 text-emerald-600" />
-                          <span>Copiada</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="h-3 w-3" />
-                          <span>Copiar</span>
-                        </>
-                      )}
+                      <Key className="h-3 w-3" />
+                      <span>Generar segura</span>
                     </button>
                   </div>
-                )}
-              </div>
-            )}
-
-            <form onSubmit={handleCreateCoordinatorSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-extrabold uppercase tracking-wider text-[#292929] mb-1">
-                  Nombre y Apellidos de la Coordinadora
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#4A4A4A]" />
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ej. Laura Gómez"
-                    value={coordFullName}
-                    onChange={(e) => setCoordFullName(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2.5 border border-[#D8CFF0] rounded-xl text-xs focus:outline-hidden focus:border-[#8E0E75] bg-[#F8F6FC]"
-                  />
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#4A4A4A]" />
+                    <input
+                      type={showCreatePassword ? 'text' : 'password'}
+                      required
+                      placeholder="Mínimo 6 caracteres"
+                      value={createPassword}
+                      onChange={(e) => setCreatePassword(e.target.value)}
+                      className="w-full pl-9 pr-10 py-2.5 border border-[#D8CFF0] rounded-xl text-xs focus:outline-hidden focus:border-[#8E0E75] bg-[#F8F6FC]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCreatePassword(!showCreatePassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#4A4A4A] hover:text-[#8E0E75]"
+                    >
+                      {showCreatePassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-xs font-extrabold uppercase tracking-wider text-[#292929] mb-1">
-                  Correo Electrónico Corporativo
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#4A4A4A]" />
-                  <input
-                    type="email"
-                    required
-                    placeholder="Ej. laura.coordinacion@brainupgrup.com"
-                    value={coordEmail}
-                    onChange={(e) => setCoordEmail(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2.5 border border-[#D8CFF0] rounded-xl text-xs focus:outline-hidden focus:border-[#8E0E75] bg-[#F8F6FC]"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-extrabold uppercase tracking-wider text-[#292929]">
-                    Contraseña de Acceso
+                <div>
+                  <label className="block text-xs font-extrabold uppercase tracking-wider text-[#292929] mb-1">
+                    Departamento o Área
                   </label>
+                  <div className="relative">
+                    <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#4A4A4A]" />
+                    <input
+                      type="text"
+                      value={createDepartment}
+                      onChange={(e) => setCreateDepartment(e.target.value)}
+                      placeholder="Ej. Creatividad & Operaciones"
+                      className="w-full pl-9 pr-4 py-2.5 border border-[#D8CFF0] rounded-xl text-xs focus:outline-hidden focus:border-[#8E0E75] bg-[#F8F6FC]"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2">
                   <button
-                    type="button"
-                    onClick={generateSuggestedPassword}
-                    className="text-[11px] font-bold text-[#8E0E75] hover:underline cursor-pointer flex items-center gap-1"
+                    type="submit"
+                    disabled={isCreatingUser}
+                    className="w-full py-3 px-4 rounded-xl bg-[#8E0E75] text-white font-extrabold text-xs uppercase tracking-wider hover:bg-[#720B5E] transition-all cursor-pointer shadow-xs disabled:opacity-50 flex items-center justify-center gap-2"
                   >
-                    <Key className="h-3 w-3" />
-                    Generar segura
+                    {isCreatingUser ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                        <span>Creando cuenta y credenciales...</span>
+                      </>
+                    ) : (
+                      <>
+                        <UserCheck className="h-4 w-4" />
+                        <span>Crear y Activar Cuenta Inmediatamente</span>
+                      </>
+                    )}
                   </button>
                 </div>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#4A4A4A]" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    placeholder="Mínimo 8 caracteres"
-                    value={coordPassword}
-                    onChange={(e) => setCoordPassword(e.target.value)}
-                    className="w-full pl-9 pr-10 py-2.5 border border-[#D8CFF0] rounded-xl text-xs focus:outline-hidden focus:border-[#8E0E75] bg-[#F8F6FC]"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#4A4A4A] hover:text-[#8E0E75]"
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
+              </form>
+            </div>
+          )}
+
+          {/* ============================================================== */}
+          {/* PESTAÑA 3: AUDITORÍA EN TIEMPO REAL DEL IAIAHUB                */}
+          {/* ============================================================== */}
+          {activeTab === 'audit' && (
+            <div className="space-y-6">
+              
+              {/* Tarjetas de Métricas de Auditoría */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white border border-[#D8CFF0] p-4 rounded-2xl shadow-xs flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#4A4A4A]">Horas Imputadas Hoy</span>
+                    <p className="text-2xl font-extrabold text-[#8E0E75] tabular-nums">{auditStats.todayHours}</p>
+                  </div>
+                  <div className="p-3 bg-[#8E0E75]/10 text-[#8E0E75] border border-[#8E0E75]/30 rounded-lg">
+                    <Clock className="h-5 w-5" />
+                  </div>
+                </div>
+
+                <div className="bg-white border border-[#D8CFF0] p-4 rounded-2xl shadow-xs flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#4A4A4A]">Horas Este Mes</span>
+                    <p className="text-2xl font-extrabold text-blue-700 tabular-nums">{auditStats.monthHours}</p>
+                  </div>
+                  <div className="p-3 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg">
+                    <Calendar className="h-5 w-5" />
+                  </div>
+                </div>
+
+                <div className="bg-white border border-[#D8CFF0] p-4 rounded-2xl shadow-xs flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#4A4A4A]">Clientes Activos</span>
+                    <p className="text-2xl font-extrabold text-[#292929] tabular-nums">{auditStats.companiesCount}</p>
+                  </div>
+                  <div className="p-3 bg-[#F8F6FC] text-[#8E0E75] border border-[#D8CFF0] rounded-lg">
+                    <Building2 className="h-5 w-5" />
+                  </div>
+                </div>
+
+                <div className="bg-white border border-[#D8CFF0] p-4 rounded-2xl shadow-xs flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#4A4A4A]">Usuarios Imputando</span>
+                    <p className="text-2xl font-extrabold text-emerald-700 tabular-nums">{auditStats.usersCount}</p>
+                  </div>
+                  <div className="p-3 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg">
+                    <Users className="h-5 w-5" />
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-extrabold uppercase tracking-wider text-[#292929] mb-1">
-                  Departamento o Área
-                </label>
-                <div className="relative">
-                  <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#4A4A4A]" />
+              {/* Barra de Filtro y Refresco de Auditoría */}
+              <div className="bg-white border border-[#D8CFF0] p-4 rounded-2xl shadow-xs flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#4A4A4A]" />
                   <input
                     type="text"
-                    value={coordDepartment}
-                    onChange={(e) => setCoordDepartment(e.target.value)}
-                    placeholder="Ej. Coordinación & Dirección"
-                    className="w-full pl-9 pr-4 py-2.5 border border-[#D8CFF0] rounded-xl text-xs focus:outline-hidden focus:border-[#8E0E75] bg-[#F8F6FC]"
+                    placeholder="Filtrar registros por empleado, cliente o tarea..."
+                    value={auditSearchTerm}
+                    onChange={(e) => setAuditSearchTerm(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2 border border-[#D8CFF0] rounded-xl text-xs focus:outline-hidden focus:border-[#8E0E75] bg-[#F8F6FC]"
                   />
                 </div>
-              </div>
 
-              <div className="pt-2">
                 <button
-                  type="submit"
-                  disabled={isCreatingCoord}
-                  className="w-full py-3 px-4 rounded-xl bg-[#8E0E75] text-white font-extrabold text-xs uppercase tracking-wider hover:bg-[#720B5E] transition-all cursor-pointer shadow-xs disabled:opacity-50 flex items-center justify-center gap-2"
+                  type="button"
+                  onClick={loadAuditData}
+                  className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-[#8E0E75] hover:bg-[#720B5E] text-white text-xs font-bold uppercase tracking-wider transition-all cursor-pointer shadow-xs shrink-0"
                 >
-                  {isCreatingCoord ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                      <span>Creando cuenta de coordinadora...</span>
-                    </>
-                  ) : (
-                    <>
-                      <UserCheck className="h-4 w-4" />
-                      <span>Crear y Activar Coordinadora</span>
-                    </>
-                  )}
+                  <RefreshCw className={`h-3.5 w-3.5 ${isLoadingAudit ? 'animate-spin' : ''}`} />
+                  <span>Actualizar Auditoría</span>
                 </button>
               </div>
-            </form>
-          </div>
-        )}
 
-        {/* PESTAÑA 3: DIAGNÓSTICO DEL SISTEMA & SEGURIDAD */}
-        {activeTab === 'health' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white border border-[#D8CFF0] rounded-2xl p-6 shadow-xs space-y-4">
-              <div className="flex items-center gap-3 pb-3 border-b border-[#EAE4F5]">
-                <Server className="h-5 w-5 text-[#8E0E75]" />
-                <h3 className="font-extrabold uppercase tracking-tight text-sm text-[#292929]">
-                  ESTADO DE LA INFRAESTRUCTURA
-                </h3>
-              </div>
-
-              <div className="space-y-3 text-xs">
-                <div className="flex items-center justify-between p-2.5 bg-[#F8F6FC] rounded-xl border border-[#D8CFF0]">
-                  <span className="font-bold text-[#4A4A4A]">Servidor Supabase:</span>
-                  <span className="font-extrabold text-emerald-700 flex items-center gap-1">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                    {isSupabaseConnected ? 'Conectado (Producción)' : 'Modo Seguro Local'}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between p-2.5 bg-[#F8F6FC] rounded-xl border border-[#D8CFF0]">
-                  <span className="font-bold text-[#4A4A4A]">Políticas de Seguridad (RLS):</span>
-                  <span className="font-extrabold text-emerald-700">Activadas (Tablas aisladas)</span>
-                </div>
-
-                <div className="flex items-center justify-between p-2.5 bg-[#F8F6FC] rounded-xl border border-[#D8CFF0]">
-                  <span className="font-bold text-[#4A4A4A]">Acceso a Datos de Horas:</span>
-                  <span className="font-extrabold text-[#8E0E75]">Bloqueado para Super Admin (Privacidad)</span>
-                </div>
-
-                <div className="flex items-center justify-between p-2.5 bg-[#F8F6FC] rounded-xl border border-[#D8CFF0]">
-                  <span className="font-bold text-[#4A4A4A]">Dominio Autorizado:</span>
-                  <span className="font-mono text-[#292929]">brainupgrup.com</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white border border-[#D8CFF0] rounded-2xl p-6 shadow-xs space-y-4">
-              <div className="flex items-center gap-3 pb-3 border-b border-[#EAE4F5]">
-                <Key className="h-5 w-5 text-[#8E0E75]" />
-                <h3 className="font-extrabold uppercase tracking-tight text-sm text-[#292929]">
-                  CREDENCIALES MAESTRAS DE ADMINISTRACIÓN
-                </h3>
-              </div>
-
-              <div className="space-y-3 text-xs">
-                <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-200 space-y-1">
-                  <span className="text-[11px] uppercase font-bold text-[#4A4A4A] block">
-                    Correo Maestro Super Admin
-                  </span>
-                  <div className="flex items-center justify-between font-mono text-[#292929]">
-                    <span>appadmin@brainupgrup.com</span>
-                    <button
-                      type="button"
-                      onClick={() => handleCopyText('appadmin@brainupgrup.com', 'admin_email')}
-                      className="text-[#8E0E75] hover:text-[#720B5E] p-1 cursor-pointer"
-                      title="Copiar correo"
-                    >
-                      {copiedKey === 'admin_email' ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-200 space-y-1">
-                  <span className="text-[11px] uppercase font-bold text-[#4A4A4A] block">
-                    Contraseña Maestra Asignada
-                  </span>
-                  <div className="flex items-center justify-between font-mono text-[#292929]">
-                    <span className="tracking-widest">••••••••••••</span>
-                    <span className="text-[11px] text-emerald-700 font-bold uppercase tracking-wider bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                      Protegida en Auth
+              {/* Feed de Actividad en Vivo */}
+              <div className="bg-white border border-[#D8CFF0] rounded-2xl shadow-xs overflow-hidden">
+                <div className="px-5 py-3.5 bg-[#F8F6FC] border-b border-[#D8CFF0] flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-[#8E0E75]" />
+                    <span className="text-xs font-extrabold uppercase tracking-wider text-[#292929]">
+                      Registro Cronológico de Actividad en Brain Time ({auditFiltered.length})
                     </span>
                   </div>
+                  <span className="text-[11px] text-[#4A4A4A]">Últimas imputaciones en vivo</span>
                 </div>
 
-                <p className="text-[11px] text-[#4A4A4A] font-light leading-relaxed">
-                  Esta cuenta maestra otorga acceso exclusivo a este panel administrativo. Nunca compartas estas credenciales con personal no autorizado.
-                </p>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-white border-b border-[#EAE4F5] text-[11px] font-extrabold uppercase tracking-wider text-[#4A4A4A]">
+                        <th className="py-3 px-4">Fecha & Hora</th>
+                        <th className="py-3 px-4">Empleado</th>
+                        <th className="py-3 px-4">Cliente / Empresa</th>
+                        <th className="py-3 px-4">Duración</th>
+                        <th className="py-3 px-4">Tipo</th>
+                        <th className="py-3 px-4">Tarea / Descripción</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#EAE4F5] text-xs">
+                      {isLoadingAudit ? (
+                        <tr>
+                          <td colSpan={6} className="py-8 text-center text-[#4A4A4A]">
+                            <div className="flex items-center justify-center gap-2">
+                              <RefreshCw className="h-4 w-4 animate-spin text-[#8E0E75]" />
+                              <span>Cargando registros de auditoría en vivo...</span>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : auditFiltered.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="py-8 text-center text-[#4A4A4A]">
+                            No hay registros de tiempo que coincidan con la búsqueda.
+                          </td>
+                        </tr>
+                      ) : (
+                        auditFiltered.map((entry) => {
+                          const dateStr = entry.work_date || (entry.created_at ? entry.created_at.split('T')[0] : 'Hoy');
+                          const timeStr = entry.start_time ? `${entry.start_time} - ${entry.end_time || '...'}` : '';
+
+                          return (
+                            <tr key={entry.id} className="hover:bg-[#F8F6FC]/60 transition-colors">
+                              {/* Fecha & Hora */}
+                              <td className="py-3 px-4 font-mono text-[11px] text-[#292929] whitespace-nowrap">
+                                <span className="font-bold block">{dateStr}</span>
+                                {timeStr && <span className="text-[#8E0E75] text-[10px]">{timeStr}</span>}
+                              </td>
+
+                              {/* Empleado */}
+                              <td className="py-3 px-4">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <UserAvatar
+                                    src={entry.profile?.avatar_url}
+                                    name={entry.profile?.full_name || 'Empleado'}
+                                    size="sm"
+                                    className="ring-1 ring-[#D8CFF0]"
+                                  />
+                                  <div className="min-w-0">
+                                    <span className="font-bold text-[#292929] block truncate">
+                                      {entry.profile?.full_name || 'Empleado'}
+                                    </span>
+                                    <span className="text-[10px] text-[#4A4A4A] block truncate">
+                                      {entry.profile?.email || ''}
+                                    </span>
+                                  </div>
+                                </div>
+                              </td>
+
+                              {/* Empresa */}
+                              <td className="py-3 px-4">
+                                <span className="font-bold text-[#292929]">
+                                  {entry.company?.name || 'Cliente'}
+                                </span>
+                              </td>
+
+                              {/* Duración */}
+                              <td className="py-3 px-4 font-mono font-bold text-[#8E0E75] tabular-nums whitespace-nowrap">
+                                {formatMinutes(entry.duration_minutes || 0)}
+                              </td>
+
+                              {/* Tipo de Cómputo */}
+                              <td className="py-3 px-4 whitespace-nowrap">
+                                <span
+                                  className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider ${
+                                    entry.compute_type === 'puntual'
+                                      ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                                      : 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                                  }`}
+                                >
+                                  {entry.compute_type === 'puntual' ? 'Extra' : 'Cuota'}
+                                </span>
+                              </td>
+
+                              {/* Descripción */}
+                              <td className="py-3 px-4 text-[#4A4A4A] max-w-xs truncate" title={entry.description || ''}>
+                                {entry.description || <span className="italic text-neutral-400">Sin descripción</span>}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+
+          {/* ============================================================== */}
+          {/* PESTAÑA 4: DIAGNÓSTICO DEL SISTEMA & SEGURIDAD                 */}
+          {/* ============================================================== */}
+          {activeTab === 'health' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-white border border-[#D8CFF0] rounded-2xl p-6 shadow-xs space-y-4">
+                <div className="flex items-center gap-3 pb-3 border-b border-[#EAE4F5]">
+                  <Server className="h-5 w-5 text-[#8E0E75]" />
+                  <h3 className="font-extrabold uppercase tracking-tight text-sm text-[#292929]">
+                    ESTADO DE LA INFRAESTRUCTURA
+                  </h3>
+                </div>
+
+                <div className="space-y-3 text-xs">
+                  <div className="flex items-center justify-between p-2.5 bg-[#F8F6FC] rounded-xl border border-[#D8CFF0]">
+                    <span className="font-bold text-[#4A4A4A]">Servidor Supabase:</span>
+                    <span className="font-extrabold text-emerald-700 flex items-center gap-1">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                      {isSupabaseConnected ? 'Conectado (Producción)' : 'Modo Seguro Local'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between p-2.5 bg-[#F8F6FC] rounded-xl border border-[#D8CFF0]">
+                    <span className="font-bold text-[#4A4A4A]">Políticas de Seguridad (RLS):</span>
+                    <span className="font-extrabold text-emerald-700">Restablecidas & Auditadas</span>
+                  </div>
+
+                  <div className="flex items-center justify-between p-2.5 bg-[#F8F6FC] rounded-xl border border-[#D8CFF0]">
+                    <span className="font-bold text-[#4A4A4A]">Coordinación Dual:</span>
+                    <span className="font-extrabold text-[#8E0E75]">Habilitada (Múltiples Jefes Concurrente)</span>
+                  </div>
+
+                  <div className="flex items-center justify-between p-2.5 bg-[#F8F6FC] rounded-xl border border-[#D8CFF0]">
+                    <span className="font-bold text-[#4A4A4A]">Dominio Autorizado:</span>
+                    <span className="font-mono text-[#292929]">brainupgrup.com</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white border border-[#D8CFF0] rounded-2xl p-6 shadow-xs space-y-4">
+                <div className="flex items-center gap-3 pb-3 border-b border-[#EAE4F5]">
+                  <Key className="h-5 w-5 text-[#8E0E75]" />
+                  <h3 className="font-extrabold uppercase tracking-tight text-sm text-[#292929]">
+                    CREDENCIALES MAESTRAS DE ADMINISTRACIÓN
+                  </h3>
+                </div>
+
+                <div className="space-y-3 text-xs">
+                  <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-200 space-y-1">
+                    <span className="text-[11px] uppercase font-bold text-[#4A4A4A] block">
+                      Correo Maestro Super Admin
+                    </span>
+                    <div className="flex items-center justify-between font-mono text-[#292929]">
+                      <span>appadmin@brainupgrup.com</span>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyText('appadmin@brainupgrup.com', 'admin_email')}
+                        className="text-[#8E0E75] hover:text-[#720B5E] p-1 cursor-pointer"
+                        title="Copiar correo"
+                      >
+                        {copiedKey === 'admin_email' ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-200 space-y-1">
+                    <span className="text-[11px] uppercase font-bold text-[#4A4A4A] block">
+                      Contraseña Maestra Asignada
+                    </span>
+                    <div className="flex items-center justify-between font-mono text-[#292929]">
+                      <span className="tracking-widest">••••••••••••</span>
+                      <span className="text-[11px] text-emerald-700 font-bold uppercase tracking-wider bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                        Protegida en Auth
+                      </span>
+                    </div>
+                  </div>
+
+                  <p className="text-[11px] text-[#4A4A4A] font-light leading-relaxed">
+                    Esta cuenta maestra otorga acceso exclusivo a esta subcapa de control global. Desde aquí puedes modificar roles, resetear credenciales y supervisar toda la suite.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
 
       </main>
 
-      {/* MODAL DE EDICIÓN / CORRECCIÓN DE CUENTA */}
+      {/* ============================================================== */}
+      {/* MODAL DE EDICIÓN / CORRECCIÓN DE CUENTA & ASIGNACIÓN DIRECTA    */}
+      {/* ============================================================== */}
       {editingProfile && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white border border-[#D8CFF0] rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-5">
@@ -1197,7 +1661,7 @@ export default function SuperAdminDashboardPage() {
               <div className="flex items-center gap-2.5">
                 <Edit3 className="h-5 w-5 text-[#8E0E75]" />
                 <h3 className="font-extrabold uppercase tracking-tight text-base text-[#292929]">
-                  CORREGIR CUENTA DE <span className="text-[#8E0E75]">USUARIO</span>
+                  EDITAR CUENTA DE <span className="text-[#8E0E75]">USUARIO</span>
                 </h3>
               </div>
               <button
@@ -1225,7 +1689,7 @@ export default function SuperAdminDashboardPage() {
 
               <div>
                 <label className="block text-xs font-extrabold uppercase tracking-wider text-[#292929] mb-1">
-                  Correo Electrónico (Solo Lectura)
+                  Correo Electrónico (Identificador Fijo)
                 </label>
                 <input
                   type="email"
@@ -1276,6 +1740,43 @@ export default function SuperAdminDashboardPage() {
                 />
               </div>
 
+              {/* Asignación Directa de Contraseña */}
+              <div className="pt-2 border-t border-[#EAE4F5] space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-extrabold uppercase tracking-wider text-[#292929] flex items-center gap-1.5">
+                    <Lock className="h-3.5 w-3.5 text-[#8E0E75]" />
+                    <span>Asignar Nueva Contraseña Directa (Opcional)</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setEditNewPassword(generatePassword())}
+                    className="text-[11px] font-bold text-[#8E0E75] hover:underline cursor-pointer flex items-center gap-1"
+                  >
+                    <Key className="h-3 w-3" />
+                    <span>Generar segura</span>
+                  </button>
+                </div>
+                <p className="text-[11px] text-[#4A4A4A]">
+                  Si introduces una contraseña aquí, se fijará directamente sin requerir reseteo ni OTP. El usuario podrá acceder de inmediato.
+                </p>
+                <div className="relative">
+                  <input
+                    type={showEditPassword ? 'text' : 'password'}
+                    value={editNewPassword}
+                    onChange={(e) => setEditNewPassword(e.target.value)}
+                    placeholder="Dejar vacío para conservar la contraseña actual"
+                    className="w-full px-3 py-2 pr-10 border border-[#D8CFF0] rounded-xl text-xs bg-[#F8F6FC] focus:outline-hidden focus:border-[#8E0E75]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowEditPassword(!showEditPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#4A4A4A] hover:text-[#8E0E75]"
+                  >
+                    {showEditPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#EAE4F5]">
                 <button
                   type="button"
@@ -1306,7 +1807,10 @@ export default function SuperAdminDashboardPage() {
           </div>
         </div>
       )}
-      {/* MODAL DE CONTRASEÑA TEMPORAL DE UN SOLO USO (OTP) */}
+
+      {/* ============================================================== */}
+      {/* MODAL DE CONTRASEÑA TEMPORAL DE UN SOLO USO (OTP)             */}
+      {/* ============================================================== */}
       {resetModalData && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white border-2 border-[#D0C4EB] rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-5 animate-in fade-in zoom-in-95">
@@ -1386,7 +1890,7 @@ export default function SuperAdminDashboardPage() {
                   <span>Flujo de Activación Automática:</span>
                 </div>
                 <p className="text-[11px] text-[#4A4A4A]">
-                  Entrega esta contraseña provisional a la usuaria. En cuanto inicie sesión con esta clave, el sistema detectará automáticamente <code className="font-mono bg-white px-1 py-0.5 rounded border border-amber-200">password_configured: false</code> y le desplegará de inmediato la ventana de reinicio obligatorio. No podrá acceder a ningún apartado hasta haber establecido su nueva contraseña definitiva.
+                  Entrega esta contraseña provisional al usuario. Al iniciar sesión se detectará automáticamente <code className="font-mono bg-white px-1 py-0.5 rounded border border-amber-200">password_configured: false</code> y le solicitará de inmediato establecer su nueva contraseña definitiva.
                 </p>
               </div>
 

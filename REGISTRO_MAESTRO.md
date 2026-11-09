@@ -2131,6 +2131,41 @@
   - Verificación del script SQL listo para ejecución en Supabase SQL Editor.
   - Sincronización en GitHub `origin/main`.
 
+### [v4.0.0] - 2026-11-09 - Subcapa Master Super Admin: Gobernanza Integral de IaiaHub, Alta y Baja de Usuarios con Contraseñas Directas, Coordinación Dual y Auditoría en Vivo
+- **Solicitud del Usuario:**
+  *"yo como super admin tengo que tener accesso a una sub capa de superadmin donde pueda crear, eliminar, modificar y auditar todo lo que va pasando el Iaiahub, lo primerdial es que pueda crear y eliminar todos los usuarios con sus contraseñas y demas, ademas de eso quieor que evidentemente tengamos la capacidad de tener dos cordinasdores ya que ahora mismo tneemos dos jefes y dpeende dle turno es uno u otro"*
+- **Diagnóstico del Problema y Requerimientos de la Suite:**
+  1. **Identidad y Acceso de Super Admin:** En Supabase `public.profiles`, la cuenta maestra `appadmin@brainupgrup.com` figuraba con `role = 'coordinator'`, lo que provocaba que al iniciar sesión fuese tratada como coordinadora y se le ocultase la pastilla y accesos de Super Admin.
+  2. **Gobernanza de Cuentas y Contraseñas Directas:** El Super Admin requería la capacidad de dar de alta cualquier tipo de usuario (Empleado, Coordinador/a o Administrador) y asignarle directamente su contraseña definitiva sin depender de que el usuario tenga que pasar por enlaces de email o reseteos OTP. Asimismo, en la edición de cualquier usuario existente debía ser posible fijar una nueva contraseña al instante.
+  3. **Baja y Eliminación Definitiva:** El Super Admin debía poder eliminar cualquier cuenta de usuario de forma permanente y segura con un solo clic.
+  4. **Coordinación Dual para Jefes de Turno:** La agencia Brain Up Grup opera en dos turnos (mañana y tarde), por lo que se requería soporte formal para múltiples coordinadores simultáneos, permitiendo que ambos jefes de turno coordinen clientes, bolsas de horas y tareas, además de alternar roles con 1 clic.
+  5. **Auditoría en Tiempo Real de IaiaHub:** El Super Admin debía poder supervisar en vivo toda la actividad del IaiaHub (imputaciones en Brain Time, clientes activos, horas computadas hoy y este mes).
+- **Decisiones Técnicas y Solución Implementada:**
+  1. **Consolidación de Identidad Super Admin (`src/context/auth-context.tsx`, `src/components/navbar.tsx`, `shield_database_rls.sql`):**
+     - En `auth-context.tsx`, se fuerza `role = 'admin'` para `appadmin@brainupgrup.com` tanto en la persistencia local como en la sincronización en segundo plano.
+     - En `shield_database_rls.sql`, se actualiza la cuenta en Supabase con `update public.profiles set role = 'admin', status = 'active' where lower(trim(email)) = 'appadmin@brainupgrup.com';` y se elimina el trigger restrictivo `tr_protect_profile_privileges` para posibilitar la gestión administrativa directa.
+     - En el Navbar corporativo se añade la pastilla "Super Admin" y el acceso directo "Subcapa Super Admin" en el menú desplegable del perfil.
+     - En IaiaHub (`/hub`), se añade un banner maestro de control para el Super Admin y acceso a `/dashboard/admin`.
+  2. **Arquitectura de la Subcapa Super Admin (`src/app/dashboard/admin/page.tsx`):**
+     - **Pestaña 1 • Gestión de Cuentas & Turnos (`users`):**
+       - Módulo ejecutivo destacado de **"Jefes de Turno & Coordinación Dual"**, mostrando a todos los coordinadores activos con sus datos de turno y departamento.
+       - Acciones rápidas de 1 clic en la tabla de usuarios: "Hacer Coordinador de Turno" / "Pasar a Empleado" mediante `handleQuickRoleChange`.
+       - Eliminación definitiva de cuentas (`handleDeleteUser`) con confirmación modal de seguridad, removiendo el perfil en Supabase y en las colecciones locales.
+       - Modal de corrección y edición con el campo opcional **"Asignar Nueva Contraseña Directa"** con generador seguro y alternancia de visibilidad.
+     - **Pestaña 2 • Crear Usuario & Contraseñas (`create_user`):**
+       - Formulario universal para dar de alta Empleados, Coordinadores/as o Administradores.
+       - Asignación directa de contraseña segura sugerida o personalizada.
+       - Inserción directa en `public.profiles` con `custom_password: cleanPass` y `password_configured = true`, permitiendo al usuario iniciar sesión al instante sin depender de correos de confirmación.
+     - **Pestaña 3 • Auditoría Global IaiaHub (`audit`):**
+       - Métricas ejecutivas en vivo: Horas Imputadas Hoy, Horas Este Mes, Clientes Activos y Usuarios Imputando en Brain Time.
+       - Feed cronológico de auditoría con buscador en tiempo real, reflejando fecha, hora, empleado, cliente, duración y descripción de tareas.
+     - **Pestaña 4 • Diagnóstico del Sistema (`health`):**
+       - Monitoreo del estado de infraestructura, Supabase y credenciales maestras.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Cumplimiento estricto de directrices maestras: DM-01 (Cero Emojis con iconos Lucide React), DM-02 (Controles In-App con `AppSelect`), DM-05 (Rol Dual Perpetuo), DM-13 (Identidad "La Abuela") y DM-15 (Política Zero-Scroll).
+
+
 
 
 

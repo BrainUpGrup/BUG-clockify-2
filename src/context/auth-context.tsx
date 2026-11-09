@@ -42,6 +42,9 @@ function persistUser(profile: Profile | null) {
   if (typeof window === 'undefined') return;
   try {
     if (profile) {
+      if (profile.email && profile.email.toLowerCase() === 'appadmin@brainupgrup.com') {
+        profile.role = 'admin';
+      }
       localStorage.setItem('bug_clockify_current_user', JSON.stringify(profile));
       const cookieData = JSON.stringify({ id: profile.id, role: profile.role, email: profile.email });
       document.cookie = 'bug_clockify_user=' + encodeURIComponent(cookieData) + '; path=/; max-age=604800; SameSite=Lax';
@@ -74,6 +77,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (stored) {
         const parsed = JSON.parse(stored) as Profile;
         if (parsed && parsed.status !== 'pending') {
+          if (parsed.email && parsed.email.toLowerCase() === 'appadmin@brainupgrup.com') {
+            parsed.role = 'admin';
+          }
           setUser(parsed);
           persistUser(parsed);
 
@@ -137,6 +143,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               } else {
                 const safeProfile = {
                   ...profile,
+                  role: profile.email && profile.email.toLowerCase() === 'appadmin@brainupgrup.com' ? 'admin' : profile.role,
                   avatar_url: profile.avatar_url || undefined,
                 } as Profile;
                 setUser(safeProfile);
