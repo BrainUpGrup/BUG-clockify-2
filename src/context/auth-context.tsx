@@ -185,6 +185,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       process.env.NODE_ENV === 'development' ||
       process.env.NEXT_PUBLIC_SHOW_DEMO_LOGIN === 'true';
 
+    // 0. AUTENTICACIÓN SEGURA EN SERVIDOR EDGE (/api/auth/session)
+    // Valida credenciales contra RPC SECURITY DEFINER, emite cookie HMAC y aplica Rate Limiting
+    try {
+      const sessionRes = await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail, password: cleanPass }),
+      });
+
+      if (sessionRes.ok) {
+        const sData = await sessionRes.json();
+        if (sData.success && sData.user) {
+          const loggedProfile = {
+            ...sData.user,
+            role: cleanEmail === 'appadmin@brainupgrup.com' ? 'admin' : sData.user.role,
+          } as Profile;
+          setUser(loggedProfile);
+          persistUser(loggedProfile);
+          setMustResetPassword(loggedProfile.password_configured === false);
+          return { user: loggedProfile };
+        }
+      } else if (sessionRes.status === 403 || sessionRes.status === 429) {
+        const errData = await sessionRes.json();
+        return { error: errData.error };
+      }
+    } catch (e) {
+      console.warn('Aviso conexión /api/auth/session:', e);
+    }
+
     // 1. INTENTO CON CONTRASEÑA TEMPORAL DE UN SOLO USO (OTP) GENERADA POR SUPER ADMIN
     try {
       const verifyRes = await fetch('/api/auth/reset-password', {

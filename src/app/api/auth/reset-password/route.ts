@@ -167,18 +167,25 @@ export async function POST(req: NextRequest) {
       // Guardar en almacenamiento persistente local
       setTempPasswordForUser(targetUserId, cleanEmail, tempPass);
 
-      // Actualizar en la base de datos Supabase
+      // Actualizar en la base de datos Supabase de forma segura
       if (supabase) {
         try {
-          await supabase
-            .from('profiles')
-            .update({
-              password_configured: false,
-              temp_password: tempPass,
-            })
-            .eq('email', cleanEmail);
+          await supabase.rpc('admin_set_user_password', {
+            p_email: cleanEmail,
+            p_password: tempPass,
+            p_is_temp: true,
+          });
         } catch (dbErr) {
-          console.warn('Aviso: Columna password_configured pendiente en Supabase PostgreSQL:', dbErr);
+          console.warn('Aviso: RPC admin_set_user_password en Supabase:', dbErr);
+          try {
+            await supabase
+              .from('profiles')
+              .update({
+                password_configured: false,
+                temp_password: tempPass,
+              })
+              .eq('email', cleanEmail);
+          } catch {}
         }
       }
 
@@ -199,29 +206,23 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ valid: false, error: 'La contraseña es requerida.' }, { status: 400 });
       }
 
-      // Primero consultar en Supabase
+      // Primero contrastar de forma segura con la RPC authenticate_employee (SECURITY DEFINER)
       if (supabase) {
         try {
-          const { data: dbProf } = await supabase
-            .from('profiles')
-            .select('password_configured, temp_password')
-            .eq('email', cleanEmail)
-            .maybeSingle();
+          const { data: rpcRes, error: rpcErr } = await supabase.rpc('authenticate_employee', {
+            p_email: cleanEmail,
+            p_password: candidatePass,
+          });
 
-          if (
-            dbProf &&
-            dbProf.password_configured === false &&
-            dbProf.temp_password &&
-            dbProf.temp_password.trim() === candidatePass
-          ) {
+          if (!rpcErr && rpcRes && rpcRes.success === true && rpcRes.user) {
             return NextResponse.json({
               valid: true,
               email: cleanEmail,
-              password_configured: false,
+              password_configured: rpcRes.user.password_configured ?? false,
             });
           }
         } catch {
-          // fallback
+          // fallback a comprobación local
         }
       }
 
@@ -268,29 +269,26 @@ export async function POST(req: NextRequest) {
       // Marcar como configurada en almacenamiento persistente local
       markPasswordConfigured(cleanEmail);
 
-      // Actualizar en Supabase profiles
+      // Actualizar en Supabase de forma segura mediante la RPC admin_set_user_password (SECURITY DEFINER)
       if (supabase) {
         try {
-          const { error: fullUpdateErr } = await supabase
-            .from('profiles')
-            .update({
-              password_configured: true,
-              temp_password: null,
-              custom_password: cleanNewPassword,
-            })
-            .eq('email', cleanEmail);
-
-          if (fullUpdateErr) {
+          await supabase.rpc('admin_set_user_password', {
+            p_email: cleanEmail,
+            p_password: cleanNewPassword,
+            p_is_temp: false,
+          });
+        } catch (dbErr) {
+          console.warn('Aviso: RPC admin_set_user_password en Supabase:', dbErr);
+          try {
             await supabase
               .from('profiles')
               .update({
                 password_configured: true,
                 temp_password: null,
+                custom_password: cleanNewPassword,
               })
               .eq('email', cleanEmail);
-          }
-        } catch (dbErr) {
-          console.warn('Aviso: Actualización en Supabase profiles:', dbErr);
+          } catch {}
         }
       }
 

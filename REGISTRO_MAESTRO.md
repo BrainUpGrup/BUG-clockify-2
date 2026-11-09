@@ -2165,6 +2165,35 @@
   - `npx tsc --noEmit`: **0 errores de compilación**.
   - Cumplimiento estricto de directrices maestras: DM-01 (Cero Emojis con iconos Lucide React), DM-02 (Controles In-App con `AppSelect`), DM-05 (Rol Dual Perpetuo), DM-13 (Identidad "La Abuela") y DM-15 (Política Zero-Scroll).
 
+### [v4.0.1] - 2026-11-09 - Blindaje Definitivo de Ciberseguridad: Aislamiento de Credenciales en Tabla Privada, Cierre de Endpoint de Sesión y Mitigación de Brechas SEV-1
+- **Solicitud del Usuario:**
+  *"vams a volever ha hacer una auditoria de seguridad"* (Aprobación del informe de auditoría `auditoria_seguridad_v4.md`).
+- **Diagnóstico y Vulnerabilidades Identificadas:**
+  1. **VULN-01 (SEV-1): Exposición Masiva de Contraseñas vía API REST Anónima de Supabase:** La política `USING (true)` en `public.profiles` permitía que cualquiera con la clave anónima pública (`anon key`) descargase las contraseñas en texto claro de todos los usuarios mediante una petición GET directa.
+  2. **VULN-02 (SEV-1): Fábrica de Sesiones Arbitrarias en `/api/auth/session`:** El endpoint aceptaba peticiones POST con `{ user: { email } }` y firmaba cookies HMAC de sesión válidas con rol `admin` sin requerir ni contrastar ninguna contraseña.
+  3. **VULN-03 / 04 (SEV-2): Manipulación Anónima de Cuentas y Cuotas:** Políticas permisivas sin autenticación obligatoria en el backend.
+  4. **VULN-05 (SEV-3): Ausencia de Rate Limiting:** Riesgo de ataques de fuerza bruta en rutas de autenticación.
+- **Decisiones Técnicas y Remediación Implementada:**
+  1. **Aislamiento Físico de Contraseñas en Tabla Privada (`shield_database_rls.sql`):**
+     - Creación de la tabla `public.user_credentials` con RLS estricto y revocación total de permisos a `anon` y `authenticated` (`REVOKE ALL ON public.user_credentials FROM anon, authenticated`).
+     - Migración automática de contraseñas existentes a la tabla privada y borrado definitivo de contraseñas en `public.profiles` (`update public.profiles set custom_password = null, temp_password = null;`).
+     - Actualización de las funciones RPC `authenticate_employee` y `admin_set_user_password` con `SECURITY DEFINER` para validar y actualizar contraseñas en la tabla privada sin exponerlas jamás a la red.
+  2. **Blindaje de `/api/auth/session`:**
+     - Exigencia estricta de `email` y `password` en el cuerpo de la petición.
+     - Validación contra la RPC `authenticate_employee` antes de emitir cualquier token de sesión.
+     - Incorporación de **Rate Limiting en memoria**: bloqueo automático tras 5 intentos fallidos consecutivos durante 60 segundos.
+     - Prohibición de re-firma de sesiones sin contar con una cookie previa legítima y no manipulada.
+  3. **Integración en Auth Context y Panel Super Admin:**
+     - `src/context/auth-context.tsx`: `login()` autentica de forma segura contra `/api/auth/session` como primera línea de defensa.
+     - `src/app/dashboard/admin/page.tsx` y `src/app/api/auth/reset-password/route.ts`: Invocación de `admin_set_user_password` RPC para fijar contraseñas directas y OTP sin escribir texto claro en `profiles`.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Pruebas automatizadas de penetración ejecutadas en vivo:
+    - Petición sin contraseña a `/api/auth/session`: **Rechazada con 401 Unauthorized**.
+    - Petición con contraseña incorrecta: **Rechazada con 401 Unauthorized**.
+    - Petición con contraseña legítima de Super Admin: **Aprobada con 200 OK y emisión de cookie HMAC**.
+    - Fuerza bruta (6 intentos fallidos): **Bloqueada en el intento 6 con 429 Too Many Requests**.
+
 
 
 

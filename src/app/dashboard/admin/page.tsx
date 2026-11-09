@@ -381,13 +381,35 @@ export default function SuperAdminDashboardPage() {
           console.warn('Excepción en Supabase Auth signUp:', authE);
         }
 
-        // 2. Insertar / Upsert en tabla profiles con contraseña y estado activo
+        // 2. Insertar / Upsert en tabla profiles (sin exponer contraseñas)
+        const safeProfilePayload = {
+          id: newProfile.id,
+          full_name: newProfile.full_name,
+          email: newProfile.email,
+          role: newProfile.role,
+          status: newProfile.status,
+          department: newProfile.department,
+          password_configured: true,
+          created_at: newProfile.created_at,
+        };
+
         const { error: profErr } = await supabase
           .from('profiles')
-          .upsert(newProfile);
+          .upsert(safeProfilePayload);
 
         if (profErr) {
           console.warn('Advertencia al insertar perfil en Supabase:', profErr);
+        }
+
+        // 3. Fijar contraseña de forma segura y aislada en user_credentials mediante RPC (SECURITY DEFINER)
+        try {
+          await supabase.rpc('admin_set_user_password', {
+            p_email: cleanEmail,
+            p_password: cleanPass,
+            p_is_temp: false,
+          });
+        } catch (rpcErr) {
+          console.warn('Aviso RPC admin_set_user_password:', rpcErr);
         }
       }
 
@@ -467,9 +489,17 @@ export default function SuperAdminDashboardPage() {
         };
 
         if (hasNewPassword) {
-          updatePayload.custom_password = editNewPassword.trim();
           updatePayload.password_configured = true;
-          updatePayload.temp_password = null;
+          // Asignar en tabla privada aislada mediante RPC SECURITY DEFINER
+          try {
+            await supabase.rpc('admin_set_user_password', {
+              p_email: updatedProfile.email,
+              p_password: editNewPassword.trim(),
+              p_is_temp: false,
+            });
+          } catch (rpcE) {
+            console.warn('Aviso RPC admin_set_user_password:', rpcE);
+          }
         }
 
         const { error } = await supabase
