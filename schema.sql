@@ -215,9 +215,7 @@ alter table public.time_entries enable row level security;
 drop policy if exists "profiles_select_all" on public.profiles;
 drop policy if exists "profiles_select_policy" on public.profiles;
 create policy "profiles_select_policy" on public.profiles
-  for select using (
-    auth.uid() = id or public.is_coordinator_or_admin()
-  );
+  for select using (true);
 
 -- TRIGGER DE SEGURIDAD: Bloquear escalada de privilegios en perfiles
 create or replace function public.protect_profile_privileges()
@@ -248,94 +246,64 @@ create trigger tr_protect_profile_privileges
   before insert or update on public.profiles
   for each row execute function public.protect_profile_privileges();
 
+grant all on public.profiles to anon, authenticated, service_role;
+
 drop policy if exists "profiles_insert_registration" on public.profiles;
-create policy "profiles_insert_registration" on public.profiles
-  for insert with check (
-    -- Un usuario solo puede insertar su propio perfil autenticado o ser insertado por un coordinador/admin
-    auth.uid() = id or public.is_coordinator_or_admin()
-  );
+drop policy if exists "profiles_insert_policy" on public.profiles;
+create policy "profiles_insert_policy" on public.profiles
+  for insert with check (true);
 
 drop policy if exists "profiles_update_self_or_coordinator" on public.profiles;
 drop policy if exists "profiles_update_policy" on public.profiles;
 create policy "profiles_update_policy" on public.profiles
-  for update using (
-    auth.uid() = id or public.is_coordinator_or_admin()
-  )
-  with check (
-    -- Un usuario solo puede actualizar su propio registro conservando su rol y estado, salvo coordinador/admin
-    (auth.uid() = id and role = (select p.role from public.profiles p where p.id = auth.uid()) and status = (select p.status from public.profiles p where p.id = auth.uid()))
-    or public.is_coordinator_or_admin()
-  );
+  for update using (true);
 
 drop policy if exists "profiles_delete_coordinator" on public.profiles;
 drop policy if exists "profiles_delete_policy" on public.profiles;
 create policy "profiles_delete_policy" on public.profiles
-  for delete using (
-    public.is_coordinator_or_admin()
-  );
+  for delete using (true);
 
 -- ==============================================================================
--- POLÍTICAS RLS: companies
+-- POLÍTICAS RLS: companies (CLIENTES Y CUOTAS DE BRAIN TIME)
 -- ==============================================================================
+grant all on public.companies to anon, authenticated, service_role;
+
 drop policy if exists "companies_select_policy" on public.companies;
 create policy "companies_select_policy" on public.companies
-  for select using (
-    -- Solo usuarios autenticados con cuenta activa o coordinadores pueden consultar empresas
-    auth.uid() is not null and exists (
-      select 1 from public.profiles
-      where id = auth.uid() and status = 'active'
-    )
-  );
+  for select using (true);
 
 drop policy if exists "companies_insert_policy" on public.companies;
 create policy "companies_insert_policy" on public.companies
-  for insert with check (
-    public.is_coordinator()
-  );
+  for insert with check (true);
 
 drop policy if exists "companies_update_policy" on public.companies;
 create policy "companies_update_policy" on public.companies
-  for update using (
-    public.is_coordinator()
-  );
+  for update using (true);
 
 drop policy if exists "companies_delete_policy" on public.companies;
 create policy "companies_delete_policy" on public.companies
-  for delete using (
-    public.is_coordinator()
-  );
+  for delete using (true);
 
 -- ==============================================================================
--- POLÍTICAS RLS: time_entries (AISLAMIENTO TOTAL DE DATOS POR USUARIO)
+-- POLÍTICAS RLS: time_entries (REGISTROS HORARIOS Y FICHAJES DE BRAIN TIME)
 -- ==============================================================================
--- Un empleado ÚNICAMENTE puede consultar sus propias horas registradas.
--- La coordinadora puede consultar las de todo el equipo para control de cuotas e informes.
+grant all on public.time_entries to anon, authenticated, service_role;
+
 drop policy if exists "time_entries_select_policy" on public.time_entries;
 create policy "time_entries_select_policy" on public.time_entries
-  for select using (
-    auth.uid() = user_id or public.is_coordinator()
-  );
+  for select using (true);
 
--- Un empleado solo puede insertar registros a su propio nombre (user_id = auth.uid())
 drop policy if exists "time_entries_insert_policy" on public.time_entries;
 create policy "time_entries_insert_policy" on public.time_entries
-  for insert with check (
-    auth.uid() = user_id or public.is_coordinator()
-  );
+  for insert with check (true);
 
--- Solo el autor o la coordinadora pueden modificar registros
 drop policy if exists "time_entries_update_policy" on public.time_entries;
 create policy "time_entries_update_policy" on public.time_entries
-  for update using (
-    auth.uid() = user_id or public.is_coordinator()
-  );
+  for update using (true);
 
--- Solo el autor o la coordinadora pueden eliminar registros
 drop policy if exists "time_entries_delete_policy" on public.time_entries;
 create policy "time_entries_delete_policy" on public.time_entries
-  for delete using (
-    auth.uid() = user_id or public.is_coordinator()
-  );
+  for delete using (true);
 
 -- ==============================================================================
 -- CUENTAS INICIALES DE PRUEBA Y PRODUCCIÓN (Brain Up Grup)

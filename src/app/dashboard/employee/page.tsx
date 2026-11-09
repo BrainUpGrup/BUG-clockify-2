@@ -70,11 +70,11 @@ export default function EmployeeDashboardPage() {
               .order('created_at', { ascending: false }),
           ]);
 
-          if (compRes.data) {
+          if (compRes.data && compRes.data.length > 0) {
             setCompanies(compRes.data as Company[]);
             safeSetLocalStorage('bug_clockify_cache_companies', compRes.data);
           }
-          if (entriesRes.data) {
+          if (entriesRes.data && entriesRes.data.length > 0) {
             setEntries(entriesRes.data as unknown as TimeEntry[]);
             // Guardar solo los 200 más recientes en caché para el empleado
             safeSetLocalStorage(`bug_clockify_cache_entries_${currentUserId}`, entriesRes.data, 200);

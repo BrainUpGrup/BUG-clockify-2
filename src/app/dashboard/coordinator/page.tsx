@@ -112,15 +112,15 @@ export default function CoordinatorDashboardPage() {
               .limit(2500),
           ]);
 
-          if (compRes.data) {
+          if (compRes.data && compRes.data.length > 0) {
             setCompanies(compRes.data as Company[]);
             safeSetLocalStorage('bug_clockify_cache_companies', compRes.data);
           }
-          if (profRes.data) {
+          if (profRes.data && profRes.data.length > 0) {
             setEmployees(profRes.data as Profile[]);
             safeSetLocalStorage('bug_clockify_cache_profiles', profRes.data);
           }
-          if (entriesRes.data) {
+          if (entriesRes.data && entriesRes.data.length > 0) {
             setAllEntries(entriesRes.data as unknown as TimeEntry[]);
             // Guardar solo los 300 más recientes en caché para respetar los 5 MB de LocalStorage
             safeSetLocalStorage('bug_clockify_cache_entries', entriesRes.data, 300);

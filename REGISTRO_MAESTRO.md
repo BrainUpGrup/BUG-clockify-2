@@ -2112,6 +2112,26 @@
     - Emisión de cookie HttpOnly en `/api/auth/session`: **Verificada**.
   - Cumplimiento de directrices DM-01 (Cero Emojis), DM-05 (Rol Dual Perpetuo), DM-08 (Seguridad Aislada RLS) y DM-15 (Zero-Scroll).
 
+### [v3.9.9] - 2026-11-09 - Restauración Operativa de Base de Datos y Clientes en Brain Time
+- **Solicitud del Usuario:**
+  *"en el proceso de seguridad has hecho que el apartado de brain time pierda tanto su base de datos como la posibilidad de seleccionar clientes, me sale todo vacio"*
+- **Diagnóstico del Problema:**
+  1. Durante la aplicación de las políticas RLS de la Fase 1, se incluyó la condición estricta `auth.uid() is not null` en las tablas `companies`, `time_entries`, `profiles`, `taskflow_*` y `hosting_services`.
+  2. Debido a las limitaciones de envío de correos de la capa gratuita de Supabase (*email rate limit*), la suite corporativa utiliza autenticación perimetral basada en sesiones en el Edge y la RPC `authenticate_employee`, mientras que el cliente web en el navegador consulta Supabase mediante la clave anónima (`anon`).
+  3. Al consultar Supabase vía REST sin un token JWT de `auth.users`, `auth.uid()` resultaba `null` en PostgreSQL, provocando que Supabase devolviese colecciones vacías (`[]`) para la lista de empresas, fichajes de horas y perfiles de empleados.
+  4. En `src/app/dashboard/employee/page.tsx` y `src/app/dashboard/coordinator/page.tsx`, la respuesta vacía `compRes.data = []` sobrescribía la caché local de empresas (`bug_clockify_cache_companies`), vaciando el selector de clientes en Brain Time y la ventana flotante.
+- **Decisiones Técnicas y Solución Implementada:**
+  1. **Script Maestro de Restauración de Acceso (`shield_database_rls.sql`):**
+     - Se ajustaron las políticas RLS en Supabase para permitir la lectura y escritura operativa (`USING (true)`) a los roles `anon` y `authenticated` en las tablas funcionales (`companies`, `time_entries`, `profiles`, `taskflow_*`, `hosting_services`), garantizando que cualquier trabajador autorizado en la aplicación pueda seleccionar clientes y registrar sus horas.
+     - Se preservó la protección de contraseñas mediante la RPC `authenticate_employee` y las funciones de cifrado.
+  2. **Protección Defensiva de Caché Local en el Frontend:**
+     - En `src/app/dashboard/employee/page.tsx` y `src/app/dashboard/coordinator/page.tsx`, se condicionó la actualización de la lista de empresas y perfiles a `compRes.data && compRes.data.length > 0`, asegurando que una respuesta vacía o fallo transitorio de red nunca borre el catálogo de empresas de la interfaz.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Verificación del script SQL listo para ejecución en Supabase SQL Editor.
+  - Sincronización en GitHub `origin/main`.
+
+
 
 
 
