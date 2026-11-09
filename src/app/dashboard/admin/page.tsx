@@ -164,7 +164,20 @@ export default function SuperAdminDashboardPage() {
           .order('created_at', { ascending: false });
 
         if (!error && data) {
-          setProfiles(data as Profile[]);
+          // Sanitización estricta: appadmin@brainupgrup.com SIEMPRE es rol 'admin' y NUNCA 'coordinator'
+          const sanitized = (data as Profile[]).map((p) => {
+            const isSuperAdminEmail = p.email?.toLowerCase().trim() === 'appadmin@brainupgrup.com';
+            if (isSuperAdminEmail) {
+              return {
+                ...p,
+                role: 'admin' as UserRole,
+                status: 'active' as ProfileStatus,
+              };
+            }
+            return p;
+          });
+
+          setProfiles(sanitized);
           setIsLoading(false);
           return;
         }
@@ -177,7 +190,7 @@ export default function SuperAdminDashboardPage() {
     let combined = [...MOCK_PROFILES];
 
     // Incluir cuenta super admin fija si no está
-    if (!combined.some((p) => p.email === 'appadmin@brainupgrup.com')) {
+    if (!combined.some((p) => p.email?.toLowerCase().trim() === 'appadmin@brainupgrup.com')) {
       combined.unshift({
         id: '00000000-0000-0000-0000-000000000001',
         full_name: 'Super Administrador',
@@ -218,6 +231,14 @@ export default function SuperAdminDashboardPage() {
     } catch (e) {
       console.error('Error leyendo usuarios de localStorage:', e);
     }
+
+    // Asegurar que la cuenta de Super Admin en combined sea estrictamente 'admin'
+    combined = combined.map((p) => {
+      if (p.email?.toLowerCase().trim() === 'appadmin@brainupgrup.com') {
+        return { ...p, role: 'admin' as UserRole, status: 'active' as ProfileStatus };
+      }
+      return p;
+    });
 
     setProfiles(combined);
     setIsLoading(false);
@@ -668,31 +689,46 @@ export default function SuperAdminDashboardPage() {
     }
   };
 
-  // Perfiles filtrados
+  // Perfiles filtrados con asignación de rol estricta (Super Admin nunca es coordinador)
   const filteredProfiles = useMemo(() => {
     return profiles.filter((p) => {
+      const isSuperAdmin = p.email?.toLowerCase().trim() === 'appadmin@brainupgrup.com';
+      const effectiveRole: UserRole = isSuperAdmin ? 'admin' : p.role;
+
       const matchesSearch =
         p.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (p.department && p.department.toLowerCase().includes(searchTerm.toLowerCase()));
 
-      const matchesRole = roleFilter === 'all' || p.role === roleFilter;
+      const matchesRole = roleFilter === 'all' || effectiveRole === roleFilter;
       const matchesStatus = statusFilter === 'all' || (p.status || 'active') === statusFilter;
 
       return matchesSearch && matchesRole && matchesStatus;
     });
   }, [profiles, searchTerm, roleFilter, statusFilter]);
 
-  // Coordinadores activos (Jefes de Turno Mañana y Tarde)
+  // Coordinadores activos de turno (Excluyendo terminantemente al Super Admin)
   const activeCoordinators = useMemo(() => {
-    return profiles.filter((p) => p.role === 'coordinator' && (p.status || 'active') === 'active');
+    return profiles.filter((p) => 
+      p.role === 'coordinator' && 
+      (p.status || 'active') === 'active' &&
+      p.email?.toLowerCase().trim() !== 'appadmin@brainupgrup.com'
+    );
   }, [profiles]);
 
-  // Contadores métricos
+  // Contadores métricos precisos por rol real
   const totalCount = profiles.length;
   const coordinatorsCount = activeCoordinators.length;
-  const employeesCount = profiles.filter((p) => p.role === 'employee').length;
-  const pendingCount = profiles.filter((p) => p.status === 'pending').length;
+  const employeesCount = profiles.filter((p) => 
+    p.role === 'employee' && 
+    (p.status || 'active') === 'active' &&
+    p.email?.toLowerCase().trim() !== 'appadmin@brainupgrup.com'
+  ).length;
+  const adminCount = profiles.filter((p) => 
+    (p.role === 'admin' || p.email?.toLowerCase().trim() === 'appadmin@brainupgrup.com') &&
+    (p.status || 'active') === 'active'
+  ).length;
+  const pendingCount = profiles.filter((p) => (p.status || 'active') === 'pending').length;
 
   // Métricas y filtrado de Auditoría
   const auditFiltered = useMemo(() => {
@@ -789,7 +825,7 @@ export default function SuperAdminDashboardPage() {
 
           <div className="bg-white border border-[#D8CFF0] p-4 rounded-2xl shadow-xs flex items-center justify-between">
             <div className="space-y-0.5">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[#4A4A4A]">Jefes de Turno</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#4A4A4A]">Coordinadores</span>
               <p className="text-2xl font-extrabold text-[#8E0E75] tabular-nums">{coordinatorsCount}</p>
             </div>
             <div className="p-3 bg-[#8E0E75]/10 text-[#8E0E75] border border-[#8E0E75]/30 rounded-lg">
@@ -809,11 +845,18 @@ export default function SuperAdminDashboardPage() {
 
           <div className="bg-white border border-[#D8CFF0] p-4 rounded-2xl shadow-xs flex items-center justify-between">
             <div className="space-y-0.5">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[#4A4A4A]">Cuentas en Espera</span>
-              <p className="text-2xl font-extrabold text-amber-600 tabular-nums">{pendingCount}</p>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#4A4A4A]">Super Admin</span>
+                {pendingCount > 0 && (
+                  <span className="px-1.5 py-0.5 rounded-md text-[9px] font-extrabold bg-amber-100 text-amber-800 border border-amber-300">
+                    +{pendingCount} en espera
+                  </span>
+                )}
+              </div>
+              <p className="text-2xl font-extrabold text-[#8E0E75] tabular-nums">{adminCount}</p>
             </div>
-            <div className="p-3 bg-amber-50 text-amber-600 border border-amber-200 rounded-lg">
-              <AlertCircle className="h-5 w-5" />
+            <div className="p-3 bg-[#8E0E75]/10 text-[#8E0E75] border border-[#8E0E75]/30 rounded-lg">
+              <Shield className="h-5 w-5" />
             </div>
           </div>
         </div>
