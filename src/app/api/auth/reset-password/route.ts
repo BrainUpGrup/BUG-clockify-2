@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth/session';
 import { 
   getTempPasswordForEmail, 
   setTempPasswordForUser, 
@@ -43,27 +44,17 @@ async function resolveCaller(req: NextRequest): Promise<{ id: string; email: str
     // Continuar con verificación de cookie
   }
 
-  // 2. Cookie de sesión corporativa autenticada
-  const authCookie = req.cookies.get('bug_clockify_user')?.value;
-  if (authCookie) {
-    try {
-      const decoded = decodeURIComponent(authCookie);
-      const parsed = JSON.parse(decoded);
-      if (parsed && (parsed.id || parsed.email)) {
-        let query = supabase.from('profiles').select('id, email, role, status');
-        if (parsed.id) {
-          query = query.eq('id', parsed.id);
-        } else if (parsed.email) {
-          query = query.eq('email', String(parsed.email).toLowerCase().trim());
-        }
-        
-        const { data: prof } = await query.maybeSingle();
-        if (prof && prof.status === 'active') {
-          return prof;
-        }
-      }
-    } catch {
-      // Ignorar cookies corruptas
+  // 2. Cookie de sesión criptográfica firmada con HMAC-SHA256
+  const sessionCookie = req.cookies.get(SESSION_COOKIE_NAME)?.value;
+  if (sessionCookie) {
+    const verified = await verifySessionToken(sessionCookie);
+    if (verified && verified.status === 'active') {
+      return {
+        id: verified.id,
+        email: verified.email,
+        role: verified.role,
+        status: verified.status,
+      };
     }
   }
 

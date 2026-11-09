@@ -2079,5 +2079,39 @@
   - Comprobación de flujo de error y logs controlados en llamadas RPC.
   - Cumplimiento de directrices DM-01 (Cero Emojis), DM-08 (Seguridad Aislada RLS) y DM-13 (Diseño "La Abuela").
 
+### [v3.9.8] - 2026-11-09 - Fase 4 de Seguridad: Blindaje Criptográfico de Sesión (HMAC-SHA256) y RBAC Estricto en Edge Middleware
+- **Solicitud del Usuario:**
+  *"fase 4"*
+- **Diagnóstico del Problema (Auditoría de Ciberseguridad SEC-04):**
+  1. El middleware (`src/middleware.ts`) y la API de contraseñas (`src/app/api/auth/reset-password/route.ts`) confiaban en una cookie sin firmar (`bug_clockify_user`), permitiendo a cualquier actor malicioso forjar una cookie JSON con `{"email":"montse@brainupgrup.com","role":"admin"}` para suplantar identidades y eludir los controles de acceso perimetrales.
+  2. El middleware no validaba roles en el Edge: un usuario con rol de empleado podía solicitar rutas reservadas a coordinadores o administradores (`/dashboard/admin`, `/dashboard/coordinator`), delegando la protección únicamente en el ciclo de vida de React del cliente (`useEffect`).
+  3. No existía un mecanismo server-side HttpOnly para gestionar sesiones corporativas de forma inmune a ataques de cross-site scripting (XSS).
+- **Decisiones Técnicas y Solución Implementada:**
+  1. **Motor Criptográfico de Sesión (`src/lib/auth/session.ts`):**
+     - Desarrollado sobre la Web Crypto API (`crypto.subtle`), garantizando compatibilidad nativa universal tanto en el Edge Runtime de Next.js como en Node.js y navegadores.
+     - Firma criptográfica inviolable mediante **HMAC-SHA256** con verificación de integridad de datos (`id`, `email`, `role`, `status`) y sello de caducidad temporal (`exp`).
+     - Clave secreta resuelta dinámicamente mediante `SESSION_SECRET` con derivación criptográfica segura de respaldo basada en credenciales Supabase.
+  2. **Endpoint de Emisión y Revocación de Sesión (`/api/auth/session`):**
+     - `POST /api/auth/session`: Valida la existencia real del usuario y su estado en Supabase `profiles` antes de firmar el token, inyectando la cookie segura `bug_clockify_session` con atributos `HttpOnly`, `SameSite=Lax`, `Path=/` y `Max-Age=7 días`.
+     - `DELETE /api/auth/session`: Revoca y limpia la cookie de sesión en el cierre de sesión.
+  3. **Control de Acceso Basado en Roles (RBAC) en `src/middleware.ts`:**
+     - Verificación perimetral en milisegundos de la firma HMAC en el Edge Gate.
+     - Bloqueo perimetral a `/dashboard/admin`: Solo accesible con rol `admin` verificado criptográficamente.
+     - Bloqueo perimetral a `/dashboard/coordinator`: Solo accesible por coordinadores y administradores.
+     - Expulsión automática de usuarios con estado `pending` o `rejected` al intentar acceder a rutas protegidas.
+     - Redirección inteligente de usuarios autenticados que visitan `/login` o `/register` hacia su dashboard correspondiente.
+  4. **Protección en `src/app/api/auth/reset-password/route.ts`:**
+     - La función `resolveCaller` ahora exige y valida la firma HMAC del token de sesión, rechazando cualquier cookie manipulada con `403 Forbidden`.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Suite de pruebas de seguridad ejecutada:
+    - Verificación de firma válida: **Aprobada**.
+    - Intento de manipulación de rol (empleado $\rightarrow$ admin): **Rechazado (null)**.
+    - Intento de token expirado: **Rechazado (null)**.
+    - Intento de token corrupto: **Rechazado (null)**.
+    - Emisión de cookie HttpOnly en `/api/auth/session`: **Verificada**.
+  - Cumplimiento de directrices DM-01 (Cero Emojis), DM-05 (Rol Dual Perpetuo), DM-08 (Seguridad Aislada RLS) y DM-15 (Zero-Scroll).
+
+
 
 

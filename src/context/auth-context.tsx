@@ -19,6 +19,25 @@ interface AuthContextType {
   updateUserAvatar: (avatarUrl: string | null) => Promise<{ error?: string }>;
 }
 
+async function syncServerSession(profile: Profile | null): Promise<void> {
+  if (typeof window === 'undefined') return;
+  try {
+    if (profile) {
+      await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user: profile }),
+      });
+    } else {
+      await fetch('/api/auth/session', {
+        method: 'DELETE',
+      });
+    }
+  } catch (err) {
+    console.warn('[Session] Aviso al sincronizar sesión con el servidor:', err);
+  }
+}
+
 function persistUser(profile: Profile | null) {
   if (typeof window === 'undefined') return;
   try {
@@ -26,9 +45,11 @@ function persistUser(profile: Profile | null) {
       localStorage.setItem('bug_clockify_current_user', JSON.stringify(profile));
       const cookieData = JSON.stringify({ id: profile.id, role: profile.role, email: profile.email });
       document.cookie = 'bug_clockify_user=' + encodeURIComponent(cookieData) + '; path=/; max-age=604800; SameSite=Lax';
+      syncServerSession(profile);
     } else {
       localStorage.removeItem('bug_clockify_current_user');
       document.cookie = 'bug_clockify_user=; path=/; max-age=0; SameSite=Lax';
+      syncServerSession(null);
     }
   } catch (e) {
     console.error('persistUser error:', e);
@@ -604,6 +625,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error(e);
       }
     }
+    await syncServerSession(null);
     persistUser(null);
     setUser(null);
     setMustResetPassword(false);
