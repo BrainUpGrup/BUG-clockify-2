@@ -23,6 +23,10 @@ alter table public.profiles add column if not exists custom_password text null;
 drop trigger if exists tr_protect_profile_privileges on public.profiles;
 drop function if exists public.protect_profile_privileges();
 
+-- Actualizar la restricción de verificación de roles para admitir 'admin'
+alter table public.profiles drop constraint if exists profiles_role_check;
+alter table public.profiles add constraint profiles_role_check check (role in ('admin', 'coordinator', 'employee'));
+
 -- Asignar rol de Super Administrador a la cuenta principal
 update public.profiles set role = 'admin', status = 'active' where lower(trim(email)) = 'appadmin@brainupgrup.com';
 
