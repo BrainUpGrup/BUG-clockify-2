@@ -295,7 +295,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // 3. AUTENTICACIÓN POR BASE DE DATOS O CLAVE MAESTRA CORPORATIVA
+    // 3. INTENTO MEDIANTE FUNCIÓN DE AUTENTICACIÓN SEGURA RPC (SECURITY DEFINER)
+    // Permite validar al empleado en la base de datos sin exponer columnas de contraseñas ni requerir RLS permisivo
+    if (isSupabaseConnected) {
+      try {
+        const supabase = createClient();
+        const { data: rpcRes, error: rpcErr } = await supabase.rpc('authenticate_employee', {
+          p_email: cleanEmail,
+          p_password: cleanPass,
+        });
+
+        if (!rpcErr && rpcRes) {
+          if (rpcRes.success === false) {
+            return { error: rpcRes.error };
+          }
+          if (rpcRes.success === true && rpcRes.user) {
+            const userProf = rpcRes.user as Profile;
+            persistUser(userProf);
+            setUser(userProf);
+            setMustResetPassword(userProf.password_configured === false);
+            return { user: userProf };
+          }
+        }
+      } catch (rpcErr) {
+        console.warn('Aviso: RPC authenticate_employee no disponible aún en Supabase:', rpcErr);
+      }
+    }
+
+    // 4. AUTENTICACIÓN POR BASE DE DATOS O CLAVE MAESTRA CORPORATIVA
     const isAllowedMasterPass =
       cleanPass === 'BrainUp2026!' ||
       cleanPass === 'BrainUp2026' ||

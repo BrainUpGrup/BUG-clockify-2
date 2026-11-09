@@ -107,6 +107,63 @@ as $$
   );
 $$;
 
+-- FUNCIÓN RPC PARA AUTENTICACIÓN SEGURA DE EMPLEADOS (SIN EXPONER LA COLUMNA custom_password)
+create or replace function public.authenticate_employee(p_email text, p_password text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_prof record;
+begin
+  if p_email is null or p_password is null or trim(p_email) = '' or trim(p_password) = '' then
+    return jsonb_build_object('success', false, 'error', 'El correo y la contraseña son obligatorios.');
+  end if;
+
+  select id, full_name, email, role, status, department, avatar_url, password_configured, created_at
+  into v_prof
+  from public.profiles
+  where lower(trim(email)) = lower(trim(p_email))
+    and (custom_password = trim(p_password) or temp_password = trim(p_password));
+
+  if not found then
+    return jsonb_build_object('success', false, 'error', 'Credenciales incorrectas.');
+  end if;
+
+  if v_prof.status = 'pending' then
+    return jsonb_build_object(
+      'success', false, 
+      'error', 'Tu cuenta está registrada pero aún está PENDIENTE de validación y aceptación por la coordinadora.'
+    );
+  end if;
+
+  if v_prof.status = 'rejected' then
+    return jsonb_build_object(
+      'success', false, 
+      'error', 'Tu solicitud de acceso fue rechazada. Contacta con la coordinadora.'
+    );
+  end if;
+
+  return jsonb_build_object(
+    'success', true,
+    'user', jsonb_build_object(
+      'id', v_prof.id,
+      'full_name', v_prof.full_name,
+      'email', v_prof.email,
+      'role', v_prof.role,
+      'status', v_prof.status,
+      'department', v_prof.department,
+      'avatar_url', v_prof.avatar_url,
+      'password_configured', v_prof.password_configured,
+      'created_at', v_prof.created_at
+    )
+  );
+end;
+$$;
+
+grant execute on function public.authenticate_employee(text, text) to anon, authenticated;
+
 -- TRIGGER: Sincronización automática de nuevos usuarios registrados vía auth.users -> profiles
 create or replace function public.handle_new_user()
 returns trigger

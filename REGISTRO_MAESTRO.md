@@ -2003,4 +2003,28 @@
   - Comprobación de estado HTTP 200 en `/login`, `/register?invite=brainup`, `/hub`, `/dashboard/coordinator` y `/dashboard/employee`.
   - Cumplimiento de las Directrices Maestras (DM-01 Cero Emojis, DM-03 Full-Width, DM-13 Identidad corporativa luminosa, DM-15 Zero-Scroll).
 
+### [v3.9.5] - 2026-11-09 - Fase 1 de Seguridad: Blindaje Integral de RLS, Protección de Contraseñas y Autenticación RPC
+- **Solicitud del Usuario:**
+  *"Deseas que procedamos a implementar estas correcciones para dejar la aplicación blindada? si pasemes con la fase 1"*
+- **Diagnóstico del Problema (Auditoría de Ciberseguridad):**
+  1. La base de datos de producción en Supabase permitía lecturas anónimas en `public.profiles`, exponiendo contraseñas sin cifrar en la columna `custom_password`.
+  2. Tablas clave (`hosting_services`, `taskflow_items`, `taskflow_lists`, `taskflow_postits`) mantenían políticas permisivas `FOR ALL USING (true) WITH CHECK (true)`, permitiendo a cualquier actor anónimo leer, mutar y borrar registros.
+  3. El frontend dependía de una consulta SELECT directa sobre `public.profiles` para validar contraseñas de empleados como fallback.
+- **Decisiones Técnicas y Solución Implementada:**
+  1. **Script Maestro de Blindaje RLS (`shield_database_rls.sql`):**
+     - Creación del script consolidado para el SQL Editor de Supabase.
+     - Activación estricta de Row Level Security (RLS) en todas las tablas (`profiles`, `companies`, `time_entries`, `hosting_services`, `taskflow_items`, `taskflow_lists`, `taskflow_postits`).
+     - Eliminación de todas las políticas permisivas `USING (true)`.
+     - Revocación estricta de permisos de lectura anónima sobre columnas sensibles:
+       `REVOKE SELECT (custom_password, temp_password) ON public.profiles FROM anon;`
+     - Definición de la función de autenticación criptográfica segura `public.authenticate_employee(p_email, p_password)` con `SECURITY DEFINER` y `SET search_path = public`, impidiendo la extracción de contraseñas de otros usuarios.
+  2. **Integración en `src/context/auth-context.tsx`:**
+     - Actualizado el flujo de login para utilizar la RPC segura `authenticate_employee` en primer lugar, evitando llamadas directas a la columna `custom_password`.
+  3. **Sincronización de `schema.sql`:**
+     - Documentadas las funciones seguras y políticas en el esquema del repositorio.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Script SQL validado para despliegue directo en el panel de Supabase.
+  - Cumplimiento de directrices DM-01 (Cero Emojis) y DM-08 (Seguridad Aislada RLS).
+
 
