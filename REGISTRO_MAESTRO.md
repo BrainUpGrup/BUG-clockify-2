@@ -2027,4 +2027,30 @@
   - Script SQL validado para despliegue directo en el panel de Supabase.
   - Cumplimiento de directrices DM-01 (Cero Emojis) y DM-08 (Seguridad Aislada RLS).
 
+### [v3.9.6] - 2026-11-09 - Fase 2 de Seguridad: Mitigación Total de Account Takeover en `/api/auth/reset-password` y Control de Acceso RBAC
+- **Solicitud del Usuario:**
+  *"fase 2"*
+- **Diagnóstico del Problema (Auditoría de Ciberseguridad SEC-02):**
+  1. El Route Handler `src/app/api/auth/reset-password/route.ts` no exigía autenticación ni verificación de sesión en peticiones POST.
+  2. La acción `admin_reset` permitía a cualquier atacante anónimo generar una contraseña temporal para cualquier correo y la devolvía en texto claro en la respuesta JSON.
+  3. La acción `update_password` permitía a cualquier atacante anónimo sobrescribir la contraseña de cualquier usuario en la base de datos sin aportar credenciales previas ni token de sesión.
+  4. El método `GET` revelaba el estado interno de configuración de contraseñas de cuentas a usuarios no autenticados.
+- **Decisiones Técnicas y Solución Implementada:**
+  1. **Resolución Criptográfica de Identidad del Emisor (`resolveCaller`):**
+     - Se implementó la función servidora `resolveCaller(req)` que extrae la sesión validada de Supabase Auth o, en su defecto, contrasta la cookie de sesión contra la tabla `public.profiles` en Supabase PostgreSQL asegurando que `status === 'active'`.
+  2. **Blindaje de la Acción `admin_reset`:**
+     - Bloqueo inmediato con `403 Forbidden` si el usuario emisor no tiene rol `admin` o `coordinator`.
+  3. **Blindaje de la Acción `update_password`:**
+     - Solo se permite actualizar la contraseña si el emisor autenticado coincide con el propietario de la cuenta (`caller.email === cleanEmail`) o si dispone de rol privilegiado `admin` / `coordinator` en el panel de gestión de usuarios.
+     - Peticiones anónimas o de otros usuarios son rechazadas con `403 Forbidden`.
+  4. **Protección de Privacidad en `GET`:**
+     - Consultas anónimas sobre el estado de la contraseña de un correo devuelven una respuesta estandarizada neutral sin filtrar datos de la cuenta.
+- **Validación y Pruebas:**
+  - Script automatizado de intrusión simulando ataques anónimos contra `admin_reset`, `update_password` y `GET`:
+    - Intento anónimo de `admin_reset` bloqueado con **HTTP 403 Forbidden**.
+    - Intento anónimo de `update_password` bloqueado con **HTTP 403 Forbidden**.
+    - Lectura anónima de estado sanitizada con respuesta genérica.
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Documentación en `REGISTRO_MAESTRO.md` y sincronización con GitHub `origin/main`.
+
 

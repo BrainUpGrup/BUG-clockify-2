@@ -401,3 +401,4 @@ create policy "taskflow_postits_delete_policy" on public.taskflow_postits
   for delete using (
     auth.uid() is not null and public.is_active_user()
   );
+

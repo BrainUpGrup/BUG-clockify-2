@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { 
   getTempPasswordForEmail, 
   setTempPasswordForUser, 
@@ -14,6 +15,59 @@ function getSupabaseClient() {
   return createClient(url, anonKey, {
     auth: { persistSession: false },
   });
+}
+
+/**
+ * Resuelve la identidad y rol del usuario que realiza la petición,
+ * contrastando la sesión o cookie contra la base de datos Supabase en tiempo real.
+ */
+async function resolveCaller(req: NextRequest): Promise<{ id: string; email: string; role: string; status: string } | null> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+
+  // 1. Prioridad: Sesión criptográfica de Supabase Auth
+  try {
+    const serverSupabase = createServerSupabaseClient();
+    const { data: { user } } = await serverSupabase.auth.getUser();
+    if (user && user.id) {
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('id, email, role, status')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (prof && prof.status === 'active') {
+        return prof;
+      }
+    }
+  } catch {
+    // Continuar con verificación de cookie
+  }
+
+  // 2. Cookie de sesión corporativa autenticada
+  const authCookie = req.cookies.get('bug_clockify_user')?.value;
+  if (authCookie) {
+    try {
+      const decoded = decodeURIComponent(authCookie);
+      const parsed = JSON.parse(decoded);
+      if (parsed && (parsed.id || parsed.email)) {
+        let query = supabase.from('profiles').select('id, email, role, status');
+        if (parsed.id) {
+          query = query.eq('id', parsed.id);
+        } else if (parsed.email) {
+          query = query.eq('email', String(parsed.email).toLowerCase().trim());
+        }
+        
+        const { data: prof } = await query.maybeSingle();
+        if (prof && prof.status === 'active') {
+          return prof;
+        }
+      }
+    } catch {
+      // Ignorar cookies corruptas
+    }
+  }
+
+  return null;
 }
 
 function generateReadableOTP(): string {
@@ -34,19 +88,35 @@ export async function GET(req: NextRequest) {
   }
 
   const cleanEmail = email.trim().toLowerCase();
+  const caller = await resolveCaller(req);
+
+  // Control de privacidad: solo el propio usuario o coordinación/administración pueden consultar el estado de reinicio
+  const isAuthorized = caller && (
+    caller.email.toLowerCase() === cleanEmail || 
+    caller.role === 'admin' || 
+    caller.role === 'coordinator'
+  );
+
+  if (!isAuthorized) {
+    return NextResponse.json({
+      email: cleanEmail,
+      password_configured: true,
+      has_temp_password: false,
+    });
+  }
+
   const supabase = getSupabaseClient();
 
-  // 1. Prioridad: Consultar directamente en Supabase profiles (verdad única)
+  // 1. Prioridad: Consultar directamente en Supabase profiles
   if (supabase) {
     try {
       const { data: dbProf } = await supabase
         .from('profiles')
-        .select('*')
+        .select('password_configured, temp_password')
         .eq('email', cleanEmail)
         .maybeSingle();
 
       if (dbProf) {
-        // Si la columna password_configured existe en Supabase y es explícitamente false
         if (dbProf.password_configured === false) {
           return NextResponse.json({
             email: cleanEmail,
@@ -54,7 +124,6 @@ export async function GET(req: NextRequest) {
             has_temp_password: !!dbProf.temp_password,
           });
         }
-        // Si la columna existe y es true, o no está marcada como false
         if (dbProf.password_configured === true) {
           return NextResponse.json({
             email: cleanEmail,
@@ -64,7 +133,7 @@ export async function GET(req: NextRequest) {
         }
       }
     } catch {
-      // Ignorar error si la columna aún no está en Supabase
+      // fallback
     }
   }
 
@@ -91,15 +160,23 @@ export async function POST(req: NextRequest) {
     const cleanEmail = email.trim().toLowerCase();
     const supabase = getSupabaseClient();
 
-    // 1. ACCIÓN: RESET DE SUPER ADMIN (Generar clave de un solo uso y poner password_configured = false)
+    // 1. ACCIÓN: RESET DE SUPER ADMIN (Requiere rol admin o coordinator)
     if (action === 'admin_reset') {
+      const caller = await resolveCaller(req);
+      if (!caller || (caller.role !== 'admin' && caller.role !== 'coordinator')) {
+        return NextResponse.json(
+          { error: 'No autorizado. Se requieren permisos de administrador o coordinador para generar claves temporales.' },
+          { status: 403 }
+        );
+      }
+
       const tempPass = generateReadableOTP();
       const targetUserId = userId || '';
 
       // Guardar en almacenamiento persistente local
       setTempPasswordForUser(targetUserId, cleanEmail, tempPass);
 
-      // Actualizar también en la base de datos Supabase
+      // Actualizar en la base de datos Supabase
       if (supabase) {
         try {
           await supabase
@@ -123,16 +200,20 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 2. ACCIÓN: VERIFICAR CONTRASEÑA TEMPORAL AL INICIAR SESIÓN
+    // 2. ACCIÓN: VERIFICAR CONTRASEÑA TEMPORAL AL INICIAR SESIÓN (Durante login)
     if (action === 'verify_temp_password') {
       const candidatePass = (body.password || '').trim();
+
+      if (!candidatePass) {
+        return NextResponse.json({ valid: false, error: 'La contraseña es requerida.' }, { status: 400 });
+      }
 
       // Primero consultar en Supabase
       if (supabase) {
         try {
           const { data: dbProf } = await supabase
             .from('profiles')
-            .select('*')
+            .select('password_configured, temp_password')
             .eq('email', cleanEmail)
             .maybeSingle();
 
@@ -170,12 +251,24 @@ export async function POST(req: NextRequest) {
       }, { status: 401 });
     }
 
-    // 3. ACCIÓN: USUARIO CONFIGURA SU CONTRASEÑA DEFINITIVA (Pone password_configured = true)
+    // 3. ACCIÓN: CONFIGURAR CONTRASEÑA DEFINITIVA
+    // Control estricto: Solo el propio usuario autenticado o un administrador/coordinador
     if (action === 'update_password') {
       if (!newPassword || typeof newPassword !== 'string' || newPassword.trim().length < 6) {
         return NextResponse.json(
           { error: 'La nueva contraseña debe tener al menos 6 caracteres' },
           { status: 400 }
+        );
+      }
+
+      const caller = await resolveCaller(req);
+      const isSelf = caller && caller.email.toLowerCase() === cleanEmail;
+      const isManager = caller && (caller.role === 'admin' || caller.role === 'coordinator');
+
+      if (!caller || (!isSelf && !isManager)) {
+        return NextResponse.json(
+          { error: 'No autorizado. Solo puedes actualizar tu propia contraseña o requerir autorización de coordinación.' },
+          { status: 403 }
         );
       }
 
@@ -187,7 +280,6 @@ export async function POST(req: NextRequest) {
       // Actualizar en Supabase profiles
       if (supabase) {
         try {
-          // Intentar guardar con custom_password para login inmediato
           const { error: fullUpdateErr } = await supabase
             .from('profiles')
             .update({
@@ -198,7 +290,6 @@ export async function POST(req: NextRequest) {
             .eq('email', cleanEmail);
 
           if (fullUpdateErr) {
-            // Si la columna custom_password no existe aún, actualizar solo password_configured
             await supabase
               .from('profiles')
               .update({
@@ -208,7 +299,7 @@ export async function POST(req: NextRequest) {
               .eq('email', cleanEmail);
           }
         } catch (dbErr) {
-          console.warn('Aviso: Columna password_configured pendiente en Supabase profiles:', dbErr);
+          console.warn('Aviso: Actualización en Supabase profiles:', dbErr);
         }
       }
 
