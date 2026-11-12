@@ -2247,6 +2247,32 @@
   - Servidor Next.js activo y respondiendo `HTTP 200` en `http://localhost:3000/dashboard/employee`.
   - Cero emojis en la interfaz (DM-01), cumplimiento estricto de controles in-app (DM-02) e identidad "La Abuela" (DM-13).
 
+### [v4.0.4] - 2026-11-12 - Superficie 100% Clicable en Tarjetas del HUB y Botones Independientes con Resaltado y Respuesta Táctil en Brain Time
+- **Solicitud del Usuario:**
+  *"fijate que cuando pongo por encima el raton en registro de horas clientes como que no se resalta/slecciona, simplemente seresalta todo el recuadro de brain time. Por otro lado cuando clico en panel de cordinacion visualmente es como si se seleccionase nada, no mola nada. por otro lado hablando d elo mismo, cuando me acerco por las orillas tienen muchos espacios que nos son clickables o seleccionables cualquier cajon de cualqueir herramienta, haz que el 100% de la zona sea clickable y est eenlacaa con la herramneitna"*
+- **Diagnóstico del Problema:**
+  1. **Zonas Muertas Perimetrales:** En `src/app/hub/page.tsx`, las tarjetas de herramientas tenían padding interior (`p-7 sm:p-8 lg:p-9`) en el `div` exterior y envolvían el contenido en un `<Link>` hijo con `pr-14`. Al pasar el ratón cerca de los bordes o esquinas, el cursor no cambiaba a puntero y hacer clic no abría la herramienta.
+  2. **Ausencia de Resaltado en "Registro de horas clientes":** Dentro de Brain Time, el botón era una etiqueta `<span>` pasiva dentro del enlace padre general, careciendo de hover state, elevación o retroalimentación propia.
+  3. **Clic Defectuoso en "Panel Coordinación":** "Panel Coordinación" estaba maquetado como un `<button>` anidado dentro de una etiqueta `<a>` (`<Link>`), provocando interferencia de eventos DOM y una sensación de falta de respuesta táctil/visual al hacer clic.
+- **Decisiones Técnicas y Solución Implementada:**
+  1. **Superficie 100% Clicable:**
+     - El contenedor exterior de cada tarjeta (`group relative rounded-3xl ...`) asume directamente la interactividad con `role="link"`, `tabIndex={0}`, `cursor-pointer`, `onClick={() => router.push(targetHref)}` y soporte de teclado (`Enter` / `Espacio`).
+     - Cada milímetro de la tarjeta (bordes, márgenes, padding, fondo, icono, títulos y descripciones) activa inmediatamente la apertura de la herramienta sin zonas muertas.
+     - La estrella de favoritas se mantiene en `top-5 right-5 z-20` con `e.stopPropagation()` para alternar favoritas sin interferir con la navegación.
+  2. **Resaltado y Retroalimentación Propia en "Registro de horas clientes":**
+     - Convertido en botón interactivo independiente con `hover:bg-[#700B5C]`, `active:bg-[#520743]`, `hover:shadow-xl`, `hover:scale-105`, `active:scale-95` y desplazamiento sutil de flecha (`group-hover/btn1:translate-x-1`).
+     - Al situar el cursor encima, el botón se destaca de forma inmediata con su propio color y animación.
+  3. **Respuesta Táctil Nítida en "Panel Coordinación":**
+     - Erradicación de la anidación en `<a>`.
+     - Estilos activos inmediatos: `hover:bg-[#329B3F]`, `active:bg-[#287D32]`, `active:scale-95`, elevación `hover:shadow-xl` y `ring-2 ring-[#3BB54A]/30`.
+     - Navegación instantánea a `/dashboard/coordinator` sin colisión de eventos.
+  4. **Acceso Dual Extendido (Super Admin + Coordinadores):**
+     - Comprobación unificada `isCoordinatorOrAdmin` para garantizar que tanto la cuenta de Super Admin como los Jefes de Turno visualicen ambos accesos directos en Brain Time.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Endpoint `GET /hub`: **200 OK**.
+  - Los cambios quedan guardados en local sin ejecutar `git push` (según instrucción del usuario).
+
 
 
 

@@ -377,16 +377,27 @@ export default function BrainUpHubPage() {
                   {displayedApps.map((app) => {
                     const isFav = favoriteAppIds.includes(app.id);
 
-                    // Destino de Tiempo según si es coordinador o empleado
+                    // Destino principal de la herramienta
                     let targetHref = app.route;
                     if (app.id === 'clockify') {
                       targetHref = '/dashboard/employee';
                     }
 
+                    const isClockifyDual = app.id === 'clockify' && isCoordinatorOrAdmin;
+
                     return (
                       <div
                         key={app.id}
-                        className="group relative rounded-3xl border-2 border-[#D8CFF0] bg-white p-7 sm:p-8 lg:p-9 shadow-xs hover:shadow-2xl hover:border-[#8E0E75] transition-all duration-300 flex items-start gap-5 sm:gap-6 min-h-[220px] sm:min-h-[250px]"
+                        role="link"
+                        tabIndex={0}
+                        onClick={() => router.push(targetHref)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            router.push(targetHref);
+                          }
+                        }}
+                        className="group relative rounded-3xl border-2 border-[#D8CFF0] bg-white p-7 sm:p-8 lg:p-9 shadow-xs hover:shadow-2xl hover:border-[#8E0E75] transition-all duration-300 flex items-start gap-5 sm:gap-6 min-h-[220px] sm:min-h-[250px] cursor-pointer select-none"
                       >
                         {/* Cajón Independiente para la Estrella Favorita */}
                         <div className="absolute top-5 right-5 z-20">
@@ -397,9 +408,9 @@ export default function BrainUpHubPage() {
                               e.stopPropagation();
                               toggleFavorite(app.id);
                             }}
-                            className={`relative h-12 w-12 rounded-2xl border-2 flex items-center justify-center cursor-pointer transition-colors ${
+                            className={`relative h-12 w-12 rounded-2xl border-2 flex items-center justify-center cursor-pointer transition-all ${
                               isFav
-                                ? 'border-amber-400 bg-amber-50 text-amber-500 shadow-xs'
+                                ? 'border-amber-400 bg-amber-50 text-amber-500 shadow-xs hover:bg-amber-100'
                                 : 'border-slate-200 bg-slate-50 text-slate-300 hover:border-slate-300 hover:text-slate-400 hover:bg-slate-100'
                             }`}
                             title={isFav ? 'Quitar de mis favoritas (eliminar de la barra superior)' : 'Fijar como favorita (añadir a la barra superior)'}
@@ -416,80 +427,89 @@ export default function BrainUpHubPage() {
                           </button>
                         </div>
 
-                        {/* Contenido Principal de la Herramienta (enlace clicable independiente) */}
-                        <Link
-                          href={targetHref}
-                          className="flex-1 flex items-start gap-5 sm:gap-6 outline-none focus-visible:ring-2 focus-visible:ring-[#8E0E75] rounded-2xl pr-14 min-w-0"
-                        >
-                          <div className="relative p-5 sm:p-6 rounded-2xl sm:rounded-3xl bg-[#F8F6FC] text-[#8E0E75] ring-2 ring-inset ring-[#D8CFF0] group-hover:ring-[#8E0E75] transition-all duration-500 overflow-hidden shrink-0">
-                            {/* Estado base: icono lila centrado sobre fondo claro */}
-                            <div className="relative z-0">
-                              {renderAppIcon(app.iconName, 'h-11 w-11 sm:h-12 sm:w-12')}
-                            </div>
-                            {/* Relleno suave de abajo hacia arriba: sube capa lila con icono en blanco */}
-                            <div
-                              aria-hidden="true"
-                              className="card-icon-fill absolute -inset-[1px] rounded-2xl sm:rounded-3xl bg-[#8E0E75] text-white flex items-center justify-center pointer-events-none"
-                            >
-                              {renderAppIcon(app.iconName, 'h-11 w-11 sm:h-12 sm:w-12')}
-                            </div>
+                        {/* Icono de la Herramienta con animación de llenado */}
+                        <div className="relative p-5 sm:p-6 rounded-2xl sm:rounded-3xl bg-[#F8F6FC] text-[#8E0E75] ring-2 ring-inset ring-[#D8CFF0] group-hover:ring-[#8E0E75] transition-all duration-500 overflow-hidden shrink-0">
+                          {/* Estado base: icono lila centrado sobre fondo claro */}
+                          <div className="relative z-0">
+                            {renderAppIcon(app.iconName, 'h-11 w-11 sm:h-12 sm:w-12')}
                           </div>
+                          {/* Relleno suave de abajo hacia arriba: sube capa lila con icono en blanco */}
+                          <div
+                            aria-hidden="true"
+                            className="card-icon-fill absolute -inset-[1px] rounded-2xl sm:rounded-3xl bg-[#8E0E75] text-white flex items-center justify-center pointer-events-none"
+                          >
+                            {renderAppIcon(app.iconName, 'h-11 w-11 sm:h-12 sm:w-12')}
+                          </div>
+                        </div>
 
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2.5 flex-wrap">
-                              <h2 className="font-black text-2xl sm:text-3xl text-[#292929] group-hover:text-[#8E0E75] transition-colors tracking-tight">
-                                {app.name}
-                              </h2>
-                              {app.badge && (
-                                <span
-                                  className={`px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase tracking-wider border shrink-0 ${
-                                    app.badge === 'Mantenimiento'
-                                      ? 'bg-amber-100 text-amber-900 border-amber-300'
-                                      : 'bg-[#F8F6FC] text-[#8E0E75] border-[#D8CFF0]'
-                                  }`}
-                                >
-                                  {app.badge}
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-sm sm:text-base font-extrabold text-[#8E0E75] mt-1.5">{app.tagline}</p>
-                            <p className="text-sm sm:text-base text-[#4A4A4A] leading-relaxed mt-2.5 line-clamp-3">{app.description}</p>
-                            {app.id === 'clockify' && user.role === 'coordinator' ? (
-                              <div className="flex flex-wrap items-center gap-2.5 mt-5">
-                                <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#8E0E75] text-white text-xs sm:text-sm font-black uppercase tracking-wider transition-all shadow-2xs group-hover:bg-[#700B5C]">
-                                  <Clock className="h-4 w-4" />
-                                  <span>Registro de horas clientes</span>
-                                  <ArrowRight className="h-3.5 w-3.5" />
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    router.push('/dashboard/coordinator');
-                                  }}
-                                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#3BB54A] hover:bg-[#329B3F] text-white border-2 border-[#3BB54A] text-xs sm:text-sm font-black uppercase tracking-wider transition-all shadow-md shadow-[#3BB54A]/25 cursor-pointer hover:scale-105 active:scale-95"
-                                  title="Acceder al panel de informes, cuotas y coordinación de equipo"
-                                >
-                                  <BarChart3 className="h-4 w-4 text-white" />
-                                  <span>Panel Coordinación</span>
-                                  <ArrowRight className="h-3.5 w-3.5 text-white" />
-                                </button>
-                              </div>
-                            ) : (
-                              <span className="inline-flex items-center gap-2 mt-5 px-4 py-2 rounded-xl bg-[#F8F6FC] group-hover:bg-[#8E0E75] text-[#8E0E75] group-hover:text-white text-xs sm:text-sm font-black uppercase tracking-wider transition-all shadow-2xs">
-                              <span>
-                                {app.badge === 'Mantenimiento' 
-                                  ? 'Ver estado' 
-                                  : app.id === 'clockify' 
-                                    ? 'Registro de horas clientes' 
-                                    : 'Abrir Herramienta'}
-                              </span>
-                              <ArrowRight className="h-4 w-4 group-hover:translate-x-1.5 transition-transform" />
+                        {/* Contenido Principal de la Herramienta */}
+                        <div className="min-w-0 flex-1 pr-10">
+                          <div className="flex items-center gap-2.5 flex-wrap">
+                            <h2 className="font-black text-2xl sm:text-3xl text-[#292929] group-hover:text-[#8E0E75] transition-colors tracking-tight">
+                              {app.name}
+                            </h2>
+                            {app.badge && (
+                              <span
+                                className={`px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase tracking-wider border shrink-0 ${
+                                  app.badge === 'Mantenimiento'
+                                    ? 'bg-amber-100 text-amber-900 border-amber-300'
+                                    : 'bg-[#F8F6FC] text-[#8E0E75] border-[#D8CFF0]'
+                                }`}
+                              >
+                                {app.badge}
                               </span>
                             )}
                           </div>
-                        </Link>
+                          <p className="text-sm sm:text-base font-extrabold text-[#8E0E75] mt-1.5">{app.tagline}</p>
+                          <p className="text-sm sm:text-base text-[#4A4A4A] leading-relaxed mt-2.5 line-clamp-3">{app.description}</p>
+                          
+                          {isClockifyDual ? (
+                            <div className="flex flex-wrap items-center gap-3 mt-5">
+                              {/* Botón 1: Registro de horas clientes (resaltado interactivo independiente) */}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  router.push('/dashboard/employee');
+                                }}
+                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#8E0E75] hover:bg-[#700B5C] active:bg-[#520743] text-white text-xs sm:text-sm font-black uppercase tracking-wider transition-all shadow-md hover:shadow-xl hover:scale-105 active:scale-95 cursor-pointer ring-2 ring-transparent hover:ring-[#8E0E75]/30 focus:outline-none focus:ring-2 focus:ring-[#8E0E75] group/btn1"
+                                title="Acceder a Brain Time: Registro horario diario de clientes"
+                              >
+                                <Clock className="h-4 w-4 shrink-0" />
+                                <span>Registro de horas clientes</span>
+                                <ArrowRight className="h-3.5 w-3.5 group-hover/btn1:translate-x-1 transition-transform" />
+                              </button>
+
+                              {/* Botón 2: Panel Coordinación (retroalimentación visual y resaltado nítido) */}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  router.push('/dashboard/coordinator');
+                                }}
+                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#3BB54A] hover:bg-[#329B3F] active:bg-[#287D32] text-white border-2 border-[#3BB54A] hover:border-[#329B3F] text-xs sm:text-sm font-black uppercase tracking-wider transition-all shadow-md shadow-[#3BB54A]/25 hover:shadow-xl hover:scale-105 active:scale-95 cursor-pointer ring-2 ring-transparent hover:ring-[#3BB54A]/30 focus:outline-none focus:ring-2 focus:ring-[#3BB54A] group/btn2"
+                                title="Acceder al panel de informes, cuotas y coordinación de equipo"
+                              >
+                                <BarChart3 className="h-4 w-4 text-white shrink-0" />
+                                <span>Panel Coordinación</span>
+                                <ArrowRight className="h-3.5 w-3.5 text-white group-hover/btn2:translate-x-1 transition-transform" />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="mt-5">
+                              <span className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#F8F6FC] group-hover:bg-[#8E0E75] text-[#8E0E75] group-hover:text-white text-xs sm:text-sm font-black uppercase tracking-wider transition-all shadow-2xs group-hover:shadow-md">
+                                <span>
+                                  {app.badge === 'Mantenimiento' 
+                                    ? 'Ver estado' 
+                                    : app.id === 'clockify' 
+                                      ? 'Registro de horas clientes' 
+                                      : 'Abrir Herramienta'}
+                                </span>
+                                <ArrowRight className="h-4 w-4 group-hover:translate-x-1.5 transition-transform" />
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
