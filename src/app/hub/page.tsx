@@ -427,8 +427,8 @@ export default function BrainUpHubPage() {
                           </button>
                         </div>
 
-                        {/* Icono de la Herramienta con animación de llenado */}
-                        <div className="relative p-5 sm:p-6 rounded-2xl sm:rounded-3xl bg-[#F8F6FC] text-[#8E0E75] ring-2 ring-inset ring-[#D8CFF0] group-hover:ring-[#8E0E75] transition-all duration-500 overflow-hidden shrink-0">
+                        {/* Icono de la Herramienta con animación de llenado pausada (1.5s) */}
+                        <div className="relative p-5 sm:p-6 rounded-2xl sm:rounded-3xl bg-[#F8F6FC] text-[#8E0E75] ring-2 ring-inset ring-[#D8CFF0] group-hover:ring-[#8E0E75] transition-all duration-700 overflow-hidden shrink-0">
                           {/* Estado base: icono lila centrado sobre fondo claro */}
                           <div className="relative z-0">
                             {renderAppIcon(app.iconName, 'h-11 w-11 sm:h-12 sm:w-12')}

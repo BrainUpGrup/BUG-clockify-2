@@ -485,10 +485,11 @@ button:focus-visible {
 
 /* ========================================================================= */
 /* TRANSICIÓN SUAVE DE LLENADO DE ABAJO A ARRIBA (HUB APP CARDS)             */
+/* Calming Tech / Slow UI: 1.5 segundos para inducir pausa visual y serenidad*/
 /* ========================================================================= */
 .card-icon-fill {
   clip-path: inset(100% -4px -4px -4px);
-  transition: clip-path 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: clip-path 1.5s cubic-bezier(0.25, 1, 0.35, 1);
   will-change: clip-path;
 }
 

@@ -2273,6 +2273,21 @@
   - Endpoint `GET /hub`: **200 OK**.
   - Los cambios quedan guardados en local sin ejecutar `git push` (según instrucción del usuario).
 
+### [v4.0.5] - 2026-11-12 - Ralentización Zen de Llenado a 1.5s (Calming Tech / Slow UI) en Iconos del HUB
+- **Solicitud del Usuario:**
+  *"relentiza la animacion y que tarde 1 segundo y medio en llegar arriba del todo, crees que a nivel psicoligco puede ser que sea mejor para reducir el ritmo de una vida de agencia agetreada?"*
+- **Decisiones Técnicas y Solución Implementada:**
+  1. **Ajuste de Transición (`src/app/globals.css`):**
+     - Se ajustó la regla `.card-icon-fill` para extender el llenado vertical a **1.5 segundos exactos** (`transition: clip-path 1.5s cubic-bezier(0.25, 1, 0.35, 1);`).
+     - La curva Bézier seleccionada produce un arranque orgánico muy fluido y una desaceleración serena en el borde superior, imitando el llenado natural de un líquido o una respiración profunda.
+  2. **Armonización de Contorno (`src/app/hub/page.tsx`):**
+     - El anillo exterior del icono acompaña la transición con `duration-700` para integrarse con la suavidad del llenado.
+  3. **Preservación de la Inmediatez Funcional (Cero Fricción):**
+     - El clic en la tarjeta o en sus botones sigue siendo 100% instantáneo (0ms de retraso). Quien tiene prisa puede entrar inmediatamente, mientras que quien posa el cursor disfruta de un momento de pausa visual y ritmo sosegado.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Servidor Next.js activo en `http://localhost:3000/hub`.
+
 
 
 
