@@ -167,7 +167,7 @@ export async function POST(req: NextRequest) {
       // Guardar en almacenamiento persistente local
       setTempPasswordForUser(targetUserId, cleanEmail, tempPass);
 
-      // Actualizar en la base de datos Supabase de forma segura
+      // Actualizar en la base de datos Supabase de forma garantizada
       if (supabase) {
         try {
           await supabase.rpc('admin_set_user_password', {
@@ -177,16 +177,17 @@ export async function POST(req: NextRequest) {
           });
         } catch (dbErr) {
           console.warn('Aviso: RPC admin_set_user_password en Supabase:', dbErr);
-          try {
-            await supabase
-              .from('profiles')
-              .update({
-                password_configured: false,
-                temp_password: tempPass,
-              })
-              .eq('email', cleanEmail);
-          } catch {}
         }
+
+        try {
+          await supabase
+            .from('profiles')
+            .update({
+              password_configured: false,
+              temp_password: tempPass,
+            })
+            .eq('email', cleanEmail);
+        } catch {}
       }
 
       return NextResponse.json({

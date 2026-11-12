@@ -381,7 +381,7 @@ export default function SuperAdminDashboardPage() {
           console.warn('Excepción en Supabase Auth signUp:', authE);
         }
 
-        // 2. Insertar / Upsert en tabla profiles (sin exponer contraseñas)
+        // 2. Insertar / Upsert en tabla profiles con contraseña directa
         const safeProfilePayload = {
           id: newProfile.id,
           full_name: newProfile.full_name,
@@ -390,6 +390,8 @@ export default function SuperAdminDashboardPage() {
           status: newProfile.status,
           department: newProfile.department,
           password_configured: true,
+          custom_password: cleanPass,
+          temp_password: null,
           created_at: newProfile.created_at,
         };
 
@@ -401,7 +403,7 @@ export default function SuperAdminDashboardPage() {
           console.warn('Advertencia al insertar perfil en Supabase:', profErr);
         }
 
-        // 3. Fijar contraseña de forma segura y aislada en user_credentials mediante RPC (SECURITY DEFINER)
+        // 3. Fijar también mediante RPC admin_set_user_password
         try {
           await supabase.rpc('admin_set_user_password', {
             p_email: cleanEmail,
@@ -489,8 +491,9 @@ export default function SuperAdminDashboardPage() {
         };
 
         if (hasNewPassword) {
+          updatePayload.custom_password = editNewPassword.trim();
           updatePayload.password_configured = true;
-          // Asignar en tabla privada aislada mediante RPC SECURITY DEFINER
+          updatePayload.temp_password = null;
           try {
             await supabase.rpc('admin_set_user_password', {
               p_email: updatedProfile.email,

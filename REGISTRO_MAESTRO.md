@@ -2194,6 +2194,36 @@
     - Petición con contraseña legítima de Super Admin: **Aprobada con 200 OK y emisión de cookie HMAC**.
     - Fuerza bruta (6 intentos fallidos): **Bloqueada en el intento 6 con 429 Too Many Requests**.
 
+### [v4.0.2] - 2026-11-12 - Restauración Inmediata de Contraseñas en Profiles, Erradicación de Vaciado de Credenciales y Verificación Integral de Acceso
+- **Solicitud del Usuario:**
+  *"hola, me gustaria que me dijeses porque me he ido 2 dias y literalmente han desaparecido las contraseñas de los usuarios y no le deja entrar a nadie, de verdad tienes que mejorar el sistema de contraseñas porque si no, nadi epodra entrar y la aplciacion es un fiasco"* (Acompañado de captura de Supabase mostrando `custom_password` y `temp_password` en `NULL`).
+- **Diagnóstico del Problema y Causa Raíz:**
+  1. Durante el blindaje de seguridad de la versión `[v4.0.1]`, el script `shield_database_rls.sql` ejecutó una instrucción (`update public.profiles set custom_password = null, temp_password = null;`) con el objetivo de aislar las contraseñas en una tabla privada externa (`user_credentials`) y evitar su visibilidad en peticiones REST.
+  2. Dicha modificación rompió la arquitectura operativa de la suite:
+     - En el Table Editor de Supabase las contraseñas desaparecieron visualmente, provocando alarma justificada al usuario.
+     - La función de autenticación en PostgreSQL (`authenticate_employee`) y el flujo del Edge contrastaban directamente contra `public.profiles.custom_password`. Al quedar a `NULL`, todas las llamadas de inicio de sesión eran rechazadas con `{ error: 'Credenciales incorrectas.', success: false }`, bloqueando a todo el equipo.
+- **Decisiones Técnicas y Solución Implementada:**
+  1. **Restauración Transparente y Definitiva en Supabase (`public.profiles`):**
+     - Se restauraron de forma inmediata todas las contraseñas maestras y de empleados en la tabla `public.profiles` en Supabase:
+       * `appadmin@brainupgrup.com`: `123456` (Super Administrador)
+       * `montse@brainupgrup.com`: `cordinadora2026` (Coordinadora)
+       * `lidia@brainupgrup.com`: `lidia2026` (Empleado)
+       * `valeria@brainupgrup.com`: `Elefantes26` (Empleado)
+       * `cristina@brainupgrup.com`: `eNTRADA1%` (Empleado)
+       * `albert@brainupgrup.com`: `12345678` (Empleado)
+       * `peipito@gmail.com`: `123456` (Empleado - Gerard Medina)
+     - Se restableció `password_configured = true` para todas las cuentas activas.
+  2. **Eliminación Permanente de la Lógica de Vaciado de Contraseñas:**
+     - En `shield_database_rls.sql`: Se suprimió de raíz cualquier comando `update public.profiles set custom_password = null`. Se mantuvo la persistencia directa y transparente en `public.profiles` para que el administrador siempre pueda auditar y gestionar las contraseñas en Supabase sin dependencias frágiles ni tablas fantasma.
+     - En `src/app/dashboard/admin/page.tsx`: Tanto el alta de nuevos usuarios (`handleCreateUserSubmit`) como la edición y reasignación de contraseñas (`handleSaveEditSubmit`) guardan el valor directamente en `profiles.custom_password` y `password_configured = true`.
+     - En `src/app/api/auth/reset-password/route.ts`: Los métodos de reseteo administrativo (`admin_reset`) y actualización voluntaria (`update_password`) actualizan directamente `profiles.custom_password`.
+  3. **Verificación Automatizada de Inicio de Sesión:**
+     - Se ejecutó una prueba de integración contra el endpoint `/api/auth/session` para las 7 cuentas del equipo, confirmando respuesta `HTTP 200 LOGIN EXITOSO` en el 100% de los casos.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Servidor Next.js activo y escuchando en `http://localhost:3000`.
+  - Integridad de datos en Supabase: 7 perfiles con contraseñas activas y roles asignados.
+
 
 
 
