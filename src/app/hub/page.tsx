@@ -427,17 +427,57 @@ export default function BrainUpHubPage() {
                           </button>
                         </div>
 
-                        {/* Icono de la Herramienta con animación de llenado pausada (1.5s) */}
-                        <div className="relative p-5 sm:p-6 rounded-2xl sm:rounded-3xl bg-[#F8F6FC] text-[#8E0E75] ring-2 ring-inset ring-[#D8CFF0] group-hover:ring-[#8E0E75] transition-all duration-700 overflow-hidden shrink-0">
+                        {/* Icono de la Herramienta con Visual Grounding Zen (Líquido real con doble ola fluida y llenado limpio) */}
+                        <div className="card-icon-container relative p-5 sm:p-6 rounded-2xl sm:rounded-3xl bg-[#F8F6FC] text-[#8E0E75] ring-2 ring-inset ring-[#D8CFF0] group-hover:ring-[#8E0E75] transition-all duration-1000 overflow-hidden shrink-0">
                           {/* Estado base: icono lila centrado sobre fondo claro */}
                           <div className="relative z-0">
                             {renderAppIcon(app.iconName, 'h-11 w-11 sm:h-12 sm:w-12')}
                           </div>
-                          {/* Relleno suave de abajo hacia arriba: sube capa lila con icono en blanco */}
-                          <div
-                            aria-hidden="true"
-                            className="card-icon-fill absolute -inset-[1px] rounded-2xl sm:rounded-3xl bg-[#8E0E75] text-white flex items-center justify-center pointer-events-none"
-                          >
+
+                          {/* Tanque de líquido real con doble ola en movimiento continuo */}
+                          <div aria-hidden="true" className="card-liquid-tank">
+                            <div className="card-liquid-level">
+                              {/* Onda 2 (Fondo): Índigo nocturno con movimiento continuo */}
+                              <svg
+                                viewBox="0 0 800 400"
+                                preserveAspectRatio="none"
+                                className="absolute top-0 left-0 w-[200%] h-full animate-liquid-flow-2 opacity-50"
+                              >
+                                <path
+                                  d="M 0,30 Q 100,46 200,30 T 400,30 T 600,30 T 800,30 L 800,400 L 0,400 Z"
+                                  fill="#191654"
+                                />
+                              </svg>
+
+                              {/* Onda 1 (Frontal): Gradiente térmico de despertar índigo a ciruela */}
+                              <svg
+                                viewBox="0 0 800 400"
+                                preserveAspectRatio="none"
+                                className="absolute top-0 left-0 w-[200%] h-full animate-liquid-flow-1 opacity-95"
+                              >
+                                <defs>
+                                  <linearGradient id={`liquidGrad-${app.id}`} x1="0" y1="1" x2="0" y2="0">
+                                    <stop offset="0%" stopColor="#191654" />
+                                    <stop offset="45%" stopColor="#540F57" />
+                                    <stop offset="100%" stopColor="#8E0E75" />
+                                  </linearGradient>
+                                </defs>
+                                <path
+                                  d="M 0,30 Q 100,10 200,30 T 400,30 T 600,30 T 800,30 L 800,400 L 0,400 Z"
+                                  fill={`url(#liquidGrad-${app.id})`}
+                                />
+                                <path
+                                  d="M 0,30 Q 100,10 200,30 T 400,30 T 600,30 T 800,30"
+                                  fill="none"
+                                  stroke="rgba(255, 255, 255, 0.4)"
+                                  strokeWidth="2"
+                                />
+                              </svg>
+                            </div>
+                          </div>
+
+                          {/* Capa de icono blanco que emerge del líquido limpio */}
+                          <div aria-hidden="true" className="card-icon-white">
                             {renderAppIcon(app.iconName, 'h-11 w-11 sm:h-12 sm:w-12')}
                           </div>
                         </div>
