@@ -12,11 +12,13 @@ import {
   ChevronRight,
   Play,
   Trash2,
-  Sparkles
+  Sparkles,
+  X
 } from 'lucide-react';
 import { TimeEntry, Company } from '@/types/database';
 import { formatMinutes, formatDateSpanish, parseDurationToMinutes } from '@/lib/utils';
 import { AppSelect } from '@/components/ui/app-select';
+import { AppCalendar } from '@/components/ui/app-calendar';
 import { DurationPreview } from '@/components/ui/duration-preview';
 import { useTimer } from '@/context/timer-context';
 
@@ -62,6 +64,179 @@ export function TimeEntriesList({
         [dateStr]: !current,
       };
     });
+  };
+
+  // Estado para modal de edición de fecha y franja horaria
+  const [scheduleModalEntry, setScheduleModalEntry] = useState<TimeEntry | null>(null);
+  const [scheduleDate, setScheduleDate] = useState<string>('');
+  const [scheduleStartTime, setScheduleStartTime] = useState<string>('');
+  const [scheduleEndTime, setScheduleEndTime] = useState<string>('');
+  const [scheduleAutoDuration, setScheduleAutoDuration] = useState<boolean>(true);
+  const [scheduleDurationMinutes, setScheduleDurationMinutes] = useState<number>(1);
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
+  const [isSavingSchedule, setIsSavingSchedule] = useState<boolean>(false);
+
+  // Helper para calcular minutos entre horas HH:MM
+  const calculateFranjaMinutes = (start: string, end: string): number | null => {
+    if (!start.trim() || !end.trim()) return null;
+    const [sh, sm] = start.split(':').map(Number);
+    const [eh, em] = end.split(':').map(Number);
+    if (isNaN(sh) || isNaN(sm) || isNaN(eh) || isNaN(em)) return null;
+    const startMin = sh * 60 + sm;
+    const endMin = eh * 60 + em;
+    if (endMin >= startMin) {
+      return endMin - startMin;
+    }
+    return (24 * 60 - startMin) + endMin;
+  };
+
+  // Abrir modal de horario y fecha
+  const handleOpenScheduleModal = (entry: TimeEntry) => {
+    setScheduleModalEntry(entry);
+    setScheduleDate(entry.work_date);
+
+    if (entry.start_time) {
+      const d = new Date(entry.start_time);
+      const h = String(d.getHours()).padStart(2, '0');
+      const m = String(d.getMinutes()).padStart(2, '0');
+      setScheduleStartTime(`${h}:${m}`);
+    } else {
+      setScheduleStartTime('');
+    }
+
+    if (entry.end_time) {
+      const d = new Date(entry.end_time);
+      const h = String(d.getHours()).padStart(2, '0');
+      const m = String(d.getMinutes()).padStart(2, '0');
+      setScheduleEndTime(`${h}:${m}`);
+    } else {
+      setScheduleEndTime('');
+    }
+
+    setScheduleDurationMinutes(entry.duration_minutes || 1);
+    setScheduleAutoDuration(true);
+    setScheduleError(null);
+  };
+
+  // Aplicar duración rápida sumando a la hora de inicio
+  const applyQuickDuration = (addMinutes: number) => {
+    let baseStart = scheduleStartTime;
+    if (!baseStart) {
+      const now = new Date();
+      baseStart = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      setScheduleStartTime(baseStart);
+    }
+    const [sh, sm] = baseStart.split(':').map(Number);
+    const totalMin = (sh * 60 + sm + addMinutes) % (24 * 60);
+    const endH = String(Math.floor(totalMin / 60)).padStart(2, '0');
+    const endM = String(totalMin % 60).padStart(2, '0');
+    const newEnd = `${endH}:${endM}`;
+    setScheduleEndTime(newEnd);
+    if (scheduleAutoDuration) {
+      setScheduleDurationMinutes(addMinutes);
+    }
+    setScheduleError(null);
+  };
+
+  // Limpiar franja horaria
+  const handleClearFranja = () => {
+    setScheduleStartTime('');
+    setScheduleEndTime('');
+    setScheduleError(null);
+  };
+
+  // Guardar día y franja horaria
+  const handleSaveSchedule = async () => {
+    if (!scheduleModalEntry) return;
+
+    const hasStart = !!scheduleStartTime.trim();
+    const hasEnd = !!scheduleEndTime.trim();
+    if ((hasStart && !hasEnd) || (!hasStart && hasEnd)) {
+      setScheduleError('Debes indicar tanto la hora de inicio como la de fin para definir la franja horaria.');
+      return;
+    }
+
+    setIsSavingSchedule(true);
+    try {
+      let newStartIso: string | null = null;
+      let newEndIso: string | null = null;
+      let finalDuration = scheduleDurationMinutes;
+
+      if (hasStart && hasEnd) {
+        const [sh, sm] = scheduleStartTime.split(':').map(Number);
+        const [eh, em] = scheduleEndTime.split(':').map(Number);
+
+        const sDate = new Date(scheduleDate + 'T00:00:00');
+        sDate.setHours(sh, sm, 0, 0);
+        newStartIso = sDate.toISOString();
+
+        const eDate = new Date(scheduleDate + 'T00:00:00');
+        if (eh * 60 + em < sh * 60 + sm) {
+          eDate.setDate(eDate.getDate() + 1);
+        }
+        eDate.setHours(eh, em, 0, 0);
+        newEndIso = eDate.toISOString();
+
+        if (scheduleAutoDuration) {
+          const franjaMin = calculateFranjaMinutes(scheduleStartTime, scheduleEndTime);
+          if (franjaMin && franjaMin > 0) {
+            finalDuration = franjaMin;
+          }
+        }
+      }
+
+      await onUpdateEntry(scheduleModalEntry.id, {
+        work_date: scheduleDate,
+        start_time: newStartIso,
+        end_time: newEndIso,
+        duration_minutes: Math.max(1, finalDuration),
+      });
+
+      // Desplegar automáticamente el día destino para visualizar la tarea
+      setCollapsedDays((prev) => ({
+        ...prev,
+        [scheduleDate]: false,
+      }));
+
+      setScheduleModalEntry(null);
+    } catch (err) {
+      console.error(err);
+      setScheduleError('Error al guardar los cambios.');
+    } finally {
+      setIsSavingSchedule(false);
+    }
+  };
+
+  // Formato de texto para el botón de día y franja horaria
+  const formatEntryDayBadge = (workDate: string) => {
+    const today = new Date().toISOString().split('T')[0];
+    const y = new Date();
+    y.setDate(y.getDate() - 1);
+    const yesterday = y.toISOString().split('T')[0];
+
+    if (workDate === today) return 'Hoy';
+    if (workDate === yesterday) return 'Ayer';
+
+    try {
+      const [year, month, day] = workDate.split('-').map(Number);
+      const d = new Date(year, month - 1, day);
+      return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+    } catch {
+      return workDate;
+    }
+  };
+
+  const formatEntryTimeRange = (startTime: string | null, endTime: string | null) => {
+    if (startTime && endTime) {
+      const s = new Date(startTime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+      const e = new Date(endTime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+      return `${s} - ${e}`;
+    }
+    if (startTime) {
+      const s = new Date(startTime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+      return `Desde ${s}`;
+    }
+    return 'Sin franja horaria';
   };
 
   // Foco automático al abrir edición
@@ -320,13 +495,27 @@ export function TimeEntriesList({
                             </button>
                           )}
 
-                          {entry.start_time && entry.end_time && (
-                            <span className="text-[#4A4A4A] text-xs sm:text-sm font-mono tabular-nums font-semibold bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">
-                              {new Date(entry.start_time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
-                              {' - '}
-                              {new Date(entry.end_time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                          {/* BOTÓN PARA EDITAR DÍA Y FRANJA HORARIA */}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenScheduleModal(entry)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold bg-[#F8F6FC] hover:bg-white text-[#191654] hover:text-[#8E0E75] border-2 border-[#D8CFF0] hover:border-[#8E0E75] transition-all shadow-2xs cursor-pointer group/time"
+                            title="Editar el día y la franja horaria de esta actividad"
+                          >
+                            <Calendar className="h-3.5 w-3.5 text-[#8E0E75]" />
+                            <span className="font-bold text-[#8E0E75] uppercase text-[11px] tracking-wide">
+                              {formatEntryDayBadge(entry.work_date)}
                             </span>
-                          )}
+                            <span className="text-slate-300">•</span>
+                            <Clock className="h-3.5 w-3.5 text-slate-400 group-hover/time:text-[#8E0E75]" />
+                            <span className="font-mono tabular-nums font-bold">
+                              {formatEntryTimeRange(entry.start_time, entry.end_time)}
+                            </span>
+                            <span className="inline-flex items-center gap-1 text-[11px] font-sans font-bold text-slate-400 group-hover/time:text-[#8E0E75] ml-1 bg-white group-hover/time:bg-[#F8F6FC] px-1.5 py-0.5 rounded border border-slate-200 group-hover/time:border-[#D8CFF0] transition-colors">
+                              <Edit2 className="h-3 w-3" />
+                              <span className="hidden sm:inline">Editar día / franja</span>
+                            </span>
+                          </button>
                         </div>
                       </div>
 
@@ -414,6 +603,221 @@ export function TimeEntriesList({
           </div>
         );
       })}
+
+      {/* MODAL IN-APP PARA EDITAR DÍA Y FRANJA HORARIA (DM-02, DM-13, DM-15) */}
+      {scheduleModalEntry && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#191654]/50 backdrop-blur-xs animate-in fade-in duration-150"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setScheduleModalEntry(null);
+          }}
+        >
+          <div className="w-full max-w-xl rounded-2xl bg-white border-2 border-[#D8CFF0] shadow-2xl p-5 sm:p-6 animate-in zoom-in-95 duration-150 space-y-4">
+            
+            {/* Cabecera del modal */}
+            <div className="flex items-start justify-between pb-3 border-b-2 border-[#EAE4F5]">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-[#F8F6FC] border-2 border-[#D8CFF0] text-[#8E0E75]">
+                  <Calendar className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-black text-[#292929] uppercase tracking-tight">
+                    Editar Día y Franja Horaria
+                  </h3>
+                  <p className="text-xs text-[#4A4A4A] truncate max-w-sm sm:max-w-md">
+                    <span className="font-bold text-[#8E0E75]">{scheduleModalEntry.company?.name || 'Cliente'}</span>
+                    {' • '}
+                    <span>{scheduleModalEntry.description || 'Sin descripción'}</span>
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setScheduleModalEntry(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-[#8E0E75] hover:bg-[#F8F6FC] transition-colors cursor-pointer"
+                title="Cerrar ventana"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Rejilla de 2 columnas compacta (DM-15) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              
+              {/* Columna 1: Día de la tarea */}
+              <div className="p-3.5 rounded-xl bg-[#F8F6FC] border-2 border-[#D8CFF0] space-y-2.5">
+                <label className="block text-xs font-black uppercase text-[#191654] tracking-tight">
+                  1. Día de la actividad
+                </label>
+
+                <AppCalendar
+                  value={scheduleDate}
+                  onChange={(newDate) => setScheduleDate(newDate)}
+                  className="w-full"
+                />
+
+                {/* Accesos rápidos de fecha */}
+                <div className="flex items-center gap-1.5 pt-1">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase">Rápido:</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const today = new Date().toISOString().split('T')[0];
+                      setScheduleDate(today);
+                    }}
+                    className={`px-2 py-0.5 rounded-md text-[11px] font-bold border transition-colors cursor-pointer ${
+                      scheduleDate === todayStr 
+                        ? 'bg-[#8E0E75] text-white border-[#8E0E75]' 
+                        : 'bg-white hover:bg-slate-100 text-[#4A4A4A] border-slate-200'
+                    }`}
+                  >
+                    Hoy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const y = new Date();
+                      y.setDate(y.getDate() - 1);
+                      setScheduleDate(y.toISOString().split('T')[0]);
+                    }}
+                    className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-white hover:bg-slate-100 text-[#4A4A4A] border border-slate-200 transition-colors cursor-pointer"
+                  >
+                    Ayer
+                  </button>
+                </div>
+              </div>
+
+              {/* Columna 2: Franja horaria */}
+              <div className="p-3.5 rounded-xl bg-[#F8F6FC] border-2 border-[#D8CFF0] space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-black uppercase text-[#191654] tracking-tight">
+                    2. Franja horaria
+                  </label>
+                  {(scheduleStartTime || scheduleEndTime) && (
+                    <button
+                      type="button"
+                      onClick={handleClearFranja}
+                      className="text-[10px] font-bold text-red-600 hover:text-red-700 underline cursor-pointer"
+                    >
+                      Quitar horario
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <span className="block text-[11px] font-bold text-slate-500 mb-1">Inicio (HH:MM):</span>
+                    <input
+                      type="time"
+                      value={scheduleStartTime}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setScheduleStartTime(val);
+                        setScheduleError(null);
+                        if (scheduleAutoDuration && val && scheduleEndTime) {
+                          const min = calculateFranjaMinutes(val, scheduleEndTime);
+                          if (min && min > 0) setScheduleDurationMinutes(min);
+                        }
+                      }}
+                      className="w-full px-2.5 py-1.5 rounded-xl border-2 border-[#D8CFF0] focus:border-[#8E0E75] bg-white text-xs sm:text-sm font-mono font-bold text-[#191654] outline-none text-center shadow-2xs"
+                    />
+                  </div>
+
+                  <div>
+                    <span className="block text-[11px] font-bold text-slate-500 mb-1">Fin (HH:MM):</span>
+                    <input
+                      type="time"
+                      value={scheduleEndTime}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setScheduleEndTime(val);
+                        setScheduleError(null);
+                        if (scheduleAutoDuration && scheduleStartTime && val) {
+                          const min = calculateFranjaMinutes(scheduleStartTime, val);
+                          if (min && min > 0) setScheduleDurationMinutes(min);
+                        }
+                      }}
+                      className="w-full px-2.5 py-1.5 rounded-xl border-2 border-[#D8CFF0] focus:border-[#8E0E75] bg-white text-xs sm:text-sm font-mono font-bold text-[#191654] outline-none text-center shadow-2xs"
+                    />
+                  </div>
+                </div>
+
+                {/* Atajos de duración rápida */}
+                <div className="flex items-center gap-1 pt-1 flex-wrap">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">Sumar:</span>
+                  {[
+                    { label: '+15m', val: 15 },
+                    { label: '+30m', val: 30 },
+                    { label: '+1h', val: 60 },
+                    { label: '+2h', val: 120 },
+                  ].map((preset) => (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      onClick={() => applyQuickDuration(preset.val)}
+                      className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-white hover:bg-[#8E0E75] hover:text-white text-[#8E0E75] border border-[#D8CFF0] transition-colors cursor-pointer shadow-2xs"
+                      title={`Fijar duración de ${preset.label}`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+
+            {/* Recálculo de duración y checkbox */}
+            <div className="p-3 rounded-xl bg-white border border-[#D8CFF0] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={scheduleAutoDuration}
+                  onChange={(e) => setScheduleAutoDuration(e.target.checked)}
+                  className="rounded border-[#D8CFF0] text-[#8E0E75] focus:ring-[#8E0E75]"
+                />
+                <span className="font-semibold text-[#4A4A4A]">
+                  Actualizar la duración de la tarea con esta franja
+                </span>
+              </label>
+
+              <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                <span className="text-slate-400 font-bold uppercase text-[10px]">Duración resultante:</span>
+                <span className="px-2.5 py-1 rounded-lg bg-[#F8F6FC] border border-[#D8CFF0] font-mono font-black text-[#8E0E75] tabular-nums text-xs sm:text-sm">
+                  {formatMinutes(scheduleDurationMinutes)}
+                </span>
+              </div>
+            </div>
+
+            {/* Mensaje de error si aplica */}
+            {scheduleError && (
+              <p className="text-xs font-bold text-red-600 bg-red-50 p-2.5 rounded-xl border border-red-200">
+                {scheduleError}
+              </p>
+            )}
+
+            {/* Botones de acción */}
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t-2 border-[#EAE4F5]">
+              <button
+                type="button"
+                onClick={() => setScheduleModalEntry(null)}
+                className="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold text-[#4A4A4A] hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={isSavingSchedule}
+                onClick={handleSaveSchedule}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#8E0E75] hover:bg-[#700B5C] text-white text-xs sm:text-sm font-black uppercase tracking-tight shadow-md hover:shadow-lg transition-all cursor-pointer disabled:opacity-50"
+              >
+                <Check className="h-4 w-4" />
+                <span>{isSavingSchedule ? 'Guardando...' : 'Guardar Cambios'}</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }

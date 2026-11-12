@@ -2224,6 +2224,29 @@
   - Servidor Next.js activo y escuchando en `http://localhost:3000`.
   - Integridad de datos en Supabase: 7 perfiles con contraseñas activas y roles asignados.
 
+### [v4.0.3] - 2026-11-12 - Botón Interactivo de Edición de Día y Franja Horaria en Tareas y Política de Subida Manual a GitHub
+- **Solicitud del Usuario:**
+  1. *"que no se suba automaticamente todo a github, me refiero tengo que subirlo yo manualmente."*
+  2. *"Quiero que añadas un boton para poder editar el dia de la entrada horaria, y la franja horaria en la que se ha hecho esa actividzad"* (con captura señalando el encabezado de día `HOY` y la pastilla de franja horaria `08:28 - 08:28`).
+- **Decisiones Técnicas y Solución Implementada:**
+  1. **Política de Control de Versiones:**
+     - Se establece la directriz expresa de suspender cualquier comando `git push` automático. Todas las subidas al repositorio remoto de GitHub serán gestionadas manualmente por el usuario.
+  2. **Botón Interactivo de Día y Franja Horaria (`src/components/employee/time-entries-list.tsx`):**
+     - Se transformó el texto plano de franja horaria en un botón interactivo y prominente ubicado en la fila de cada registro horario:
+       `[ 📅 DÍA • 🕒 HORA_INICIO - HORA_FIN ✎ Editar día / franja ]`
+     - Refleja de forma dinámica el día (`Hoy`, `Ayer`, o fecha abreviada) y el rango horario o `Sin franja horaria`.
+     - Accesible tanto para entradas cronometradas como manuales.
+  3. **Modal In-App de Edición de Fecha y Franja Horaria (DM-02, DM-13, DM-15):**
+     - Ventana modal compacta (< 420px de alto, sin desbordamiento de pantalla ni scroll vertical) estructurada en 2 columnas:
+       - **Columna 1 • Día de la actividad:** Integración con `AppCalendar` in-app y atajos de 1 clic (`Hoy`, `Ayer`). Al cambiar el día, la tarea se reubica automáticamente en su nuevo grupo desplegado.
+       - **Columna 2 • Franja horaria:** Entradas de hora `Inicio (HH:MM)` y `Fin (HH:MM)` con validación de horas y cruce de medianoche. Atajos de duración rápida `[ +15m ]`, `[ +30m ]`, `[ +1h ]`, `[ +2h ]` que computan automáticamente la hora de fin a partir de la de inicio.
+       - **Recálculo Inteligente de Duración:** Checkbox activo por defecto que calcula y actualiza la duración total de la tarea (`duration_minutes`) a partir de la franja seleccionada, con visualizador de duración en tiempo real en `tabular-nums`.
+       - **Opción de desasignar franja:** Botón "Quitar horario" para registros donde no se requiera franja exacta.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Servidor Next.js activo y respondiendo `HTTP 200` en `http://localhost:3000/dashboard/employee`.
+  - Cero emojis en la interfaz (DM-01), cumplimiento estricto de controles in-app (DM-02) e identidad "La Abuela" (DM-13).
+
 
 
 
