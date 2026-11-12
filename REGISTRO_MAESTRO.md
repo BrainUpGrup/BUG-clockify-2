@@ -2347,6 +2347,32 @@
   - Endpoint `GET /hub`: **200 OK**.
   - Sin `git push` automático.
 
+### [v4.1.1] - 2026-11-12 - Indicador Activo de Temporizador Estilo Clockify (Título de Pestaña en Vivo, Favicon Vectorial con Baliza Esmeralda y Distintivos en Navbar y Hub)
+- **Solicitud del Usuario:**
+  *"vale ahor aquiero que igual que en clockify cuando el temporizador se activa el logo cambia y se pone en el nombre como una especie de temproizador que sin ni siquera entrar en la aplciacion ya sabes que esta contando el tiempo"*
+- **Decisiones Técnicas y Solución Implementada:**
+  1. **Título de Pestaña Dinámico en Tiempo Real (`document.title` en `TimerProvider`):**
+     - Al activarse el temporizador, el título de la pestaña del navegador pasa a reflejar en vivo el tiempo transcurrido con actualización al segundo:
+       `(${time}) ${empresa} - Brain Up Clockify` o `(${time}) ${descripción} • ${empresa} - Brain Up Clockify`.
+     - Permite saber desde cualquier otra pestaña de Chrome/Firefox/Edge o aplicación externa (sin entrar en la app) que el cronómetro está en marcha y cuánto tiempo lleva registrado.
+     - Al detenerse, restaura automáticamente el título original de la página (`Brain Up Hub | Suite Oficial de Aplicaciones`).
+     - Incorpora manejador de `visibilitychange` para recalcular con máxima precisión de timestamp en cuanto la pestaña vuelve a enfocarse.
+  2. **Favicon Vectorial Activo Dinámico (`ACTIVE_TIMER_FAVICON_DATA_URI`):**
+     - Se genera dinámicamente un SVG de alta resolución con fondo de degradado corporativo índigo-ciruela (`#191654` a `#8E0E75`), cronómetro nítido blanco y una baliza de grabación esmeralda (`#3BB54A`) con animación SVG de pulso continuo (`<animate attributeName="opacity" values="1;0.45;1" dur="1.2s">`).
+     - Al correr el cronómetro, todos los enlaces `<link rel="icon">` pasan a este SVG; al parar, se restaura el isotipo original `/isotipo.png`.
+  3. **Distintivo en Logo de Navbar (`src/components/navbar.tsx`):**
+     - Cuando el temporizador está corriendo, el logo corporativo de la barra superior adopta un aro activo esmeralda (`ring-2 ring-emerald-500 shadow-md shadow-emerald-500/25 bg-emerald-50/40`) y un distintivo de grabación pulsante en su esquina superior derecha.
+  4. **Indicador en Vivo en Tarjeta Brain Time del Hub (`src/app/hub/page.tsx`):**
+     - La tarjeta de Brain Time muestra una insignia viva con punto parpadeante: `Contando (00:04:12)`.
+     - El botón de acceso primario muestra en vivo `Contando (00:04:12) • Ver registro` con animación del icono de reloj.
+  5. **Política de GitHub Manual:**
+     - En estricto cumplimiento de las directrices del usuario, no se realiza ningún `git push` automático; los cambios quedan en el árbol de trabajo local para subida manual por el usuario.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Endpoint `GET /hub`: **200 OK**.
+  - Sincronización multi-pestaña garantizada vía `StorageEvent`.
+
+
 ### [v4.0.8] - 2026-11-12 - Ralentización Zen Profunda de la Transición Líquida (2.6s de Ascenso Contemplativo)
 - **Solicitud del Usuario:**
   *"quieor que la transicion sea mas lenta"*
@@ -2396,6 +2422,32 @@
   - `npx tsc --noEmit`: **0 errores de compilación**.
   - Endpoint `GET /hub`: **200 OK**.
   - Sin `git push` automático.
+
+### [v4.1.1] - 2026-11-12 - Indicador Activo de Temporizador Estilo Clockify (Título de Pestaña en Vivo, Favicon Vectorial con Baliza Esmeralda y Distintivos en Navbar y Hub)
+- **Solicitud del Usuario:**
+  *"vale ahor aquiero que igual que en clockify cuando el temporizador se activa el logo cambia y se pone en el nombre como una especie de temproizador que sin ni siquera entrar en la aplciacion ya sabes que esta contando el tiempo"*
+- **Decisiones Técnicas y Solución Implementada:**
+  1. **Título de Pestaña Dinámico en Tiempo Real (`document.title` en `TimerProvider`):**
+     - Al activarse el temporizador, el título de la pestaña del navegador pasa a reflejar en vivo el tiempo transcurrido con actualización al segundo:
+       `(${time}) ${empresa} - Brain Up Clockify` o `(${time}) ${descripción} • ${empresa} - Brain Up Clockify`.
+     - Permite saber desde cualquier otra pestaña de Chrome/Firefox/Edge o aplicación externa (sin entrar en la app) que el cronómetro está en marcha y cuánto tiempo lleva registrado.
+     - Al detenerse, restaura automáticamente el título original de la página (`Brain Up Hub | Suite Oficial de Aplicaciones`).
+     - Incorpora manejador de `visibilitychange` para recalcular con máxima precisión de timestamp en cuanto la pestaña vuelve a enfocarse.
+  2. **Favicon Vectorial Activo Dinámico (`ACTIVE_TIMER_FAVICON_DATA_URI`):**
+     - Se genera dinámicamente un SVG de alta resolución con fondo de degradado corporativo índigo-ciruela (`#191654` a `#8E0E75`), cronómetro nítido blanco y una baliza de grabación esmeralda (`#3BB54A`) con animación SVG de pulso continuo (`<animate attributeName="opacity" values="1;0.45;1" dur="1.2s">`).
+     - Al correr el cronómetro, todos los enlaces `<link rel="icon">` pasan a este SVG; al parar, se restaura el isotipo original `/isotipo.png`.
+  3. **Distintivo en Logo de Navbar (`src/components/navbar.tsx`):**
+     - Cuando el temporizador está corriendo, el logo corporativo de la barra superior adopta un aro activo esmeralda (`ring-2 ring-emerald-500 shadow-md shadow-emerald-500/25 bg-emerald-50/40`) y un distintivo de grabación pulsante en su esquina superior derecha.
+  4. **Indicador en Vivo en Tarjeta Brain Time del Hub (`src/app/hub/page.tsx`):**
+     - La tarjeta de Brain Time muestra una insignia viva con punto parpadeante: `Contando (00:04:12)`.
+     - El botón de acceso primario muestra en vivo `Contando (00:04:12) • Ver registro` con animación del icono de reloj.
+  5. **Política de GitHub Manual:**
+     - En estricto cumplimiento de las directrices del usuario, no se realiza ningún `git push` automático; los cambios quedan en el árbol de trabajo local para subida manual por el usuario.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Endpoint `GET /hub`: **200 OK**.
+  - Sincronización multi-pestaña garantizada vía `StorageEvent`.
+
 
 
 

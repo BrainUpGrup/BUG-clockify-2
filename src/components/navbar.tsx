@@ -377,17 +377,32 @@ export function Navbar() {
         {/* Logo Corporativo de Brain Up Grup ("La Abuela") - Solo Logo para Maximizar Espacio */}
         <Link
           href={logoHref}
-          className="flex items-center shrink-0 group select-none"
-          title="Ir al HUB de Aplicaciones Brain Up"
+          className="flex items-center shrink-0 group select-none relative"
+          title={isTimerRunning ? 'Temporizador en curso • Ir al HUB' : 'Ir al HUB de Aplicaciones Brain Up'}
           aria-label="Ir al HUB de Aplicaciones Brain Up"
         >
-          <div className="relative h-12 w-12 sm:h-13 sm:w-13 shrink-0 rounded-full ring-2 ring-[#8E0E75]/25 group-hover:ring-[#8E0E75] transition-all bg-[#F8F6FC] shadow-2xs flex items-center justify-center p-2 sm:p-2.5">
+          <div className={`relative h-12 w-12 sm:h-13 sm:w-13 shrink-0 rounded-full transition-all bg-[#F8F6FC] shadow-2xs flex items-center justify-center p-2 sm:p-2.5 ${
+            isTimerRunning
+              ? 'ring-2 ring-emerald-500 shadow-md shadow-emerald-500/25 bg-emerald-50/40'
+              : 'ring-2 ring-[#8E0E75]/25 group-hover:ring-[#8E0E75]'
+          }`}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/isotipo.svg"
               alt="Brain Up Grup"
-              className="h-full w-full object-contain group-hover:scale-105 transition-transform"
+              className={`h-full w-full object-contain transition-transform ${
+                isTimerRunning ? 'scale-105' : 'group-hover:scale-105'
+              }`}
             />
+            {/* Indicador de temporizador activo estilo Clockify */}
+            {isTimerRunning && (
+              <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4" title="Temporizador activo">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-white items-center justify-center">
+                  <span className="h-1.5 w-1.5 rounded-full bg-white" />
+                </span>
+              </span>
+            )}
           </div>
         </Link>
 

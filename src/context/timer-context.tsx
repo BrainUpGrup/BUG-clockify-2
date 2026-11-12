@@ -3,7 +3,53 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Company, EntryComputeType } from '@/types/database';
 import { saveStoppedTimerEntry, SaveTimerResult } from '@/lib/services/timer-persistence';
-import { safeGetLocalStorage } from '@/lib/utils';
+import { safeGetLocalStorage, formatSecondsToTimer } from '@/lib/utils';
+
+// Favicon dinámico en formato SVG vectorial activo (estilo Clockify) con indicador de grabación esmeralda pulsante
+const ACTIVE_TIMER_FAVICON_DATA_URI = (() => {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+    <defs>
+      <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#191654" />
+        <stop offset="100%" stop-color="#8E0E75" />
+      </linearGradient>
+      <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+        <feDropShadow dx="0" dy="0" stdDeviation="2" flood-color="#3BB54A" flood-opacity="0.8" />
+      </filter>
+    </defs>
+    <circle cx="32" cy="32" r="30" fill="url(#bg)" stroke="#D8CFF0" stroke-width="2.5" />
+    <rect x="28" y="10" width="8" height="4" rx="1.5" fill="#FFFFFF" />
+    <line x1="32" y1="14" x2="32" y2="18" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" />
+    <circle cx="32" cy="36" r="17" fill="none" stroke="#FFFFFF" stroke-width="3" />
+    <circle cx="32" cy="36" r="2.5" fill="#3BB54A" />
+    <line x1="32" y1="36" x2="32" y2="25" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" />
+    <line x1="32" y1="36" x2="42" y2="30" stroke="#3BB54A" stroke-width="2.5" stroke-linecap="round" />
+    <g filter="url(#glow)">
+      <circle cx="49" cy="15" r="9" fill="#3BB54A" stroke="#FFFFFF" stroke-width="2">
+        <animate attributeName="opacity" values="1;0.45;1" dur="1.2s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="49" cy="15" r="3.5" fill="#FFFFFF" />
+    </g>
+  </svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg.trim())}`;
+})();
+
+function formatActiveTabTitle(seconds: number, companyName?: string, desc?: string): string {
+  const time = formatSecondsToTimer(seconds);
+  const cleanDesc = desc?.trim();
+  const cleanCompany = companyName?.trim();
+  
+  if (cleanDesc && cleanCompany) {
+    return `(${time}) ${cleanDesc} • ${cleanCompany} - Brain Up Clockify`;
+  }
+  if (cleanCompany) {
+    return `(${time}) ${cleanCompany} - Brain Up Clockify`;
+  }
+  if (cleanDesc) {
+    return `(${time}) ${cleanDesc} - Brain Up Clockify`;
+  }
+  return `(${time}) En curso - Brain Up Clockify`;
+}
 
 export interface TimerContextType {
   activeCompany: Company | null;
@@ -46,6 +92,8 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
 
   const startTimestampRef = useRef<number | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const defaultTitleRef = useRef<string>('');
+  const defaultFaviconRef = useRef<string>('');
 
   // Restaurar estado inicial desde localStorage
   useEffect(() => {
@@ -168,6 +216,71 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
       }
     };
   }, [isTimerRunning]);
+
+  // Sincronización activa estilo Clockify: Document Title y Favicon dinámico en tiempo real
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+
+    // Guardar título por defecto la primera vez que se detecta un título limpio (sin temporizador)
+    if (!document.title.startsWith('(')) {
+      defaultTitleRef.current = document.title;
+    }
+
+    // Localizar o inicializar enlaces de favicon en el DOM
+    let iconLinks = document.querySelectorAll<HTMLLinkElement>("link[rel*='icon']");
+    if (!defaultFaviconRef.current && iconLinks.length > 0) {
+      defaultFaviconRef.current = iconLinks[0].href;
+    }
+
+    if (isTimerRunning) {
+      // 1. Actualizar título de la pestaña con formato Clockify en vivo: (00:04:12) Cliente • Brain Up Clockify
+      document.title = formatActiveTabTitle(timerSeconds, activeCompany?.name, activeDescription);
+
+      // 2. Cambiar favicon al isotipo vectorial activo con indicador esmeralda de grabación
+      if (iconLinks.length === 0) {
+        const newLink = document.createElement('link');
+        newLink.rel = 'icon';
+        newLink.type = 'image/svg+xml';
+        newLink.href = ACTIVE_TIMER_FAVICON_DATA_URI;
+        document.head.appendChild(newLink);
+      } else {
+        iconLinks.forEach((link) => {
+          link.type = 'image/svg+xml';
+          link.href = ACTIVE_TIMER_FAVICON_DATA_URI;
+        });
+      }
+    } else {
+      // Restaurar título original cuando el temporizador se detiene
+      if (defaultTitleRef.current) {
+        document.title = defaultTitleRef.current;
+      } else {
+        document.title = 'Brain Up Hub | Suite Oficial de Aplicaciones';
+      }
+
+      // Restaurar favicon por defecto (/isotipo.png)
+      const fallbackHref = defaultFaviconRef.current || '/isotipo.png';
+      if (iconLinks.length > 0) {
+        iconLinks.forEach((link) => {
+          link.type = fallbackHref.endsWith('.svg') ? 'image/svg+xml' : 'image/png';
+          link.href = fallbackHref;
+        });
+      }
+    }
+  }, [isTimerRunning, timerSeconds, activeCompany?.name, activeDescription]);
+
+  // Manejador de cambio de visibilidad de pestaña (recalculo instantáneo sin desfase al reenfocar)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isTimerRunning && startTimestampRef.current) {
+        const elapsed = Math.max(0, Math.floor((Date.now() - startTimestampRef.current) / 1000));
+        setTimerSeconds(elapsed);
+        document.title = formatActiveTabTitle(elapsed, activeCompany?.name, activeDescription);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isTimerRunning, activeCompany?.name, activeDescription]);
 
   const setActiveCompanyId = useCallback((id: string) => {
     setActiveCompanyIdState(id);

@@ -13,6 +13,8 @@ import {
   getAuthorizedAppsForUser 
 } from '@/lib/hub-apps';
 import { HubPermissionsMatrix } from '@/components/coordinator/hub-permissions-matrix';
+import { useTimer, useTimerSeconds } from '@/context/timer-context';
+import { formatSecondsToTimer } from '@/lib/utils';
 import { 
   LayoutGrid, 
   Clock, 
@@ -39,6 +41,8 @@ import {
 export default function BrainUpHubPage() {
   const router = useRouter();
   const { user, isLoading: authLoading, isSupabaseConnected } = useAuth();
+  const { isTimerRunning } = useTimer();
+  const timerSeconds = useTimerSeconds();
 
   const [activeTab, setActiveTab] = useState<'apps' | 'permissions'>('apps');
   const [allProfiles, setAllProfiles] = useState<Profile[]>([]);
@@ -488,16 +492,23 @@ export default function BrainUpHubPage() {
                             <h2 className="font-black text-2xl sm:text-3xl text-[#292929] group-hover:text-[#8E0E75] transition-colors tracking-tight">
                               {app.name}
                             </h2>
-                            {app.badge && (
-                              <span
-                                className={`px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase tracking-wider border shrink-0 ${
-                                  app.badge === 'Mantenimiento'
-                                    ? 'bg-amber-100 text-amber-900 border-amber-300'
-                                    : 'bg-[#F8F6FC] text-[#8E0E75] border-[#D8CFF0]'
-                                }`}
-                              >
-                                {app.badge}
+                            {app.id === 'clockify' && isTimerRunning ? (
+                              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1.5 shrink-0 animate-pulse shadow-xs">
+                                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
+                                Contando ({formatSecondsToTimer(timerSeconds)})
                               </span>
+                            ) : (
+                              app.badge && (
+                                <span
+                                  className={`px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase tracking-wider border shrink-0 ${
+                                    app.badge === 'Mantenimiento'
+                                      ? 'bg-amber-100 text-amber-900 border-amber-300'
+                                      : 'bg-[#F8F6FC] text-[#8E0E75] border-[#D8CFF0]'
+                                  }`}
+                                >
+                                  {app.badge}
+                                </span>
+                              )
                             )}
                           </div>
                           <p className="text-sm sm:text-base font-extrabold text-[#8E0E75] mt-1.5">{app.tagline}</p>
@@ -512,11 +523,15 @@ export default function BrainUpHubPage() {
                                   e.stopPropagation();
                                   router.push('/dashboard/employee');
                                 }}
-                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#8E0E75] hover:bg-[#700B5C] active:bg-[#520743] text-white text-xs sm:text-sm font-black uppercase tracking-wider transition-all shadow-md hover:shadow-xl hover:scale-105 active:scale-95 cursor-pointer ring-2 ring-transparent hover:ring-[#8E0E75]/30 focus:outline-none focus:ring-2 focus:ring-[#8E0E75] group/btn1"
-                                title="Acceder a Brain Time: Registro horario diario de clientes"
+                                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-xs sm:text-sm font-black uppercase tracking-wider transition-all shadow-md hover:shadow-xl hover:scale-105 active:scale-95 cursor-pointer ring-2 focus:outline-none group/btn1 ${
+                                  isTimerRunning
+                                    ? 'bg-emerald-600 hover:bg-emerald-700 ring-emerald-400 shadow-emerald-600/25'
+                                    : 'bg-[#8E0E75] hover:bg-[#700B5C] active:bg-[#520743] ring-transparent hover:ring-[#8E0E75]/30 focus:ring-[#8E0E75]'
+                                }`}
+                                title={isTimerRunning ? 'Temporizador activo • Ver registro horario' : 'Acceder a Brain Time: Registro horario diario de clientes'}
                               >
-                                <Clock className="h-4 w-4 shrink-0" />
-                                <span>Registro de horas clientes</span>
+                                <Clock className={`h-4 w-4 shrink-0 ${isTimerRunning ? 'animate-spin' : ''}`} style={isTimerRunning ? { animationDuration: '4s' } : undefined} />
+                                <span>{isTimerRunning ? `Contando (${formatSecondsToTimer(timerSeconds)}) • Ver registro` : 'Registro de horas clientes'}</span>
                                 <ArrowRight className="h-3.5 w-3.5 group-hover/btn1:translate-x-1 transition-transform" />
                               </button>
 
@@ -537,12 +552,19 @@ export default function BrainUpHubPage() {
                             </div>
                           ) : (
                             <div className="mt-5">
-                              <span className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#F8F6FC] group-hover:bg-[#8E0E75] text-[#8E0E75] group-hover:text-white text-xs sm:text-sm font-black uppercase tracking-wider transition-all shadow-2xs group-hover:shadow-md">
+                              <span className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all shadow-2xs group-hover:shadow-md ${
+                                app.id === 'clockify' && isTimerRunning
+                                  ? 'bg-emerald-600 text-white shadow-emerald-600/20'
+                                  : 'bg-[#F8F6FC] group-hover:bg-[#8E0E75] text-[#8E0E75] group-hover:text-white'
+                              }`}>
+                                {app.id === 'clockify' && isTimerRunning && (
+                                  <Clock className="h-4 w-4 shrink-0 animate-spin" style={{ animationDuration: '4s' }} />
+                                )}
                                 <span>
                                   {app.badge === 'Mantenimiento' 
                                     ? 'Ver estado' 
                                     : app.id === 'clockify' 
-                                      ? 'Registro de horas clientes' 
+                                      ? (isTimerRunning ? `Contando (${formatSecondsToTimer(timerSeconds)}) • Ver registro` : 'Registro de horas clientes') 
                                       : 'Abrir Herramienta'}
                                 </span>
                                 <ArrowRight className="h-4 w-4 group-hover:translate-x-1.5 transition-transform" />
