@@ -1,7 +1,14 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { requireActiveUser } from '@/lib/api-auth';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const { profile, errorResponse } = await requireActiveUser(req);
+  if (errorResponse) return errorResponse;
+
+  if (profile?.role !== 'admin' && profile?.role !== 'coordinator') {
+    return NextResponse.json({ error: 'Acceso restringido a administradores y coordinadores.' }, { status: 403 });
+  }
   const tables = [
     'profiles',
     'companies',

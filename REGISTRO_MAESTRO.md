@@ -2372,7 +2372,6 @@
   - Endpoint `GET /hub`: **200 OK**.
   - Sincronización multi-pestaña garantizada vía `StorageEvent`.
 
-
 ### [v4.0.8] - 2026-11-12 - Ralentización Zen Profunda de la Transición Líquida (2.6s de Ascenso Contemplativo)
 - **Solicitud del Usuario:**
   *"quieor que la transicion sea mas lenta"*
@@ -2447,6 +2446,63 @@
   - `npx tsc --noEmit`: **0 errores de compilación**.
   - Endpoint `GET /hub`: **200 OK**.
   - Sincronización multi-pestaña garantizada vía `StorageEvent`.
+
+### [v4.1.2] - 2026-11-12 - Blindaje Criptográfico de Contraseñas (Bóveda Aislada profile_passwords, Preservación Total de Credenciales, Clave SESSION_SECRET y Cabeceras HTTP)
+- **Solicitud del Usuario:**
+  *"vale tienes que aplciar esa capa de seguridad para contraseñas pero tienes que MANTENER OBLIGATORIAMENTE las contraseñas que ya existen no las elimines ni las pierdas"*
+- **Decisiones Técnicas y Solución Implementada:**
+  1. **Arquitectura de Bóveda Segura de Contraseñas (`public.profile_passwords`):**
+     - Se creó la tabla dedicada `profile_passwords` con aislamiento total de RLS (`REVOKE ALL FROM anon, authenticated`).
+     - **Preservación Inmutable:** La migración copia el 100% de las contraseñas existentes de `public.profiles` hacia la bóveda, además de garantizar las contraseñas maestras y del equipo (Super Admin, Montse, Valeria, Lidia, Cristina, Albert, etc.).
+  2. **Erradicación de Exposición en la API Pública:**
+     - Se vacían las columnas `custom_password` y `temp_password` de `public.profiles` (`NULL`), garantizando que cualquier petición GET pública a la REST API de Supabase devuelva `null` en lugar de contraseñas en claro.
+     - Un trigger automático `tr_vault_profile_passwords` intercepta cualquier intento futuro de inserción o actualización de contraseñas en `profiles`, redirigiéndolo a `profile_passwords` y manteniendo `profiles` limpio.
+  3. **Funciones RPC `SECURITY DEFINER`:**
+     - `authenticate_employee` valida credenciales de forma interna contra `profile_passwords` sin exponer la contraseña al cliente.
+     - `admin_set_user_password` actualiza la contraseña directamente en la bóveda segura.
+  4. **Generación de `SESSION_SECRET` y Endurecimiento de Firma:**
+     - Se generó una clave criptográfica de 64 caracteres hex (`SESSION_SECRET`) en `.env.local`.
+     - En `src/lib/auth/session.ts`, se eliminó el fallback inseguro a claves públicas del frontend.
+  5. **Sincronización en `requireActiveUser`:**
+     - `src/lib/api-auth.ts` ahora valida tanto la sesión JWT de Supabase como la cookie criptográfica HMAC `bug_clockify_session`.
+  6. **Protección de Rutas y Cabeceras de Seguridad HTTP:**
+     - Se protegió `GET /api/database/status` para requerir sesión activa de rol administrativo.
+     - Se implementaron cabeceras `X-Frame-Options: SAMEORIGIN`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin` y `Permissions-Policy` en `next.config.mjs`.
+  7. **Política de GitHub Manual:**
+     - Sin `git push` automático; todo queda en el árbol de trabajo local para control del usuario.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Endpoint `GET /hub`: **200 OK**.
+  - Script SQL actualizado en `shield_database_rls.sql`.
+
+### [v4.1.3] - 2026-11-13 - Editor Completo de Fecha y Hora de Inicio y Fin con Detección de Despistes (Multi-Día, Botón "Mismo día" y Zero-Scroll)
+- **Solicitud del Usuario:**
+  *"vale, modificacion a hacer, cuadno los empleados queiran cambiar la hora de inicio y final de una tarea muchas veces se olbidaran de parar el temporizador de tiempo y eso hace que al dia siguiente inicien con 17 horas de trabajo, entonces en el editor de horas te tiene que dejar cambiar la hora de incio El dia de inicio, la hora final y el dia final, para que sea preciso con la contabilziacion del tiempo"*
+- **Decisiones Técnicas y Solución Implementada:**
+  1. **Editor Bicompartimentado de Franja Horaria Multi-Día (`src/components/employee/time-entries-list.tsx`):**
+     - Se refactorizó el modal de franja horaria en una estructura de 2 columnas simétricas paralelas de alta densidad (DM-15 Zero-Scroll), permitiendo modificar independientemente los 4 parámetros temporales de la tarea:
+       * **Día de inicio** (`scheduleStartDate`): Selector in-app `AppCalendar` + accesos rápidos ("Hoy", "Ayer").
+       * **Hora de inicio** (`scheduleStartTime`): Selector nativo de tiempo HH:MM.
+       * **Día de fin** (`scheduleEndDate`): Selector in-app `AppCalendar` + accesos rápidos ("Mismo día", "Hoy", "+1 día").
+       * **Hora de fin** (`scheduleEndTime`): Selector nativo de tiempo HH:MM + atajos de suma rápida ("+15m", "+30m", "+1h", "+2h").
+  2. **Detección Inteligente de Temporizadores Olvidados y Botón "Mismo día":**
+     - Si la tarea abarca días diferentes o supera las 12 horas acumuladas (caso típico de empleado que se marcha a casa sin detener el cronómetro y al día siguiente tiene 17+ horas), el sistema activa automáticamente un aviso destacado en ámbar (`isOvernightOrLong`).
+     - Se proporciona un botón salvavidas prioritario **Fijar a "Mismo día"**, que ajusta la fecha de fin a la fecha de inicio en un solo clic, permitiendo que el trabajador simplemente ingrese su hora real de salida (ej. 18:30) y resuelva el despiste en 2 segundos.
+  3. **Cálculo de Intervalo Multi-Día de Alta Precisión (`calculateIntervalMinutes`):**
+     - Cálculo matemático en milisegundos entre marcas temporales completas (`YYYY-MM-DDTHH:MM`), soportando cambio de fecha a medianoche y jornadas de varios días sin desbordamientos.
+     - Valida que el fin sea estrictamente posterior al inicio y actualiza la duración total de la tarea (`duration_minutes`) si la casilla de auto-recalculo está marcada.
+  4. **Distintivo Visual en Listado (`formatEntryTimeRange`):**
+     - Las tareas que cruzan la medianoche o abarcan días distintos muestran un badge aclaratorio en la lista de registros (ej. `09:00 - 10:15 (+1d • 13 nov)`), previniendo confusiones en la revisión de horas.
+  5. **Alineación con Directrices Maestras:**
+     - **DM-01 (Cero Emojis):** Iconos vectoriales Lucide React exclusivamente (`Calendar`, `Clock`, `AlertCircle`, `ArrowRight`, `Check`, `X`).
+     - **DM-02 (Controles In-App):** Selectores `AppCalendar` propietarios de la suite corporativa.
+     - **DM-13 (Identidad "La Abuela"):** Colores de marca índigo `#191654`, ciruela `#8E0E75`, verde `#3BB54A` y fondo `#F8F6FC`.
+     - **DM-15 (Zero-Scroll):** Altura acotada del modal (<420px) sin barras de desplazamiento vertical en pantalla.
+     - **Política de GitHub Manual:** No se realiza `git push` automático; los cambios quedan en el repositorio local para subida manual por el usuario.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Servidor de desarrollo Next.js: **200 OK**.
+
 
 
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth/session';
 
 export interface AuthenticatedUserResult {
   user: { id: string; email?: string } | null;
@@ -25,6 +26,25 @@ export async function requireActiveUser(req?: NextRequest): Promise<Authenticate
   }
 
   try {
+    // 1. Prioridad: Cookie de sesión criptográfica firmada (HMAC-SHA256)
+    const sessionCookie = req?.cookies.get(SESSION_COOKIE_NAME)?.value;
+    if (sessionCookie) {
+      const verified = await verifySessionToken(sessionCookie);
+      if (verified && verified.status === 'active') {
+        return {
+          user: { id: verified.id, email: verified.email },
+          profile: {
+            id: verified.id,
+            role: verified.role,
+            status: verified.status,
+            full_name: verified.email.split('@')[0],
+          },
+          errorResponse: null,
+        };
+      }
+    }
+
+    // 2. Fallback: Sesión nativa JWT de Supabase Auth
     const supabase = createServerSupabaseClient();
     const {
       data: { user },

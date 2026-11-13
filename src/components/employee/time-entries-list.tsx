@@ -13,7 +13,9 @@ import {
   Play,
   Trash2,
   Sparkles,
-  X
+  X,
+  AlertCircle,
+  ArrowRight
 } from 'lucide-react';
 import { TimeEntry, Company } from '@/types/database';
 import { formatMinutes, formatDateSpanish, parseDurationToMinutes } from '@/lib/utils';
@@ -66,72 +68,95 @@ export function TimeEntriesList({
     });
   };
 
-  // Estado para modal de edición de fecha y franja horaria
+  // Estado para modal de edición de día de inicio, hora de inicio, día de fin y hora de fin
   const [scheduleModalEntry, setScheduleModalEntry] = useState<TimeEntry | null>(null);
-  const [scheduleDate, setScheduleDate] = useState<string>('');
+  const [scheduleStartDate, setScheduleStartDate] = useState<string>('');
   const [scheduleStartTime, setScheduleStartTime] = useState<string>('');
+  const [scheduleEndDate, setScheduleEndDate] = useState<string>('');
   const [scheduleEndTime, setScheduleEndTime] = useState<string>('');
   const [scheduleAutoDuration, setScheduleAutoDuration] = useState<boolean>(true);
   const [scheduleDurationMinutes, setScheduleDurationMinutes] = useState<number>(1);
   const [scheduleError, setScheduleError] = useState<string | null>(null);
   const [isSavingSchedule, setIsSavingSchedule] = useState<boolean>(false);
 
-  // Helper para calcular minutos entre horas HH:MM
-  const calculateFranjaMinutes = (start: string, end: string): number | null => {
-    if (!start.trim() || !end.trim()) return null;
-    const [sh, sm] = start.split(':').map(Number);
-    const [eh, em] = end.split(':').map(Number);
-    if (isNaN(sh) || isNaN(sm) || isNaN(eh) || isNaN(em)) return null;
-    const startMin = sh * 60 + sm;
-    const endMin = eh * 60 + em;
-    if (endMin >= startMin) {
-      return endMin - startMin;
-    }
-    return (24 * 60 - startMin) + endMin;
+  // Helper para calcular minutos exactos entre fecha+hora inicio y fecha+hora fin
+  const calculateIntervalMinutes = (
+    sDate: string,
+    sTime: string,
+    eDate: string,
+    eTime: string
+  ): number | null => {
+    if (!sDate || !sTime.trim() || !eDate || !eTime.trim()) return null;
+    const startDt = new Date(`${sDate}T${sTime}:00`);
+    const endDt = new Date(`${eDate}T${eTime}:00`);
+    if (isNaN(startDt.getTime()) || isNaN(endDt.getTime())) return null;
+
+    const diffMs = endDt.getTime() - startDt.getTime();
+    return Math.round(diffMs / (1000 * 60));
   };
 
-  // Abrir modal de horario y fecha
+  // Abrir modal de horario y fechas (inicio y fin)
   const handleOpenScheduleModal = (entry: TimeEntry) => {
     setScheduleModalEntry(entry);
-    setScheduleDate(entry.work_date);
-
+    
+    // 1. Resolver fecha y hora de inicio
+    let startD = entry.work_date;
+    let startT = '';
     if (entry.start_time) {
       const d = new Date(entry.start_time);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      startD = `${y}-${m}-${day}`;
       const h = String(d.getHours()).padStart(2, '0');
-      const m = String(d.getMinutes()).padStart(2, '0');
-      setScheduleStartTime(`${h}:${m}`);
-    } else {
-      setScheduleStartTime('');
+      const min = String(d.getMinutes()).padStart(2, '0');
+      startT = `${h}:${min}`;
     }
+    setScheduleStartDate(startD);
+    setScheduleStartTime(startT);
 
+    // 2. Resolver fecha y hora de fin
+    let endD = startD;
+    let endT = '';
     if (entry.end_time) {
       const d = new Date(entry.end_time);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      endD = `${y}-${m}-${day}`;
       const h = String(d.getHours()).padStart(2, '0');
-      const m = String(d.getMinutes()).padStart(2, '0');
-      setScheduleEndTime(`${h}:${m}`);
-    } else {
-      setScheduleEndTime('');
+      const min = String(d.getMinutes()).padStart(2, '0');
+      endT = `${h}:${min}`;
     }
+    setScheduleEndDate(endD);
+    setScheduleEndTime(endT);
 
     setScheduleDurationMinutes(entry.duration_minutes || 1);
     setScheduleAutoDuration(true);
     setScheduleError(null);
   };
 
-  // Aplicar duración rápida sumando a la hora de inicio
+  // Aplicar duración rápida sumando a la fecha y hora de inicio (con soporte para cambio de día)
   const applyQuickDuration = (addMinutes: number) => {
+    const baseDate = scheduleStartDate || todayStr;
     let baseStart = scheduleStartTime;
     if (!baseStart) {
       const now = new Date();
       baseStart = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
       setScheduleStartTime(baseStart);
     }
-    const [sh, sm] = baseStart.split(':').map(Number);
-    const totalMin = (sh * 60 + sm + addMinutes) % (24 * 60);
-    const endH = String(Math.floor(totalMin / 60)).padStart(2, '0');
-    const endM = String(totalMin % 60).padStart(2, '0');
-    const newEnd = `${endH}:${endM}`;
-    setScheduleEndTime(newEnd);
+
+    const sDt = new Date(`${baseDate}T${baseStart}:00`);
+    const eDt = new Date(sDt.getTime() + addMinutes * 60 * 1000);
+
+    const ey = eDt.getFullYear();
+    const em = String(eDt.getMonth() + 1).padStart(2, '0');
+    const ed = String(eDt.getDate()).padStart(2, '0');
+    const eh = String(eDt.getHours()).padStart(2, '0');
+    const emin = String(eDt.getMinutes()).padStart(2, '0');
+
+    setScheduleEndDate(`${ey}-${em}-${ed}`);
+    setScheduleEndTime(`${eh}:${emin}`);
     if (scheduleAutoDuration) {
       setScheduleDurationMinutes(addMinutes);
     }
@@ -145,7 +170,7 @@ export function TimeEntriesList({
     setScheduleError(null);
   };
 
-  // Guardar día y franja horaria
+  // Guardar día y franja horaria completa (inicio y fin)
   const handleSaveSchedule = async () => {
     if (!scheduleModalEntry) return;
 
@@ -156,6 +181,20 @@ export function TimeEntriesList({
       return;
     }
 
+    if (hasStart && hasEnd) {
+      const calculatedMin = calculateIntervalMinutes(
+        scheduleStartDate,
+        scheduleStartTime,
+        scheduleEndDate,
+        scheduleEndTime
+      );
+
+      if (calculatedMin === null || calculatedMin <= 0) {
+        setScheduleError('La fecha y hora de fin debe ser posterior a la fecha y hora de inicio.');
+        return;
+      }
+    }
+
     setIsSavingSchedule(true);
     try {
       let newStartIso: string | null = null;
@@ -163,45 +202,42 @@ export function TimeEntriesList({
       let finalDuration = scheduleDurationMinutes;
 
       if (hasStart && hasEnd) {
-        const [sh, sm] = scheduleStartTime.split(':').map(Number);
-        const [eh, em] = scheduleEndTime.split(':').map(Number);
-
-        const sDate = new Date(scheduleDate + 'T00:00:00');
-        sDate.setHours(sh, sm, 0, 0);
+        const sDate = new Date(`${scheduleStartDate}T${scheduleStartTime}:00`);
         newStartIso = sDate.toISOString();
 
-        const eDate = new Date(scheduleDate + 'T00:00:00');
-        if (eh * 60 + em < sh * 60 + sm) {
-          eDate.setDate(eDate.getDate() + 1);
-        }
-        eDate.setHours(eh, em, 0, 0);
+        const eDate = new Date(`${scheduleEndDate}T${scheduleEndTime}:00`);
         newEndIso = eDate.toISOString();
 
         if (scheduleAutoDuration) {
-          const franjaMin = calculateFranjaMinutes(scheduleStartTime, scheduleEndTime);
-          if (franjaMin && franjaMin > 0) {
-            finalDuration = franjaMin;
+          const intervalMin = calculateIntervalMinutes(
+            scheduleStartDate,
+            scheduleStartTime,
+            scheduleEndDate,
+            scheduleEndTime
+          );
+          if (intervalMin && intervalMin > 0) {
+            finalDuration = intervalMin;
           }
         }
       }
 
       await onUpdateEntry(scheduleModalEntry.id, {
-        work_date: scheduleDate,
+        work_date: scheduleStartDate,
         start_time: newStartIso,
         end_time: newEndIso,
         duration_minutes: Math.max(1, finalDuration),
       });
 
-      // Desplegar automáticamente el día destino para visualizar la tarea
+      // Desplegar automáticamente el día de inicio para visualizar la tarea
       setCollapsedDays((prev) => ({
         ...prev,
-        [scheduleDate]: false,
+        [scheduleStartDate]: false,
       }));
 
       setScheduleModalEntry(null);
     } catch (err) {
       console.error(err);
-      setScheduleError('Error al guardar los cambios.');
+      setScheduleError('Error al guardar los cambios en el servidor.');
     } finally {
       setIsSavingSchedule(false);
     }
@@ -228,8 +264,19 @@ export function TimeEntriesList({
 
   const formatEntryTimeRange = (startTime: string | null, endTime: string | null) => {
     if (startTime && endTime) {
-      const s = new Date(startTime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-      const e = new Date(endTime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+      const sDate = new Date(startTime);
+      const eDate = new Date(endTime);
+      const s = sDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+      const e = eDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+
+      // Si la fecha de inicio y de fin abarcan días distintos (ej. temporizador olvidado)
+      const sDateStr = `${sDate.getFullYear()}-${sDate.getMonth()}-${sDate.getDate()}`;
+      const eDateStr = `${eDate.getFullYear()}-${eDate.getMonth()}-${eDate.getDate()}`;
+      if (sDateStr !== eDateStr) {
+        const endDayBadge = eDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+        return `${s} - ${e} (+1d • ${endDayBadge})`;
+      }
+
       return `${s} - ${e}`;
     }
     if (startTime) {
@@ -641,179 +688,336 @@ export function TimeEntriesList({
               </button>
             </div>
 
-            {/* Rejilla de 2 columnas compacta (DM-15) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              
-              {/* Columna 1: Día de la tarea */}
-              <div className="p-3.5 rounded-xl bg-[#F8F6FC] border-2 border-[#D8CFF0] space-y-2.5">
-                <label className="block text-xs font-black uppercase text-[#191654] tracking-tight">
-                  1. Día de la actividad
-                </label>
+            {/* Rejilla de 2 columnas compacta y simétrica: Inicio vs Fin (DM-15 Zero-Scroll) */}
+            {(() => {
+              const currentIntervalMin = (scheduleStartTime && scheduleEndTime)
+                ? calculateIntervalMinutes(scheduleStartDate, scheduleStartTime, scheduleEndDate, scheduleEndTime)
+                : null;
+              const isMultiDay = scheduleStartDate !== scheduleEndDate;
+              const isOvernightOrLong = (currentIntervalMin !== null && currentIntervalMin >= 12 * 60) || isMultiDay;
 
-                <AppCalendar
-                  value={scheduleDate}
-                  onChange={(newDate) => setScheduleDate(newDate)}
-                  className="w-full"
-                />
+              return (
+                <div className="space-y-3.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    
+                    {/* Columna 1: INICIO DE LA ACTIVIDAD (Día + Hora) */}
+                    <div className="p-3.5 rounded-2xl bg-[#F8F6FC] border-2 border-[#D8CFF0] space-y-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                        <label className="block text-xs font-black uppercase text-[#191654] tracking-tight">
+                          1. Inicio de la actividad
+                        </label>
+                      </div>
 
-                {/* Accesos rápidos de fecha */}
-                <div className="flex items-center gap-1.5 pt-1">
-                  <span className="text-[11px] font-bold text-slate-400 uppercase">Rápido:</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const today = new Date().toISOString().split('T')[0];
-                      setScheduleDate(today);
-                    }}
-                    className={`px-2 py-0.5 rounded-md text-[11px] font-bold border transition-colors cursor-pointer ${
-                      scheduleDate === todayStr 
-                        ? 'bg-[#8E0E75] text-white border-[#8E0E75]' 
-                        : 'bg-white hover:bg-slate-100 text-[#4A4A4A] border-slate-200'
-                    }`}
-                  >
-                    Hoy
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const y = new Date();
-                      y.setDate(y.getDate() - 1);
-                      setScheduleDate(y.toISOString().split('T')[0]);
-                    }}
-                    className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-white hover:bg-slate-100 text-[#4A4A4A] border border-slate-200 transition-colors cursor-pointer"
-                  >
-                    Ayer
-                  </button>
-                </div>
-              </div>
+                      {/* Selector de Día de Inicio */}
+                      <div>
+                        <span className="block text-[11px] font-bold text-slate-500 mb-1">Día de inicio:</span>
+                        <AppCalendar
+                          value={scheduleStartDate}
+                          onChange={(newDate) => {
+                            setScheduleStartDate(newDate);
+                            setScheduleError(null);
+                            if (scheduleAutoDuration && scheduleStartTime && scheduleEndTime) {
+                              const min = calculateIntervalMinutes(newDate, scheduleStartTime, scheduleEndDate, scheduleEndTime);
+                              if (min && min > 0) setScheduleDurationMinutes(min);
+                            }
+                          }}
+                          className="w-full"
+                        />
+                      </div>
 
-              {/* Columna 2: Franja horaria */}
-              <div className="p-3.5 rounded-xl bg-[#F8F6FC] border-2 border-[#D8CFF0] space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <label className="block text-xs font-black uppercase text-[#191654] tracking-tight">
-                    2. Franja horaria
-                  </label>
-                  {(scheduleStartTime || scheduleEndTime) && (
-                    <button
-                      type="button"
-                      onClick={handleClearFranja}
-                      className="text-[10px] font-bold text-red-600 hover:text-red-700 underline cursor-pointer"
-                    >
-                      Quitar horario
-                    </button>
+                      {/* Accesos rápidos de fecha de inicio */}
+                      <div className="flex items-center gap-1.5 pt-0.5">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase">Rápido:</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const today = new Date().toISOString().split('T')[0];
+                            setScheduleStartDate(today);
+                            if (scheduleEndDate < today) setScheduleEndDate(today);
+                            setScheduleError(null);
+                            if (scheduleAutoDuration && scheduleStartTime && scheduleEndTime) {
+                              const min = calculateIntervalMinutes(today, scheduleStartTime, scheduleEndDate, scheduleEndTime);
+                              if (min && min > 0) setScheduleDurationMinutes(min);
+                            }
+                          }}
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer shadow-2xs ${
+                            scheduleStartDate === todayStr 
+                              ? 'bg-[#191654] text-white border-[#191654]' 
+                              : 'bg-white hover:bg-slate-100 text-[#4A4A4A] border-slate-200'
+                          }`}
+                        >
+                          Hoy
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const y = new Date();
+                            y.setDate(y.getDate() - 1);
+                            const yStr = y.toISOString().split('T')[0];
+                            setScheduleStartDate(yStr);
+                            setScheduleError(null);
+                            if (scheduleAutoDuration && scheduleStartTime && scheduleEndTime) {
+                              const min = calculateIntervalMinutes(yStr, scheduleStartTime, scheduleEndDate, scheduleEndTime);
+                              if (min && min > 0) setScheduleDurationMinutes(min);
+                            }
+                          }}
+                          className="px-2 py-0.5 rounded text-[10px] font-bold bg-white hover:bg-slate-100 text-[#4A4A4A] border border-slate-200 transition-colors cursor-pointer shadow-2xs"
+                        >
+                          Ayer
+                        </button>
+                      </div>
+
+                      {/* Selector de Hora de Inicio */}
+                      <div className="pt-1 border-t border-[#D8CFF0]/60">
+                        <span className="block text-[11px] font-bold text-slate-500 mb-1">Hora de inicio (HH:MM):</span>
+                        <input
+                          type="time"
+                          value={scheduleStartTime}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setScheduleStartTime(val);
+                            setScheduleError(null);
+                            if (scheduleAutoDuration && val && scheduleEndTime) {
+                              const min = calculateIntervalMinutes(scheduleStartDate, val, scheduleEndDate, scheduleEndTime);
+                              if (min && min > 0) setScheduleDurationMinutes(min);
+                            }
+                          }}
+                          className="w-full px-3 py-1.5 rounded-xl border-2 border-[#D8CFF0] focus:border-[#8E0E75] bg-white text-xs sm:text-sm font-mono font-bold text-[#191654] outline-none text-center shadow-2xs"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Columna 2: FIN DE LA ACTIVIDAD (Día + Hora) */}
+                    <div className="p-3.5 rounded-2xl bg-[#F8F6FC] border-2 border-[#D8CFF0] space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="h-2 w-2 rounded-full bg-[#8E0E75]" />
+                          <label className="block text-xs font-black uppercase text-[#191654] tracking-tight">
+                            2. Fin de la actividad
+                          </label>
+                        </div>
+                        {(scheduleStartTime || scheduleEndTime) && (
+                          <button
+                            type="button"
+                            onClick={handleClearFranja}
+                            className="text-[10px] font-bold text-red-600 hover:text-red-700 underline cursor-pointer"
+                          >
+                            Quitar horario
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Selector de Día de Fin */}
+                      <div>
+                        <span className="block text-[11px] font-bold text-slate-500 mb-1">Día de finalización:</span>
+                        <AppCalendar
+                          value={scheduleEndDate}
+                          onChange={(newDate) => {
+                            setScheduleEndDate(newDate);
+                            setScheduleError(null);
+                            if (scheduleAutoDuration && scheduleStartTime && scheduleEndTime) {
+                              const min = calculateIntervalMinutes(scheduleStartDate, scheduleStartTime, newDate, scheduleEndTime);
+                              if (min && min > 0) setScheduleDurationMinutes(min);
+                            }
+                          }}
+                          className="w-full"
+                        />
+                      </div>
+
+                      {/* Accesos rápidos de fecha de fin (con botón salvavidas 'Mismo día') */}
+                      <div className="flex items-center gap-1.5 pt-0.5 flex-wrap">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase">Rápido:</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setScheduleEndDate(scheduleStartDate);
+                            setScheduleError(null);
+                            if (scheduleAutoDuration && scheduleStartTime && scheduleEndTime) {
+                              const min = calculateIntervalMinutes(scheduleStartDate, scheduleStartTime, scheduleStartDate, scheduleEndTime);
+                              if (min && min > 0) setScheduleDurationMinutes(min);
+                            }
+                          }}
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer shadow-2xs ${
+                            scheduleEndDate === scheduleStartDate
+                              ? 'bg-[#8E0E75] text-white border-[#8E0E75]'
+                              : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300 font-extrabold'
+                          }`}
+                          title="Fijar el fin en el mismo día que el inicio (ideal si olvidaste parar el temporizador)"
+                        >
+                          Mismo día
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setScheduleEndDate(todayStr);
+                            setScheduleError(null);
+                            if (scheduleAutoDuration && scheduleStartTime && scheduleEndTime) {
+                              const min = calculateIntervalMinutes(scheduleStartDate, scheduleStartTime, todayStr, scheduleEndTime);
+                              if (min && min > 0) setScheduleDurationMinutes(min);
+                            }
+                          }}
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer shadow-2xs ${
+                            scheduleEndDate === todayStr && scheduleEndDate !== scheduleStartDate
+                              ? 'bg-[#191654] text-white border-[#191654]'
+                              : 'bg-white hover:bg-slate-100 text-[#4A4A4A] border-slate-200'
+                          }`}
+                        >
+                          Hoy
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const sDt = new Date(`${scheduleStartDate}T00:00:00`);
+                            sDt.setDate(sDt.getDate() + 1);
+                            const nextDay = sDt.toISOString().split('T')[0];
+                            setScheduleEndDate(nextDay);
+                            setScheduleError(null);
+                            if (scheduleAutoDuration && scheduleStartTime && scheduleEndTime) {
+                              const min = calculateIntervalMinutes(scheduleStartDate, scheduleStartTime, nextDay, scheduleEndTime);
+                              if (min && min > 0) setScheduleDurationMinutes(min);
+                            }
+                          }}
+                          className="px-2 py-0.5 rounded text-[10px] font-bold bg-white hover:bg-slate-100 text-[#4A4A4A] border border-slate-200 transition-colors cursor-pointer shadow-2xs"
+                          title="Fijar fin en el día siguiente"
+                        >
+                          +1 día
+                        </button>
+                      </div>
+
+                      {/* Selector de Hora de Fin */}
+                      <div className="pt-1 border-t border-[#D8CFF0]/60">
+                        <span className="block text-[11px] font-bold text-slate-500 mb-1">Hora de fin (HH:MM):</span>
+                        <input
+                          type="time"
+                          value={scheduleEndTime}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setScheduleEndTime(val);
+                            setScheduleError(null);
+                            if (scheduleAutoDuration && scheduleStartTime && val) {
+                              const min = calculateIntervalMinutes(scheduleStartDate, scheduleStartTime, scheduleEndDate, val);
+                              if (min && min > 0) setScheduleDurationMinutes(min);
+                            }
+                          }}
+                          className="w-full px-3 py-1.5 rounded-xl border-2 border-[#D8CFF0] focus:border-[#8E0E75] bg-white text-xs sm:text-sm font-mono font-bold text-[#191654] outline-none text-center shadow-2xs"
+                        />
+                      </div>
+
+                      {/* Atajos de duración rápida */}
+                      <div className="flex items-center gap-1 pt-1 flex-wrap">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase">Sumar:</span>
+                        {[
+                          { label: '+15m', val: 15 },
+                          { label: '+30m', val: 30 },
+                          { label: '+1h', val: 60 },
+                          { label: '+2h', val: 120 },
+                        ].map((preset) => (
+                          <button
+                            key={preset.label}
+                            type="button"
+                            onClick={() => applyQuickDuration(preset.val)}
+                            className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-white hover:bg-[#8E0E75] hover:text-white text-[#8E0E75] border border-[#D8CFF0] transition-colors cursor-pointer shadow-2xs"
+                            title={`Fijar duración de ${preset.label}`}
+                          >
+                            {preset.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* Banner de Detección de Despiste (+12h o Varios Días) */}
+                  {isOvernightOrLong && (
+                    <div className="p-3 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-900 text-xs space-y-1.5 animate-in fade-in duration-200">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-2 font-black">
+                          <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                          <span>
+                            Aviso de jornada prolongada ({currentIntervalMin ? formatMinutes(currentIntervalMin) : 'más de 1 día'})
+                          </span>
+                        </div>
+                        {isMultiDay && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setScheduleEndDate(scheduleStartDate);
+                              setScheduleError(null);
+                              if (scheduleAutoDuration && scheduleStartTime && scheduleEndTime) {
+                                const min = calculateIntervalMinutes(scheduleStartDate, scheduleStartTime, scheduleStartDate, scheduleEndTime);
+                                if (min && min > 0) setScheduleDurationMinutes(min);
+                              }
+                            }}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-black text-[11px] uppercase tracking-wider transition-colors cursor-pointer shadow-xs shrink-0"
+                            title="Ajustar fecha de fin para que coincida con el día de inicio"
+                          >
+                            <span>Fijar a &quot;Mismo día&quot;</span>
+                            <ArrowRight className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-amber-800 leading-tight">
+                        ¿Olvidaste parar el temporizador al salir de la oficina? Pulsa <strong>Fijar a &quot;Mismo día&quot;</strong> y ajusta la hora de finalización a cuando realmente terminaste de trabajar para no computar horas nocturnas o del día siguiente.
+                      </p>
+                    </div>
                   )}
-                </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <span className="block text-[11px] font-bold text-slate-500 mb-1">Inicio (HH:MM):</span>
-                    <input
-                      type="time"
-                      value={scheduleStartTime}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setScheduleStartTime(val);
-                        setScheduleError(null);
-                        if (scheduleAutoDuration && val && scheduleEndTime) {
-                          const min = calculateFranjaMinutes(val, scheduleEndTime);
-                          if (min && min > 0) setScheduleDurationMinutes(min);
-                        }
-                      }}
-                      className="w-full px-2.5 py-1.5 rounded-xl border-2 border-[#D8CFF0] focus:border-[#8E0E75] bg-white text-xs sm:text-sm font-mono font-bold text-[#191654] outline-none text-center shadow-2xs"
-                    />
+                  {/* Recálculo de duración y checkbox */}
+                  <div className="p-3 rounded-xl bg-white border border-[#D8CFF0] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={scheduleAutoDuration}
+                        onChange={(e) => setScheduleAutoDuration(e.target.checked)}
+                        className="rounded border-[#D8CFF0] text-[#8E0E75] focus:ring-[#8E0E75]"
+                      />
+                      <span className="font-semibold text-[#4A4A4A]">
+                        Actualizar la duración de la tarea con este cálculo
+                      </span>
+                    </label>
+
+                    <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                      <span className="text-slate-400 font-bold uppercase text-[10px]">Duración resultante:</span>
+                      <span className={`px-2.5 py-1 rounded-lg border font-mono font-black tabular-nums text-xs sm:text-sm ${
+                        currentIntervalMin !== null && currentIntervalMin <= 0
+                          ? 'bg-red-50 text-red-600 border-red-300'
+                          : 'bg-[#F8F6FC] text-[#8E0E75] border-[#D8CFF0]'
+                      }`}>
+                        {formatMinutes(scheduleDurationMinutes)}
+                      </span>
+                    </div>
                   </div>
 
-                  <div>
-                    <span className="block text-[11px] font-bold text-slate-500 mb-1">Fin (HH:MM):</span>
-                    <input
-                      type="time"
-                      value={scheduleEndTime}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setScheduleEndTime(val);
-                        setScheduleError(null);
-                        if (scheduleAutoDuration && scheduleStartTime && val) {
-                          const min = calculateFranjaMinutes(scheduleStartTime, val);
-                          if (min && min > 0) setScheduleDurationMinutes(min);
-                        }
-                      }}
-                      className="w-full px-2.5 py-1.5 rounded-xl border-2 border-[#D8CFF0] focus:border-[#8E0E75] bg-white text-xs sm:text-sm font-mono font-bold text-[#191654] outline-none text-center shadow-2xs"
-                    />
-                  </div>
-                </div>
+                  {/* Mensaje de error si aplica */}
+                  {scheduleError && (
+                    <p className="text-xs font-bold text-red-600 bg-red-50 p-2.5 rounded-xl border border-red-200">
+                      {scheduleError}
+                    </p>
+                  )}
 
-                {/* Atajos de duración rápida */}
-                <div className="flex items-center gap-1 pt-1 flex-wrap">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">Sumar:</span>
-                  {[
-                    { label: '+15m', val: 15 },
-                    { label: '+30m', val: 30 },
-                    { label: '+1h', val: 60 },
-                    { label: '+2h', val: 120 },
-                  ].map((preset) => (
+                  {/* Botones de acción */}
+                  <div className="flex items-center justify-end gap-2.5 pt-2 border-t-2 border-[#EAE4F5]">
                     <button
-                      key={preset.label}
                       type="button"
-                      onClick={() => applyQuickDuration(preset.val)}
-                      className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-white hover:bg-[#8E0E75] hover:text-white text-[#8E0E75] border border-[#D8CFF0] transition-colors cursor-pointer shadow-2xs"
-                      title={`Fijar duración de ${preset.label}`}
+                      onClick={() => setScheduleModalEntry(null)}
+                      className="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold text-[#4A4A4A] hover:bg-slate-100 transition-colors cursor-pointer"
                     >
-                      {preset.label}
+                      Cancelar
                     </button>
-                  ))}
+                    <button
+                      type="button"
+                      disabled={isSavingSchedule || (currentIntervalMin !== null && currentIntervalMin <= 0)}
+                      onClick={handleSaveSchedule}
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#8E0E75] hover:bg-[#700B5C] text-white text-xs sm:text-sm font-black uppercase tracking-tight shadow-md hover:shadow-lg transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      <Check className="h-4 w-4" />
+                      <span>{isSavingSchedule ? 'Guardando...' : 'Guardar Cambios'}</span>
+                    </button>
+                  </div>
                 </div>
-              </div>
-
-            </div>
-
-            {/* Recálculo de duración y checkbox */}
-            <div className="p-3 rounded-xl bg-white border border-[#D8CFF0] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={scheduleAutoDuration}
-                  onChange={(e) => setScheduleAutoDuration(e.target.checked)}
-                  className="rounded border-[#D8CFF0] text-[#8E0E75] focus:ring-[#8E0E75]"
-                />
-                <span className="font-semibold text-[#4A4A4A]">
-                  Actualizar la duración de la tarea con esta franja
-                </span>
-              </label>
-
-              <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
-                <span className="text-slate-400 font-bold uppercase text-[10px]">Duración resultante:</span>
-                <span className="px-2.5 py-1 rounded-lg bg-[#F8F6FC] border border-[#D8CFF0] font-mono font-black text-[#8E0E75] tabular-nums text-xs sm:text-sm">
-                  {formatMinutes(scheduleDurationMinutes)}
-                </span>
-              </div>
-            </div>
-
-            {/* Mensaje de error si aplica */}
-            {scheduleError && (
-              <p className="text-xs font-bold text-red-600 bg-red-50 p-2.5 rounded-xl border border-red-200">
-                {scheduleError}
-              </p>
-            )}
-
-            {/* Botones de acción */}
-            <div className="flex items-center justify-end gap-2.5 pt-2 border-t-2 border-[#EAE4F5]">
-              <button
-                type="button"
-                onClick={() => setScheduleModalEntry(null)}
-                className="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold text-[#4A4A4A] hover:bg-slate-100 transition-colors cursor-pointer"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                disabled={isSavingSchedule}
-                onClick={handleSaveSchedule}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#8E0E75] hover:bg-[#700B5C] text-white text-xs sm:text-sm font-black uppercase tracking-tight shadow-md hover:shadow-lg transition-all cursor-pointer disabled:opacity-50"
-              >
-                <Check className="h-4 w-4" />
-                <span>{isSavingSchedule ? 'Guardando...' : 'Guardar Cambios'}</span>
-              </button>
-            </div>
+              );
+            })()}
 
           </div>
         </div>

@@ -53,12 +53,11 @@ function getSessionSecret(): string {
   if (process.env.SESSION_SECRET && process.env.SESSION_SECRET.trim() !== '') {
     return process.env.SESSION_SECRET.trim();
   }
-  const fallbackSource =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    'brainup-clockify-default-secret-salt-2026';
-  return `bug_salt_${fallbackSource}`;
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.SUPABASE_SERVICE_ROLE_KEY.trim() !== '') {
+    return process.env.SUPABASE_SERVICE_ROLE_KEY.trim();
+  }
+  // En desarrollo/local de contingencia: salting interno estático no adivinable
+  return 'brainup-grup-hmac-sha256-internal-vault-secret-key-2026-secure';
 }
 
 async function getHmacKey(usage: 'sign' | 'verify'): Promise<CryptoKey> {

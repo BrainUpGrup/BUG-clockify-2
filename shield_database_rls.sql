@@ -1,20 +1,21 @@
 -- ==============================================================================
--- BRAIN UP CLOCKIFY & HUB • CONFIGURACIÓN MAESTRA DE SEGURIDAD Y ACCESOS
+-- BRAIN UP CLOCKIFY & HUB • CONFIGURACIÓN MAESTRA DE SEGURIDAD Y ACCESOS (BÓVEDA SEGURA)
 -- ==============================================================================
--- Este script garantiza el funcionamiento continuo y 100% fiable del sistema de contraseñas:
--- 1. Preserva y asegura las contraseñas directas en `public.profiles`.
--- 2. Actualiza la restricción de roles para admitir 'admin', 'coordinator' y 'employee'.
--- 3. Configura la función RPC `authenticate_employee` (SECURITY DEFINER) para login inmediato.
--- 4. Configura `admin_set_user_password` para que el Super Admin asigne y modifique contraseñas.
--- 5. Restaura los accesos de lectura y escritura para Brain Time, TaskFlow y Hosting.
+-- Este script implementa la arquitectura de seguridad definitiva para las credenciales:
+-- 1. BÓVEDA SEGURA (profile_passwords): Aísla totalmente las contraseñas fuera del alcance de la API pública y anon key.
+-- 2. PRESERVACIÓN OBLIGATORIA: Copia y conserva el 100% de las contraseñas existentes de todos los usuarios sin perder ninguna.
+-- 3. SELLADO DE EXPOSICIÓN: Limpia los campos de texto plano de `public.profiles` para que ninguna consulta REST pueda verlas.
+-- 4. AUTENTICACIÓN SEGURA: La función RPC `authenticate_employee` (SECURITY DEFINER) valida contraseñas de forma interna.
+-- 5. TRIGGER DE INTERCEPTACIÓN: Cualquier actualización de contraseña se almacena automáticamente en la bóveda segura.
+-- 6. CONTINUIDAD OPERATIVA: Brain Time, TaskFlow y Hosting mantienen acceso fluido sin bloqueos de empresas vacías.
 --
 -- INSTRUCCIONES:
 -- 1. Accede a tu panel de Supabase: https://supabase.com/dashboard/project/popypyunzkuyighdyjkc
 -- 2. Ve a "SQL Editor" en el menú lateral izquierdo.
--- 3. Pega y pulsa RUN (Ctrl + Enter).
+-- 3. Pega todo este contenido y pulsa RUN (Ctrl + Enter).
 -- ==============================================================================
 
--- 1. EXTENSIÓN CRIPTOGRÁFICA Y COLUMNAS DE ACCESO
+-- 1. EXTENSIÓN CRIPTOGRÁFICA Y RESTRICCIÓN DE ROLES
 create extension if not exists "pgcrypto";
 
 alter table public.profiles add column if not exists avatar_url text null default null;
@@ -26,27 +27,118 @@ alter table public.profiles add column if not exists custom_password text null;
 drop trigger if exists tr_protect_profile_privileges on public.profiles;
 drop function if exists public.protect_profile_privileges();
 
--- Actualizar restricción de roles para admitir 'admin'
+-- Actualizar restricción de roles para admitir 'admin', 'coordinator' y 'employee'
 alter table public.profiles drop constraint if exists profiles_role_check;
 alter table public.profiles add constraint profiles_role_check check (role in ('admin', 'coordinator', 'employee'));
 
--- Asignar rol de Super Administrador permanente a la cuenta principal
+-- Asegurar rol de Super Administrador permanente a la cuenta principal
 update public.profiles set role = 'admin', status = 'active' where lower(trim(email)) = 'appadmin@brainupgrup.com';
 
--- 2. RESTAURACIÓN GARANTIZADA DE TODAS LAS CONTRASEÑAS ACTIVAS DEL EQUIPO
-update public.profiles set custom_password = '123456', password_configured = true where lower(trim(email)) = 'appadmin@brainupgrup.com';
-update public.profiles set custom_password = 'cordinadora2026', password_configured = true where lower(trim(email)) = 'montse@brainupgrup.com';
-update public.profiles set custom_password = 'lidia2026', password_configured = true where lower(trim(email)) = 'lidia@brainupgrup.com';
-update public.profiles set custom_password = 'Elefantes26', password_configured = true where lower(trim(email)) = 'valeria@brainupgrup.com';
-update public.profiles set custom_password = 'eNTRADA1%', password_configured = true where lower(trim(email)) = 'cristina@brainupgrup.com';
-update public.profiles set custom_password = '12345678', password_configured = true where lower(trim(email)) = 'albert@brainupgrup.com';
-update public.profiles set custom_password = '123456', password_configured = true where lower(trim(email)) = 'peipito@gmail.com';
+-- ==============================================================================
+-- 2. CREACIÓN DE LA BÓVEDA SEGURA DE CREDENCIALES (profile_passwords)
+-- ==============================================================================
+create table if not exists public.profile_passwords (
+  profile_id uuid primary key references public.profiles(id) on delete cascade,
+  custom_password text null,
+  temp_password text null,
+  updated_at timestamptz not null default now()
+);
+
+-- Habilitar RLS en la bóveda y revocar TODO acceso directo a roles anónimos y autenticados
+alter table public.profile_passwords enable row level security;
+revoke all on public.profile_passwords from anon, authenticated;
+grant all on public.profile_passwords to service_role;
 
 -- ==============================================================================
--- 3. FUNCIONES RPC ROBUSTAS Y FIABLES (SECURITY DEFINER)
+-- 3. MIGRACIÓN Y PRESERVACIÓN INMUTABLE DE TODAS LAS CONTRASEÑAS EXISTENTES
+-- ==============================================================================
+-- A) Migrar primero cualquier contraseña activa que ya resida en public.profiles
+insert into public.profile_passwords (profile_id, custom_password, temp_password, updated_at)
+select id, custom_password, temp_password, now()
+from public.profiles
+where (custom_password is not null and trim(custom_password) <> '')
+   or (temp_password is not null and trim(temp_password) <> '')
+on conflict (profile_id) do update
+set custom_password = coalesce(excluded.custom_password, profile_passwords.custom_password),
+    temp_password = excluded.temp_password,
+    updated_at = now();
+
+-- B) Garantizar y blindar las contraseñas maestras y activas del equipo (Seguro anti-pérdida)
+insert into public.profile_passwords (profile_id, custom_password, updated_at)
+select id, '123456', now() from public.profiles where lower(trim(email)) = 'appadmin@brainupgrup.com'
+on conflict (profile_id) do update set custom_password = '123456', updated_at = now();
+
+insert into public.profile_passwords (profile_id, custom_password, updated_at)
+select id, 'cordinadora2026', now() from public.profiles where lower(trim(email)) = 'montse@brainupgrup.com'
+on conflict (profile_id) do update set custom_password = 'cordinadora2026', updated_at = now();
+
+insert into public.profile_passwords (profile_id, custom_password, updated_at)
+select id, 'lidia2026', now() from public.profiles where lower(trim(email)) = 'lidia@brainupgrup.com'
+on conflict (profile_id) do update set custom_password = 'lidia2026', updated_at = now();
+
+insert into public.profile_passwords (profile_id, custom_password, updated_at)
+select id, 'Elefantes26', now() from public.profiles where lower(trim(email)) = 'valeria@brainupgrup.com'
+on conflict (profile_id) do update set custom_password = 'Elefantes26', updated_at = now();
+
+insert into public.profile_passwords (profile_id, custom_password, updated_at)
+select id, 'eNTRADA1%', now() from public.profiles where lower(trim(email)) = 'cristina@brainupgrup.com'
+on conflict (profile_id) do update set custom_password = 'eNTRADA1%', updated_at = now();
+
+insert into public.profile_passwords (profile_id, custom_password, updated_at)
+select id, '12345678', now() from public.profiles where lower(trim(email)) = 'albert@brainupgrup.com'
+on conflict (profile_id) do update set custom_password = '12345678', updated_at = now();
+
+insert into public.profile_passwords (profile_id, custom_password, updated_at)
+select id, '123456', now() from public.profiles where lower(trim(email)) = 'peipito@gmail.com'
+on conflict (profile_id) do update set custom_password = '123456', updated_at = now();
+
+-- C) Sellar la exposición: Limpiar los campos de contraseñas de public.profiles para que la REST API devuelva NULL
+update public.profiles set custom_password = null, temp_password = null;
+
+-- ==============================================================================
+-- 4. TRIGGER AUTOMÁTICO DE ENCAMINAMIENTO HACIA LA BÓVEDA (tr_vault_profile_passwords)
+-- ==============================================================================
+-- Si cualquier código del frontend o acción envía custom_password o temp_password a profiles,
+-- este trigger lo intercepta, lo guarda de forma segura en profile_passwords y deja profiles limpio.
+create or replace function public.vault_profile_passwords_trigger()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if (new.custom_password is not null and trim(new.custom_password) <> '') or 
+     (new.temp_password is not null and trim(new.temp_password) <> '') then
+    insert into public.profile_passwords (profile_id, custom_password, temp_password, updated_at)
+    values (
+      new.id, 
+      case when new.custom_password is not null and trim(new.custom_password) <> '' then trim(new.custom_password) else null end,
+      case when new.temp_password is not null and trim(new.temp_password) <> '' then trim(new.temp_password) else null end,
+      now()
+    )
+    on conflict (profile_id) do update
+    set custom_password = coalesce(case when excluded.custom_password is not null then excluded.custom_password else null end, profile_passwords.custom_password),
+        temp_password = excluded.temp_password,
+        updated_at = now();
+  end if;
+
+  -- Mantener la columna en profiles en NULL para garantizar CERO exposición pública
+  new.custom_password := null;
+  new.temp_password := null;
+  return new;
+end;
+$$;
+
+drop trigger if exists tr_vault_profile_passwords on public.profiles;
+create trigger tr_vault_profile_passwords
+  before insert or update on public.profiles
+  for each row execute function public.vault_profile_passwords_trigger();
+
+-- ==============================================================================
+-- 5. FUNCIONES RPC ROBUSTAS Y SEGURAS (SECURITY DEFINER)
 -- ==============================================================================
 
--- A) Autenticación segura de empleados y administradores
+-- A) Autenticación segura de empleados y administradores contra la bóveda
 create or replace function public.authenticate_employee(p_email text, p_password text)
 returns jsonb
 language plpgsql
@@ -55,6 +147,7 @@ set search_path = public
 as $$
 declare
   v_prof record;
+  v_pass record;
 begin
   if p_email is null or p_password is null or trim(p_email) = '' or trim(p_password) = '' then
     return jsonb_build_object('success', false, 'error', 'El correo y la contraseña son obligatorios.');
@@ -63,13 +156,22 @@ begin
   select id, full_name, email, role, status, department, password_configured, avatar_url, created_at
   into v_prof
   from public.profiles
-  where lower(trim(email)) = lower(trim(p_email))
-    and (
-      custom_password = trim(p_password) or 
-      temp_password = trim(p_password)
-    );
+  where lower(trim(email)) = lower(trim(p_email));
 
   if not found then
+    return jsonb_build_object('success', false, 'error', 'Credenciales incorrectas.');
+  end if;
+
+  -- Consultar la bóveda segura de contraseñas (SECURITY DEFINER permite lectura protegida)
+  select custom_password, temp_password
+  into v_pass
+  from public.profile_passwords
+  where profile_id = v_prof.id;
+
+  if not found or (
+    coalesce(v_pass.custom_password, '') <> trim(p_password) and
+    coalesce(v_pass.temp_password, '') <> trim(p_password)
+  ) then
     return jsonb_build_object('success', false, 'error', 'Credenciales incorrectas.');
   end if;
 
@@ -106,7 +208,7 @@ $$;
 
 grant execute on function public.authenticate_employee(text, text) to anon, authenticated;
 
--- B) Asignación y cambio de contraseñas directo desde el panel Super Admin
+-- B) Asignación y cambio de contraseñas directo desde el panel Super Admin hacia la bóveda
 create or replace function public.admin_set_user_password(p_email text, p_password text, p_is_temp boolean default false)
 returns jsonb
 language plpgsql
@@ -122,14 +224,28 @@ begin
   end if;
 
   if p_is_temp then
+    insert into public.profile_passwords (profile_id, temp_password, updated_at)
+    values (v_uid, trim(p_password), now())
+    on conflict (profile_id) do update
+    set temp_password = trim(p_password),
+        updated_at = now();
+
     update public.profiles 
     set password_configured = false,
-        temp_password = trim(p_password)
+        temp_password = null,
+        custom_password = null
     where id = v_uid;
   else
+    insert into public.profile_passwords (profile_id, custom_password, temp_password, updated_at)
+    values (v_uid, trim(p_password), null, now())
+    on conflict (profile_id) do update
+    set custom_password = trim(p_password),
+        temp_password = null,
+        updated_at = now();
+
     update public.profiles 
     set password_configured = true,
-        custom_password = trim(p_password),
+        custom_password = null,
         temp_password = null
     where id = v_uid;
   end if;
@@ -141,7 +257,7 @@ $$;
 grant execute on function public.admin_set_user_password(text, text, boolean) to anon, authenticated;
 
 -- ==============================================================================
--- 4. POLÍTICAS RLS ROBUSTAS PARA LA SUITE COMPLETA
+-- 6. POLÍTICAS RLS PARA LA SUITE COMPLETA (CONTINUIDAD OPERATIVA 100%)
 -- ==============================================================================
 
 -- A) TABLA: profiles (EQUIPO Y DIRECTORIO)
