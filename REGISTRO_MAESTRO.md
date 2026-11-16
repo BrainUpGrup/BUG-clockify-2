@@ -2529,6 +2529,35 @@
   - `npx tsc --noEmit`: **0 errores de TypeScript**.
   - `npm run build`: **Compilación de producción exitosa en 22 rutas estáticas y dinámicas**.
 
+### [v4.3.6] - 2026-11-16 - Cierre Quirúrgico Zero-Loss de Bóveda de Contraseñas (`profile_passwords`)
+- **Solicitud del Usuario:**
+  *"si quieres haerlo hazlo, pero asegurate de mantener las contraseñas al 100%"*
+- **Decisiones Técnicas y Solución Implementada:**
+  1. **Script SQL [`seal_password_vault_safe.sql`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/seal_password_vault_safe.sql):**
+     - Respalda en `public.profile_passwords` cualquier contraseña en `public.profiles` mediante `COALESCE` sin sobrescribir jamás ninguna clave existente.
+     - Garantiza el trigger `tr_vault_profile_passwords` (`SECURITY DEFINER`) en `public.profiles` para que `/register`, Admin y Coordinación sigan guardando contraseñas automáticamente en la bóveda y limpiándolas de `profiles`.
+     - Revoca permisos `anon` y `authenticated` sobre `public.profile_passwords` y aplica RLS `for all using (false) with check (false)`, manteniendo intactas las lecturas `select('*')` de `profiles` y el flujo de `time_entries`.
+     - Se actualiza en paralelo [`emergency_fix_restore_operations.sql`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/emergency_fix_restore_operations.sql) para mantener coherencia.
+  2. **Alineación con Directrices Maestras:**
+     - **DM-01 (Cero Emojis):** 0 caracteres emoji.
+     - **Políticas de Git:** Sin `git push` automático.
+- **Validación en Vivo (Supabase `popypyunzkuyighdyjkc`):**
+  - `GET /rest/v1/profile_passwords?select=*`: **HTTP 401 (`42501: permission denied for table profile_passwords`)**.
+  - `GET /rest/v1/profiles?select=*`: **HTTP 200** (`8` perfiles, `0` contraseñas expuestas).
+  - RPC `authenticate_employee`: **HTTP 200 (`success: true`)** verificado para las 8 cuentas del equipo.
+  - `POST /rest/v1/time_entries`: **HTTP 201 Created** (y limpieza `DELETE` HTTP 204).
+
+### [v4.3.7] - 2026-11-16 - Brain Storage: Cuadrícula de 7 Columnas, Eliminación de Badge "Simulador Local" e IDs, y Título Protagonista
+- **Solicitud del Usuario:**
+  *"quiero qeu elimines redondel que pone simulaor local, no me da nada, quiero que aumentes las columnas a 7 cajones por columna y quiero que quites el ID: ... y hagas mucho mas grande el nombre de la empresa ocupando gran parte de la parte superior del cajon"*
+- **Decisiones Técnicas y Solución Implementada ([`src/app/apps/archivos/page.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/app/apps/archivos/page.tsx)):**
+  1. Eliminado el distintivo ámbar `Simulador Local` de la cabecera superior (y limpiado el icono `Sparkles`).
+  2. Ampliada la rejilla de empresas a **7 columnas en escritorio** (`grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 2xl:grid-cols-7 gap-2.5`) junto con el indicador descriptivo de 7 columnas.
+  3. Eliminado el texto `ID: ...` y la flecha lateral `ChevronRight` de los cajones para liberar el 100% del ancho superior, ampliando el nombre de empresa a `text-base sm:text-lg font-black leading-tight line-clamp-2`.
+  4. **Directrices Maestras:** DM-01 (0 emojis), DM-03 (ancho líquido 100%), DM-15 (Zero-Scroll: 7 columnas reducen aún más el alto vertical).
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+
 
 
 

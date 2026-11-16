@@ -152,7 +152,8 @@ create table if not exists public.taskflow_postits (
 grant all on public.profiles to anon, authenticated, service_role;
 grant all on public.companies to anon, authenticated, service_role;
 grant all on public.time_entries to anon, authenticated, service_role;
-grant all on public.profile_passwords to anon, authenticated, service_role;
+revoke all on public.profile_passwords from anon, authenticated;
+grant all on public.profile_passwords to service_role;
 grant all on public.hosting_services to anon, authenticated, service_role;
 grant all on public.taskflow_items to anon, authenticated, service_role;
 grant all on public.taskflow_lists to anon, authenticated, service_role;
@@ -210,7 +211,7 @@ begin
   create policy "companies_update_policy" on public.companies for update using (true);
   create policy "companies_delete_policy" on public.companies for delete using (true);
 
-  create policy "profile_passwords_all" on public.profile_passwords for all using (true) with check (true);
+  create policy "profile_passwords_lock" on public.profile_passwords for all using (false) with check (false);
 
   create policy "hosting_services_select_policy" on public.hosting_services for select using (true);
   create policy "hosting_services_insert_policy" on public.hosting_services for insert with check (true);

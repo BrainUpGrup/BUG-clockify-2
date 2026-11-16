@@ -16,7 +16,6 @@ import {
   RefreshCw,
   Trash2,
   FileUp,
-  Sparkles,
   Building2,
   UserCheck,
   MessageSquareWarning,
@@ -30,7 +29,6 @@ import {
   Download,
   Copy,
   Power,
-  ChevronRight,
   FileText,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
@@ -482,7 +480,7 @@ export default function ArchivosHubPage() {
   return (
     <div className="flex-1 w-full bg-[#F4F5F7] px-4 sm:px-6 lg:px-8 py-4 sm:py-5 space-y-4">
       {/* ========================================================================= */}
-      {/* VISTA 1: PANTALLA INICIAL (CUADRÍCULA DE EMPRESAS EN FILAS DE 5)           */}
+      {/* VISTA 1: PANTALLA INICIAL (CUADRÍCULA DE EMPRESAS EN FILAS DE 7)           */}
       {/* ========================================================================= */}
       {!selectedCompanyId && (
         <div className="space-y-4 animate-in fade-in duration-200">
@@ -493,15 +491,9 @@ export default function ArchivosHubPage() {
                 <FolderCheck className="h-6 w-6" />
               </div>
               <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-lg sm:text-xl font-black text-[#191654] uppercase tracking-tight">
-                    Brain Storage • Área Trabajador
-                  </h1>
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-100 border border-amber-300 text-amber-900 text-[10px] font-black uppercase tracking-wider">
-                    <Sparkles className="h-3 w-3" />
-                    <span>Simulador Local</span>
-                  </span>
-                </div>
+                <h1 className="text-lg sm:text-xl font-black text-[#191654] uppercase tracking-tight">
+                  Brain Storage • Área Trabajador
+                </h1>
                 <p className="text-xs text-[#4A4A4A] mt-0.5">
                   Haz clic en cualquier cajón de empresa para acceder a sus columnas de{' '}
                   <strong className="text-[#191654]">Enviados</strong>,{' '}
@@ -597,11 +589,11 @@ export default function ArchivosHubPage() {
               {searchQuery && ` (filtrado por "${searchQuery}")`}
             </span>
             <span className="text-[11px] text-[#8E0E75]">
-              Distribución en cuadrícula de 5 columnas para máxima visibilidad (Zero-Scroll)
+              Distribución en cuadrícula de 7 columnas para máxima visibilidad (Zero-Scroll)
             </span>
           </div>
 
-          {/* CUADRÍCULA DE RECUADROS DE EMPRESAS EN FILAS DE 5 */}
+          {/* CUADRÍCULA DE RECUADROS DE EMPRESAS EN FILAS DE 7 */}
           {isLoadingData ? (
             <div className="py-20 text-center text-xs text-slate-400">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#D8CFF0] border-t-[#8E0E75] mx-auto mb-2" />
@@ -612,7 +604,7 @@ export default function ArchivosHubPage() {
               No se encontraron empresas con el término "{searchQuery}".
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-5 gap-3.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 2xl:grid-cols-7 gap-2.5">
               {filteredCompanies.map((comp) => {
                 const stats = companyStats.get(comp.id) || {
                   sent: 0,
@@ -634,22 +626,18 @@ export default function ArchivosHubPage() {
                     key={comp.id}
                     type="button"
                     onClick={() => setSelectedCompanyId(comp.id)}
-                    className="group relative text-left p-3.5 rounded-2xl bg-white border-2 border-[#D8CFF0] hover:border-[#8E0E75] hover:shadow-md transition-all duration-150 flex flex-col justify-between gap-3 cursor-pointer min-h-[120px] focus:outline-none focus:ring-2 focus:ring-[#8E0E75]/20"
+                    className="group relative text-left p-3 rounded-2xl bg-white border-2 border-[#D8CFF0] hover:border-[#8E0E75] hover:shadow-md transition-all duration-150 flex flex-col justify-between gap-2.5 cursor-pointer min-h-[118px] focus:outline-none focus:ring-2 focus:ring-[#8E0E75]/20"
                   >
-                    {/* ENCABEZADO DEL RECUADRO: Iniciales + Nombre */}
-                    <div className="flex items-start gap-2.5 w-full">
-                      <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#191654] to-[#8E0E75] text-white flex items-center justify-center font-black text-xs shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                    {/* ENCABEZADO DEL RECUADRO: Monograma compacto + Nombre protagonista (Sin ID) */}
+                    <div className="flex items-start gap-2.5 w-full flex-1">
+                      <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-[#191654] to-[#8E0E75] text-white flex items-center justify-center font-black text-[10px] shrink-0 shadow-xs group-hover:scale-105 transition-transform mt-0.5">
                         {initials || 'EM'}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h3 className="text-xs sm:text-sm font-black text-[#191654] truncate group-hover:text-[#8E0E75] transition-colors">
+                        <h3 className="text-base sm:text-lg font-black text-[#191654] leading-tight tracking-tight line-clamp-2 break-words group-hover:text-[#8E0E75] transition-colors">
                           {comp.name}
                         </h3>
-                        <p className="text-[10px] text-slate-400 font-mono truncate">
-                          ID: {comp.id.replace('demo-company-', '').slice(0, 14)}
-                        </p>
                       </div>
-                      <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-[#8E0E75] shrink-0 transition-colors" />
                     </div>
 
                     {/* ALERTAS COMPACTAS (CORRECCIÓN / BRIEFING NUEVO) */}
