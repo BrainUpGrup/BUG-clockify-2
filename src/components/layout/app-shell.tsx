@@ -38,11 +38,13 @@ function AppShellInner({ children }: AppShellProps) {
       }`}
     >
       {showNavbar && (
-        <div className={isLayoutCollapsed ? 'hidden' : 'contents'}>
-          <Navbar />
+        <div className="sticky top-0 z-50 w-full">
+          <div className={isLayoutCollapsed ? 'hidden' : 'block'}>
+            <Navbar />
+          </div>
+          <GlobalLayoutCollapseHandle />
         </div>
       )}
-      {showNavbar && <GlobalLayoutCollapseHandle />}
       <div
         className={`flex-1 flex flex-col w-full min-w-0 max-w-full ${
           isZeroScrollApp ? 'min-h-0 overflow-hidden' : ''

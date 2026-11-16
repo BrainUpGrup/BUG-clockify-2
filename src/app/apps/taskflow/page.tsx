@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/auth-context';
 import { useTimer } from '@/context/timer-context';
-import { CollapsiblePageHeader, useLayoutCollapse } from '@/context/layout-collapse-context';
 import { createClient } from '@/lib/supabase/client';
 import { MOCK_COMPANIES, MOCK_PROFILES } from '@/lib/mock-data';
 import { Company, Profile } from '@/types/database';
@@ -162,9 +161,6 @@ function TaskFlowContent() {
     }
     return false;
   });
-
-  const { isLayoutCollapsed } = useLayoutCollapse();
-  const isEffectiveHeaderCollapsed = isHeaderCollapsed || isLayoutCollapsed;
 
   const toggleHeaderCollapse = () => {
     setIsHeaderCollapsed((prev) => {
@@ -637,7 +633,6 @@ function TaskFlowContent() {
         
         {/* SECCIÓN 1: Barra de Herramientas (Conmutador de Vistas + Filtros de Ámbito y Buscador) */}
         {!isHeaderCollapsed && (
-          <CollapsiblePageHeader>
           <div className="bg-white border border-[#D8CFF0] px-3.5 py-2 rounded-2xl shadow-2xs flex flex-wrap items-center justify-between gap-2 shrink-0 animate-in fade-in duration-200">
             
             {/* Conmutador de Vistas con Pastilla Morada Deslizante Fluida */}
@@ -904,11 +899,10 @@ function TaskFlowContent() {
             </div>
 
           </div>
-          </CollapsiblePageHeader>
         )}
 
-        {/* Barra ultra-compacta cuando está plegado localmente en vista Lista */}
-        {!isLayoutCollapsed && isHeaderCollapsed && viewMode === 'list' && (
+        {/* Barra ultra-compacta cuando está plegado en vista Lista */}
+        {isHeaderCollapsed && viewMode === 'list' && (
           <div className="bg-white border-2 border-[#D8CFF0] rounded-xl px-2.5 py-1.5 shadow-2xs flex items-center justify-between gap-3 shrink-0 animate-in fade-in duration-200">
             <div className="flex items-center gap-2 shrink-0">
               <button
@@ -993,7 +987,7 @@ function TaskFlowContent() {
               onMoveItemDate={handleMoveItemDate}
               onQuickReschedule={handleQuickReschedule}
               currentUserName={currentUserName}
-              isHeaderCollapsed={isEffectiveHeaderCollapsed}
+              isHeaderCollapsed={isHeaderCollapsed}
               onToggleHeaderCollapse={toggleHeaderCollapse}
               onChangeViewMode={(mode) => setViewMode(mode)}
               viewMode={viewMode}
@@ -1005,7 +999,7 @@ function TaskFlowContent() {
           <PostItBoard
             postIts={postIts}
             onSavePostIts={savePostIts}
-            isHeaderCollapsed={isEffectiveHeaderCollapsed}
+            isHeaderCollapsed={isHeaderCollapsed}
             onToggleHeaderCollapse={toggleHeaderCollapse}
             onChangeViewMode={(mode) => setViewMode(mode)}
             viewMode={viewMode}
