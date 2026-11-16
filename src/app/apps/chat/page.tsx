@@ -330,7 +330,7 @@ function BrainUpChatContent() {
   }
 
   return (
-    <div className={`${isLayoutCollapsed ? 'h-screen' : 'h-[calc(100vh-5rem)]'} flex flex-col bg-white overflow-hidden font-sans w-full transition-[height] duration-150`}>
+    <div className={`${isLayoutCollapsed ? 'h-[calc(100vh-2rem)]' : 'h-[calc(100vh-5rem)]'} flex flex-col bg-white overflow-hidden font-sans w-full transition-[height] duration-150`}>
 
       {/* Notificación Toast Flotante */}
       {toastMessage && (

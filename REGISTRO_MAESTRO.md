@@ -2584,6 +2584,17 @@
   - `npx tsc --noEmit`: **0 errores de compilación**.
   - `npm run build`: **Compilación de producción exitosa en 22/22 rutas**.
 
+### [v4.3.10] - 2026-11-16 - Corrección Visual y Rediseño de Lengüeta `Ocultar barra` / `Mostrar barra`
+- **Solicitud del Usuario:**
+  *"el boton es muy pequeño y esta muy mal puesto, haz que se vea mejor y sea mas grande"*
+- **Causa Detectada:** El contenedor padre usaba `h-0 flex` sin `items-start`, provocando que Flexbox comprimiera el botón a altura casi nula (`~4px`) dejando solo la punta del icono visible.
+- **Solución Implementada ([`src/context/layout-collapse-context.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/context/layout-collapse-context.tsx) y [`src/app/apps/chat/page.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/app/apps/chat/page.tsx)):**
+  1. Añadido `items-start` para conservar la altura real del botón y `-mt-px` para acoplarlo sin salto directamente al borde inferior del `Navbar`.
+  2. Botón ampliado y legible: `h-7 px-5` con icono de grosor `stroke-[2.75]`, borde `#D8CFF0`, texto ciruela `#8E0E75` (`Ocultar barra` / `Mostrar barra`), hover corporativo ciruela con texto blanco y sombra.
+  3. Al plegar el `Navbar`, la barra pasa a reservar `h-8` (`32px`) para no superponerse con las tarjetas superiores de las páginas (`Brain Chat` ajustado a `h-[calc(100vh-2rem)]`).
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+
 
 
 

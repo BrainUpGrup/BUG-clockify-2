@@ -88,7 +88,11 @@ export function GlobalLayoutCollapseHandle() {
   const { isLayoutCollapsed, toggleLayoutCollapse } = useLayoutCollapse();
 
   return (
-    <div className="w-full h-0 overflow-visible flex justify-center pointer-events-none">
+    <div
+      className={`w-full flex items-start justify-center pointer-events-none ${
+        isLayoutCollapsed ? 'h-8' : 'h-0 overflow-visible -mt-px'
+      }`}
+    >
       <button
         type="button"
         onClick={toggleLayoutCollapse}
@@ -99,15 +103,21 @@ export function GlobalLayoutCollapseHandle() {
         }
         aria-label={
           isLayoutCollapsed
-            ? 'Desplegar barra superior'
-            : 'Plegar barra superior'
+            ? 'Mostrar barra superior'
+            : 'Ocultar barra superior'
         }
-        className="pointer-events-auto inline-flex items-center justify-center px-6 py-0.5 rounded-b-xl bg-white/95 backdrop-blur-xs hover:bg-[#8E0E75] border border-t-0 border-[#D8CFF0] hover:border-[#8E0E75] text-[#191654] hover:text-white shadow-sm transition-all cursor-pointer group"
+        className="pointer-events-auto inline-flex items-center justify-center gap-1.5 h-7 px-5 rounded-b-xl bg-white hover:bg-[#8E0E75] border-2 border-t-0 border-[#D8CFF0] hover:border-[#8E0E75] text-[#8E0E75] hover:text-white shadow-md transition-all cursor-pointer group select-none"
       >
         {isLayoutCollapsed ? (
-          <ChevronDown className="h-4 w-4 stroke-[2.25] group-hover:translate-y-0.5 transition-transform" />
+          <>
+            <ChevronDown className="h-4 w-4 stroke-[2.75] group-hover:translate-y-0.5 transition-transform" />
+            <span className="text-[11px] font-black uppercase tracking-wider">Mostrar barra</span>
+          </>
         ) : (
-          <ChevronUp className="h-4 w-4 stroke-[2.25] group-hover:-translate-y-0.5 transition-transform" />
+          <>
+            <ChevronUp className="h-4 w-4 stroke-[2.75] group-hover:-translate-y-0.5 transition-transform" />
+            <span className="text-[11px] font-black uppercase tracking-wider">Ocultar barra</span>
+          </>
         )}
       </button>
     </div>
