@@ -43,6 +43,7 @@ import {
 import { notify } from '@/lib/feedback';
 import { FilePreviewModal, formatBytesCompact } from '@/components/files-hub/file-preview-modal';
 import { DriveTreePanel } from '@/components/files-hub/drive-tree-panel';
+import { CollapsiblePageHeader } from '@/context/layout-collapse-context';
 
 interface PreviewTarget {
   title: string;
@@ -485,6 +486,7 @@ export default function ArchivosHubPage() {
       {!selectedCompanyId && (
         <div className="space-y-4 animate-in fade-in duration-200">
           {/* BARRA SUPERIOR DE LA PANTALLA INICIAL */}
+          <CollapsiblePageHeader className="space-y-2">
           <div className="rounded-2xl bg-white border-2 border-[#D8CFF0] p-4 shadow-xs flex flex-col xl:flex-row xl:items-center justify-between gap-3">
             <div className="flex items-start sm:items-center gap-3">
               <div className="p-2.5 rounded-xl bg-gradient-to-br from-[#191654] to-[#8E0E75] text-white shadow-sm shrink-0">
@@ -592,6 +594,7 @@ export default function ArchivosHubPage() {
               Distribución en cuadrícula de 7 columnas para máxima visibilidad (Zero-Scroll)
             </span>
           </div>
+          </CollapsiblePageHeader>
 
           {/* CUADRÍCULA DE RECUADROS DE EMPRESAS EN FILAS DE 7 */}
           {isLoadingData ? (
@@ -700,6 +703,7 @@ export default function ArchivosHubPage() {
       {selectedCompanyId && activeCompany && (
         <div className="space-y-4 animate-in fade-in duration-200">
           {/* CABECERA DEL CLIENTE: Botón Volver + Nombre de Empresa + Accesos Portal Cliente */}
+          <CollapsiblePageHeader>
           <div className="rounded-2xl bg-white border-2 border-[#D8CFF0] p-4 shadow-xs flex flex-col xl:flex-row xl:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <button
@@ -827,6 +831,7 @@ export default function ArchivosHubPage() {
               )}
             </div>
           </div>
+          </CollapsiblePageHeader>
 
           {/* ========================================================================= */}
           {/* LAS 3 COLUMNAS DEL CLIENTE: ENVIADOS | RECIBIDOS | VALIDADOS              */}

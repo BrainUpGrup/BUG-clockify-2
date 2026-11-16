@@ -7,6 +7,7 @@ import { MonthlyReports } from '@/components/coordinator/monthly-reports';
 import { CompanyCrud } from '@/components/coordinator/company-crud';
 import { UserManagement } from '@/components/coordinator/user-management';
 import { useAuth } from '@/context/auth-context';
+import { CollapsiblePageHeader } from '@/context/layout-collapse-context';
 import { notify, flagAccessDenied } from '@/lib/feedback';
 import { createClient } from '@/lib/supabase/client';
 import { 
@@ -565,6 +566,7 @@ export default function CoordinatorDashboardPage() {
       {/* Contenedor Líquido a Pantalla Completa con Animación de Entrada */}
       <main className="flex-1 w-full max-w-full px-3 sm:px-6 lg:px-8 py-5 sm:py-6 space-y-5 sm:space-y-6 page-transition min-w-0 overflow-x-hidden">
         {/* Cabecera del Panel Líquida con Degradado Sedoso y Relieve Fino */}
+        <CollapsiblePageHeader>
         <div className="w-full rounded-2xl bg-gradient-to-r from-white/95 via-[#F8F6FC]/90 to-white/80 border-2 border-[#D0C4EB] p-4 sm:p-5 shadow-sm flex flex-col 2xl:flex-row 2xl:items-center justify-between gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0 flex-1">
             <div className="min-w-0">
@@ -668,6 +670,7 @@ export default function CoordinatorDashboardPage() {
             </button>
           </div>
         </div>
+        </CollapsiblePageHeader>
 
         {/* Contenido según la pestaña activa con transición animada suave */}
         <div key={activeTab} className="tab-transition">

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/auth-context';
+import { CollapsiblePageHeader } from '@/context/layout-collapse-context';
 import { createClient } from '@/lib/supabase/client';
 import { MOCK_PROFILES } from '@/lib/mock-data';
 import { Profile } from '@/types/database';
@@ -213,6 +214,7 @@ export default function BrainUpHubPage() {
       <main className="page-transition flex-1 w-full max-w-[1550px] mx-auto px-4 sm:px-8 lg:px-12 py-4 sm:py-6 space-y-6 sm:space-y-7">
         
         {/* Cabecera compacta del HUB con selector de layout modular */}
+        <CollapsiblePageHeader>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#292929] leading-tight">
@@ -298,6 +300,7 @@ export default function BrainUpHubPage() {
             )}
           </div>
         </div>
+        </CollapsiblePageHeader>
 
         <div className="tab-transition">
           {activeTab === 'apps' && (

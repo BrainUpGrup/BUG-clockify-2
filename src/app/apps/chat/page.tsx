@@ -4,6 +4,7 @@ import React, { useState, useEffect, Suspense, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import { useNotifications } from '@/context/notifications-context';
+import { useLayoutCollapse } from '@/context/layout-collapse-context';
 import { createClient } from '@/lib/supabase/client';
 import { MOCK_COMPANIES, MOCK_PROFILES } from '@/lib/mock-data';
 import { Company, Profile } from '@/types/database';
@@ -23,6 +24,7 @@ function BrainUpChatContent() {
   const searchParams = useSearchParams();
   const { user, isLoading: authLoading } = useAuth();
   const { addNotification } = useNotifications();
+  const { isLayoutCollapsed } = useLayoutCollapse();
 
   // Estados de datos
   const [channels, setChannels] = useState<Channel[]>([]);
@@ -328,7 +330,7 @@ function BrainUpChatContent() {
   }
 
   return (
-    <div className="h-[calc(100vh-5rem)] flex flex-col bg-white overflow-hidden font-sans w-full">
+    <div className={`${isLayoutCollapsed ? 'h-screen' : 'h-[calc(100vh-5rem)]'} flex flex-col bg-white overflow-hidden font-sans w-full transition-[height] duration-150`}>
 
       {/* Notificación Toast Flotante */}
       {toastMessage && (

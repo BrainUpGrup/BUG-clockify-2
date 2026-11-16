@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/auth-context';
+import { CollapsiblePageHeader } from '@/context/layout-collapse-context';
 import { canUserAccessHubApp } from '@/lib/hub-apps';
 import { flagAccessDenied } from '@/lib/feedback';
 import { SubtitulosJob } from '@/types/subtitulos';
@@ -160,6 +161,7 @@ export default function SubtitulosPage() {
       <main className="page-transition flex-1 w-full max-w-[1550px] mx-auto px-4 sm:px-8 lg:px-12 py-6 sm:py-8 space-y-8">
         
         {/* Barra superior con Volver al Hub, Título y Estado */}
+        <CollapsiblePageHeader>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#D8CFF0]">
           <div>
             <Link
@@ -191,6 +193,7 @@ export default function SubtitulosPage() {
 
           <ServiceStatusBadge />
         </div>
+        </CollapsiblePageHeader>
 
         {/* TARJETA PRINCIPAL DE MODO MANTENIMIENTO */}
         <div className="relative overflow-hidden rounded-3xl border-2 border-amber-200 bg-gradient-to-br from-amber-50/70 via-white to-[#F8F6FC] p-8 sm:p-10 shadow-sm">

@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect, useCallback, ChangeEvent, DragEvent
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
+import { CollapsiblePageHeader } from '@/context/layout-collapse-context';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { 
   loadImageFromFile, 
@@ -338,6 +339,7 @@ export default function ProfilePage() {
       )}
 
       {/* Cabecera de Página con Botón Volver */}
+      <CollapsiblePageHeader>
       <div className="max-w-5xl mx-auto w-full mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <button
@@ -366,6 +368,7 @@ export default function ProfilePage() {
           <span>Ir al HUB Principal</span>
         </Link>
       </div>
+      </CollapsiblePageHeader>
 
       {/* Mensaje de Error si ocurre */}
       {errorMessage && (

@@ -8,6 +8,7 @@ import { TimeTrackerBar } from '@/components/employee/time-tracker-bar';
 import { EmployeeStats } from '@/components/employee/employee-stats';
 import { TimeEntriesList } from '@/components/employee/time-entries-list';
 import { useAuth } from '@/context/auth-context';
+import { CollapsiblePageHeader } from '@/context/layout-collapse-context';
 import { createClient } from '@/lib/supabase/client';
 import { MOCK_COMPANIES, MOCK_TIME_ENTRIES } from '@/lib/mock-data';
 import { Company, TimeEntry } from '@/types/database';
@@ -302,6 +303,7 @@ export default function EmployeeDashboardPage() {
       <main className="page-transition flex-1 w-full max-w-[1550px] mx-auto px-4 sm:px-8 lg:px-12 py-6 sm:py-8 space-y-7 sm:space-y-8">
         
         {/* Cabecera Ampliada: HORAS POR CLIENTE */}
+        <CollapsiblePageHeader>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b-2 border-[#EAE4F5] gap-3">
           <div>
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#292929] flex items-center gap-3">
@@ -326,6 +328,7 @@ export default function EmployeeDashboardPage() {
             </div>
           )}
         </div>
+        </CollapsiblePageHeader>
 
         {/* 1. Empresa actual fijada (Compacta, con hueco para logo, sin CIF ni Responsable) */}
         <section aria-label="Cliente en curso de trabajo" className="w-full">

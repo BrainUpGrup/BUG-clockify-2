@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
+import { CollapsiblePageHeader } from '@/context/layout-collapse-context';
 import { notify, confirmDialog, friendlyError, flagAccessDenied } from '@/lib/feedback';
 import { createClient } from '@/lib/supabase/client';
 import { MOCK_PROFILES } from '@/lib/mock-data';
@@ -865,6 +866,7 @@ export default function SuperAdminDashboardPage() {
       <main className="page-transition flex-1 w-full max-w-none px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         
         {/* Cabecera Principal del Super Admin */}
+        <CollapsiblePageHeader>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-[#D8CFF0] p-6 rounded-2xl shadow-xs">
           <div className="space-y-1.5">
             <div className="flex items-center gap-2">
@@ -900,6 +902,7 @@ export default function SuperAdminDashboardPage() {
             </div>
           </div>
         </div>
+        </CollapsiblePageHeader>
 
         {/* Tarjetas de Métricas Ejecutivas de Cuentas */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

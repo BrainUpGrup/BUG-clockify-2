@@ -2568,6 +2568,23 @@
 - **Validación y Pruebas:**
   - `npx tsc --noEmit`: **0 errores de compilación**.
 
+### [v4.3.9] - 2026-11-16 - Plegado / Desplegado Global Unificado del Layout Superior (Navbar + Cabeceras de Página)
+- **Solicitud del Usuario:**
+  *"vale quiero que nañades una flechita para poder plegar y desplegar en TODAS las paginas el layout para dejar mas lmpio todo"* (confirmando plegar toda la cabecera superior junta: Navbar global + barra de título/controles de la página actual).
+- **Decisiones Técnicas y Solución Implementada:**
+  1. **Motor y Estado Compartido ([`src/context/layout-collapse-context.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/context/layout-collapse-context.tsx)):**
+     - Estado global `isLayoutCollapsed` persistido en `localStorage` (`bug_clockify_global_layout_collapsed`).
+     - Componente `CollapsiblePageHeader`: envuelve la cabecera/controles superiores de cada página y coloca automáticamente la flechita centrada (`ChevronUp`) justo debajo cuando está desplegado.
+     - Componente `GlobalLayoutCollapseHandle`: al estar plegado, fija una lengüeta centrada superior (`h-0`, `ChevronDown`) ocupando `0px` de alto en pantalla; si una página no declara cabecera propia (ej. `Brain Chat`), muestra automáticamente el control bajo el `Navbar`.
+     - Al desplegar, dispara evento `resize` para que las pastillas moradas deslizantes (`Navbar` y pestañas de Coordinación/TaskFlow) recalculen medidas exactas sin saltos.
+  2. **Integración en [`src/components/layout/app-shell.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/components/layout/app-shell.tsx) y TODAS las páginas:**
+     - `Navbar` permanece montado en el DOM (`hidden` al plegar) para preservar el cronómetro, título de pestaña y listeners multi-ventana.
+     - Páginas integradas: `archivos` (Vista 1 y Vista 2), `employee`, `coordinator`, `admin`, `hosting`, `subtitulos`, `hub`, `profile`/`perfil`, `taskflow` (sincronizado con su barra y vistas `NativeCalendar`/`PostItBoard`) y `chat` (ajustando altura dinámica `h-screen` al plegar).
+  3. **Directrices Maestras:** DM-01 (0 emojis), DM-03 (fluidez 100%), DM-13 (colores corporativos La Abuela), DM-15 (Zero-Scroll).
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - `npm run build`: **Compilación de producción exitosa en 22/22 rutas**.
+
 
 
 

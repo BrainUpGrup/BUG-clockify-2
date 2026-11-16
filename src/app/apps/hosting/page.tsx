@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/auth-context';
+import { CollapsiblePageHeader } from '@/context/layout-collapse-context';
 import { canUserAccessHubApp } from '@/lib/hub-apps';
 import { HostingService, HostingMetrics, HostingAlert } from '@/types/hosting';
 import { 
@@ -334,6 +335,7 @@ export default function HostingPage() {
       <main className="page-transition flex-1 w-full max-w-[1600px] mx-auto px-4 sm:px-8 lg:px-12 py-5 sm:py-6 space-y-6">
         
         {/* Cabecera Principal con Identidad La Abuela */}
+        <CollapsiblePageHeader>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2.5">
@@ -402,6 +404,7 @@ export default function HostingPage() {
             </button>
           </div>
         </div>
+        </CollapsiblePageHeader>
 
         {/* Tarjetas de Métricas Ejecutivas */}
         <HostingStats
