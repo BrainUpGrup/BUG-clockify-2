@@ -2558,6 +2558,16 @@
 - **Validación y Pruebas:**
   - `npx tsc --noEmit`: **0 errores de compilación**.
 
+### [v4.3.8] - 2026-11-16 - Brain Storage: Fila Única Estricta (`truncate`), Viñetas Compactas y Soporte Nativo de `logo_url`
+- **Solicitud del Usuario:**
+  *"Opción 1: Una sola línea estricta (truncate) + tarjetas más compactas (Recomendada). esta me gusta ademas piensa que voy a tener que poner todos los logos de las empresas osea que no podemos eliminar el recuadro como ponias en la opcion 2"*
+- **Decisiones Técnicas y Solución Implementada ([`src/app/apps/archivos/page.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/app/apps/archivos/page.tsx)):**
+  1. Cambiado el nombre de empresa de `line-clamp-2` a una sola línea estricta (`truncate` + `text-[15px] font-black`) con tooltip `title={comp.name}` para eliminar saltos de línea y mantener todas las filas a idéntica altura.
+  2. Compactadas las viñetas a `p-2.5 sm:p-3` y `min-h-[94px]` (Zero-Scroll DM-15).
+  3. Preservado el recuadro de icono (`h-7 w-7`) conectado directamente a `comp.logo_url` en `mergedCompanies` (con monograma de iniciales como fallback), listo para mostrar todos los logos de las empresas cuando se carguen.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+
 
 
 

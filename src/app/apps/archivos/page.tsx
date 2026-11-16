@@ -168,9 +168,9 @@ export default function ArchivosHubPage() {
 
   // Consolidar lista de empresas (reales + accesos + archivos del simulador)
   const mergedCompanies = useMemo(() => {
-    const map = new Map<string, { id: string; name: string }>();
+    const map = new Map<string, { id: string; name: string; logo_url?: string }>();
     map.set('demo-company-brainup-001', { id: 'demo-company-brainup-001', name: 'Cliente Demo Brain Up' });
-    companies.forEach((c) => map.set(c.id, { id: c.id, name: c.name }));
+    companies.forEach((c) => map.set(c.id, { id: c.id, name: c.name, logo_url: c.logo_url }));
     portalAccesses.forEach((p) => {
       if (!map.has(p.company_id)) {
         map.set(p.company_id, { id: p.company_id, name: p.company_name || 'Cliente Brain Up' });
@@ -625,16 +625,23 @@ export default function ArchivosHubPage() {
                   <button
                     key={comp.id}
                     type="button"
+                    title={comp.name}
                     onClick={() => setSelectedCompanyId(comp.id)}
-                    className="group relative text-left p-3 rounded-2xl bg-white border-2 border-[#D8CFF0] hover:border-[#8E0E75] hover:shadow-md transition-all duration-150 flex flex-col justify-between gap-2.5 cursor-pointer min-h-[118px] focus:outline-none focus:ring-2 focus:ring-[#8E0E75]/20"
+                    className="group relative text-left p-2.5 sm:p-3 rounded-2xl bg-white border-2 border-[#D8CFF0] hover:border-[#8E0E75] hover:shadow-md transition-all duration-150 flex flex-col justify-between gap-2 cursor-pointer min-h-[94px] focus:outline-none focus:ring-2 focus:ring-[#8E0E75]/20"
                   >
-                    {/* ENCABEZADO DEL RECUADRO: Monograma compacto + Nombre protagonista (Sin ID) */}
-                    <div className="flex items-start gap-2.5 w-full flex-1">
-                      <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-[#191654] to-[#8E0E75] text-white flex items-center justify-center font-black text-[10px] shrink-0 shadow-xs group-hover:scale-105 transition-transform mt-0.5">
-                        {initials || 'EM'}
-                      </div>
+                    {/* ENCABEZADO DEL RECUADRO: Logo/Iniciales + Nombre en 1 línea estricta */}
+                    <div className="flex items-center gap-2 w-full">
+                      {comp.logo_url ? (
+                        <div className="h-7 w-7 rounded-lg bg-white border border-[#D8CFF0] flex items-center justify-center shrink-0 overflow-hidden p-0.5 shadow-2xs group-hover:scale-105 transition-transform">
+                          <img src={comp.logo_url} alt={comp.name} className="h-full w-full object-contain" />
+                        </div>
+                      ) : (
+                        <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-[#191654] to-[#8E0E75] text-white flex items-center justify-center font-black text-[10px] shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                          {initials || 'EM'}
+                        </div>
+                      )}
                       <div className="min-w-0 flex-1">
-                        <h3 className="text-base sm:text-lg font-black text-[#191654] leading-tight tracking-tight line-clamp-2 break-words group-hover:text-[#8E0E75] transition-colors">
+                        <h3 className="text-[15px] font-black text-[#191654] truncate tracking-tight group-hover:text-[#8E0E75] transition-colors">
                           {comp.name}
                         </h3>
                       </div>
