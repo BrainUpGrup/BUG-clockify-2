@@ -2,6 +2,21 @@ export type UserRole = 'admin' | 'coordinator' | 'employee';
 export type ProfileStatus = 'active' | 'pending' | 'rejected';
 export type ClientType = 'cuota' | 'puntual';
 export type EntryComputeType = 'cuota' | 'puntual';
+export type AuditSeverity = 'info' | 'warning' | 'critical';
+
+export interface AuditLog {
+  id: string;
+  user_id?: string | null;
+  user_email: string;
+  user_role: string;
+  action: string;
+  entity_type: string;
+  entity_id?: string | null;
+  details?: Record<string, any>;
+  ip_address?: string | null;
+  severity: AuditSeverity;
+  created_at: string;
+}
 
 export interface Profile {
   id: string;

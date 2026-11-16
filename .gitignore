@@ -33,3 +33,6 @@ Thumbs.db
 /scripts/check_*
 claude-skills-agencia
 
+# Simulador local de Google Drive (almacenamiento de archivos en pruebas)
+/.local-drive-sim/
+

@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client';
 import { TimeEntry, Company, EntryComputeType, Profile } from '@/types/database';
 import { safeGetLocalStorage, safeSetLocalStorage } from '@/lib/utils';
 import { MOCK_COMPANIES, MOCK_PROFILES } from '@/lib/mock-data';
+import { saveLocalFirstEntry } from '@/lib/services/offline-time-sync';
 
 export interface SaveStoppedTimerParams {
   userId?: string;
@@ -109,46 +110,19 @@ export async function saveStoppedTimerEntry(params: SaveStoppedTimerParams): Pro
   const computeType: EntryComputeType = params.computeType || 
     (targetCompany?.client_type === 'cuota' ? 'cuota' : 'puntual');
 
-  let savedEntry: TimeEntry | null = null;
-  let saveError: string | null = null;
+  // 4. Guardar PRIMERO en LocalStorage y encolar para sincronización en la nube (Offline-First)
+  const userProfile: Profile = currentUserProfile || {
+    id: finalUserId,
+    full_name: 'Empleado',
+    email: '',
+    role: 'employee',
+    status: 'active',
+    password_configured: true,
+    created_at: new Date().toISOString(),
+  };
 
-  // 4. Intentar guardar en Supabase si está disponible
-  const isSupabaseConfigured = !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (isSupabaseConfigured) {
-    try {
-      const { data, error } = await supabase
-        .from('time_entries')
-        .insert({
-          user_id: finalUserId,
-          company_id: finalCompanyId,
-          work_date: workDate,
-          start_time: startTime,
-          end_time: endTime,
-          duration_minutes: durationMinutes,
-          description: description,
-          compute_type: computeType,
-        })
-        .select('*, company:companies(*), profile:profiles(*)')
-        .single();
-
-      if (error) {
-        console.error('[TimerPersistence] Error inserting into Supabase time_entries:', error);
-        saveError = error.message;
-      } else if (data) {
-        savedEntry = data as unknown as TimeEntry;
-      }
-    } catch (err: any) {
-      console.error('[TimerPersistence] Network / unexpected error saving to Supabase:', err);
-      saveError = err?.message || 'Error de conexión';
-    }
-  }
-
-  // 5. Fallback local / offline si falló Supabase o no está configurado
-  if (!savedEntry) {
-    savedEntry = {
-      id: 'entry_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
-      user_id: finalUserId,
+  const savedEntry = saveLocalFirstEntry(
+    {
       company_id: finalCompanyId,
       work_date: workDate,
       start_time: startTime,
@@ -156,54 +130,26 @@ export async function saveStoppedTimerEntry(params: SaveStoppedTimerParams): Pro
       duration_minutes: durationMinutes,
       description: description,
       compute_type: computeType,
-      created_at: new Date().toISOString(),
-      company: targetCompany,
-      profile: currentUserProfile || undefined,
-    };
-  }
+    },
+    userProfile,
+    targetCompany
+  );
 
-  // 6. Persistencia y sincronización en cachés de localStorage y multi-ventana
+  // 5. Guardar última empresa y notificar a ventana padre si es ventana flotante
   if (typeof window !== 'undefined') {
     try {
-      // Caché privada del empleado
-      const userCacheKey = `bug_clockify_cache_entries_${finalUserId}`;
-      const existingUserEntries = safeGetLocalStorage<TimeEntry[]>(userCacheKey, []);
-      const updatedUserEntries = [savedEntry, ...existingUserEntries.filter((e) => e.id !== savedEntry!.id)].slice(0, 200);
-      safeSetLocalStorage(userCacheKey, updatedUserEntries);
-
-      // Caché general (coordinador/admin)
-      const coordCacheKey = 'bug_clockify_cache_entries';
-      const existingCoordEntries = safeGetLocalStorage<TimeEntry[]>(coordCacheKey, []);
-      const updatedCoordEntries = [savedEntry, ...existingCoordEntries.filter((e) => e.id !== savedEntry!.id)].slice(0, 300);
-      safeSetLocalStorage(coordCacheKey, updatedCoordEntries);
-
-      // Guardar última empresa usada
       localStorage.setItem('bug_clockify_last_company_id', finalCompanyId);
-
-      // Disparador de sincronización en localStorage (recibido por otras ventanas/pestañas vía 'storage')
-      localStorage.setItem('bug_clockify_entry_trigger', JSON.stringify({
-        timestamp: Date.now(),
-        entryId: savedEntry.id,
-        userId: finalUserId,
-        durationMinutes,
-      }));
-
-      // Evento Custom en la ventana actual
-      window.dispatchEvent(new CustomEvent('bug_clockify_entry_created', { detail: savedEntry }));
-
-      // Comunicación directa con ventana principal si esta es una ventana emergente / flotante
       if (window.opener && !window.opener.closed) {
-        try {
-          window.opener.postMessage({
+        window.opener.postMessage(
+          {
             type: 'BUG_ENTRY_CREATED',
             entry: savedEntry,
-          }, '*');
-        } catch (postErr) {
-          console.warn('[TimerPersistence] Could not postMessage to window.opener:', postErr);
-        }
+          },
+          '*'
+        );
       }
-    } catch (cacheErr) {
-      console.warn('[TimerPersistence] Error updating localStorage caches:', cacheErr);
+    } catch (postErr) {
+      console.warn('[TimerPersistence] Could not postMessage to window.opener:', postErr);
     }
   }
 
@@ -211,7 +157,6 @@ export async function saveStoppedTimerEntry(params: SaveStoppedTimerParams): Pro
     success: true,
     entry: savedEntry,
     durationMinutes,
-    error: saveError || undefined,
   };
 }
 

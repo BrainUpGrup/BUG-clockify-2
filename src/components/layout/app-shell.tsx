@@ -19,8 +19,12 @@ export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const { user } = useAuth();
 
-  // Excluir Navbar exclusivamente en login, widget popup flotante independiente o splash
-  const isExcluded = pathname === '/login' || pathname === '/floating-timer' || pathname === '/';
+  // Excluir Navbar exclusivamente en login, widget popup flotante independiente, portal cliente externo o splash
+  const isExcluded =
+    pathname === '/login' ||
+    pathname === '/floating-timer' ||
+    pathname === '/' ||
+    pathname?.startsWith('/portal');
   const showNavbar = !isExcluded && !!user;
 
   // En vistas con diseno Zero-Scroll de alta densidad como Taskflow, fijar altura exacta sin scroll global de ventana

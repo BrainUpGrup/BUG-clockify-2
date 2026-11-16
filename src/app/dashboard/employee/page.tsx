@@ -11,10 +11,17 @@ import { useAuth } from '@/context/auth-context';
 import { createClient } from '@/lib/supabase/client';
 import { MOCK_COMPANIES, MOCK_TIME_ENTRIES } from '@/lib/mock-data';
 import { Company, TimeEntry } from '@/types/database';
-import { Clock, ShieldCheck, BarChart3, ArrowRight } from 'lucide-react';
+import { Clock, ShieldCheck, BarChart3, ArrowRight, Cloud, CloudOff, RefreshCw } from 'lucide-react';
 import { useTimer } from '@/context/timer-context';
 import { notify, friendlyError, removeWithUndo } from '@/lib/feedback';
 import { formatMinutes, safeSetLocalStorage, safeGetLocalStorage } from '@/lib/utils';
+import {
+  saveLocalFirstEntry,
+  updateLocalFirstEntry,
+  deleteLocalFirstEntry,
+  initOfflineSyncListeners,
+  getPendingSyncCount,
+} from '@/lib/services/offline-time-sync';
 
 export default function EmployeeDashboardPage() {
   const router = useRouter();
@@ -26,6 +33,16 @@ export default function EmployeeDashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
   const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [pendingSyncCount, setPendingSyncCount] = useState<number>(0);
+
+  // Inicializar observadores de sincronización Offline-First (LocalStorage -> Nube)
+  useEffect(() => {
+    setPendingSyncCount(getPendingSyncCount());
+    const cleanup = initOfflineSyncListeners((count) => {
+      setPendingSyncCount(count);
+    });
+    return cleanup;
+  }, []);
 
   // Redirigir a login si no hay sesión o a admin si es super admin
   useEffect(() => {
@@ -75,9 +92,13 @@ export default function EmployeeDashboardPage() {
             safeSetLocalStorage('bug_clockify_cache_companies', compRes.data);
           }
           if (entriesRes.data && entriesRes.data.length > 0) {
-            setEntries(entriesRes.data as unknown as TimeEntry[]);
-            // Guardar solo los 200 más recientes en caché para el empleado
-            safeSetLocalStorage(`bug_clockify_cache_entries_${currentUserId}`, entriesRes.data, 200);
+            const cloudEntries = entriesRes.data as unknown as TimeEntry[];
+            // Preservar cualquier registro local que aún esté en cola de sincronización
+            const cachedLocal = safeGetLocalStorage<TimeEntry[]>(`bug_clockify_cache_entries_${currentUserId}`, []);
+            const pendingLocals = cachedLocal.filter((e) => e.id.startsWith('local_') && !cloudEntries.some((c) => c.id === e.id));
+            const merged = [...pendingLocals, ...cloudEntries];
+            setEntries(merged);
+            safeSetLocalStorage(`bug_clockify_cache_entries_${currentUserId}`, merged, 200);
           }
         } catch (err) {
           console.error('Error cargando datos de Supabase:', err);
@@ -138,13 +159,23 @@ export default function EmployeeDashboardPage() {
       }
     };
 
+    const handleEntrySynced = (e: Event) => {
+      const custom = e as CustomEvent<{ tempId: string; realEntry: TimeEntry }>;
+      if (custom.detail) {
+        const { tempId, realEntry } = custom.detail;
+        setEntries((prev) => prev.map((entry) => (entry.id === tempId ? realEntry : entry)));
+      }
+    };
+
     window.addEventListener('storage', handleStorageEvent);
     window.addEventListener('bug_clockify_entry_created', handleCustomEvent);
+    window.addEventListener('bug_clockify_entry_synced', handleEntrySynced);
     window.addEventListener('message', handleMessageEvent);
 
     return () => {
       window.removeEventListener('storage', handleStorageEvent);
       window.removeEventListener('bug_clockify_entry_created', handleCustomEvent);
+      window.removeEventListener('bug_clockify_entry_synced', handleEntrySynced);
       window.removeEventListener('message', handleMessageEvent);
     };
   }, [user]);
@@ -196,70 +227,28 @@ export default function EmployeeDashboardPage() {
     startTimerWithEntry(entry.company_id, entry.description || '');
   };
 
-  // Handler para agregar nuevo registro
+  // Handler para agregar nuevo registro (Offline-First: LocalStorage primero, Nube en segundo plano)
   const handleAddEntry = async (newEntryData: Omit<TimeEntry, 'id' | 'created_at' | 'user_id'>) => {
-    const targetCompany = companies.find((c) => c.id === newEntryData.company_id);
+    if (!user) return;
+    const targetCompany = companies.find((c) => c.id === newEntryData.company_id) || null;
 
-    if (isSupabaseConnected && user) {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from('time_entries')
-        .insert({
-          user_id: user.id,
-          company_id: newEntryData.company_id,
-          work_date: newEntryData.work_date,
-          start_time: newEntryData.start_time,
-          end_time: newEntryData.end_time,
-          duration_minutes: newEntryData.duration_minutes,
-          description: newEntryData.description,
-          compute_type: newEntryData.compute_type || (targetCompany?.client_type === 'cuota' ? 'cuota' : 'puntual'),
-        })
-        .select('*, company:companies(*), profile:profiles(*)')
-        .single();
+    // 1. Guardar primero en LocalStorage e insertar en cola de sincronización
+    const localEntry = saveLocalFirstEntry(newEntryData, user, targetCompany);
 
-      if (error) {
-        console.error(error);
-        notify(friendlyError('guardar el registro'), { type: 'error' });
-        return;
-      }
-      if (data) {
-        setEntries((prev) => [data as unknown as TimeEntry, ...prev]);
-      }
-    } else {
-      const mockEntry: TimeEntry = {
-        id: 'mock_' + Date.now(),
-        user_id: user?.id || 'u3',
-        company_id: newEntryData.company_id,
-        work_date: newEntryData.work_date,
-        start_time: newEntryData.start_time,
-        end_time: newEntryData.end_time,
-        duration_minutes: newEntryData.duration_minutes,
-        description: newEntryData.description,
-        compute_type: newEntryData.compute_type || (targetCompany?.client_type === 'cuota' ? 'cuota' : 'puntual'),
-        created_at: new Date().toISOString(),
-        company: targetCompany,
-        profile: user || undefined,
-      };
-      setEntries((prev) => [mockEntry, ...prev]);
-    }
+    // 2. Reflejar al instante en la interfaz
+    setEntries((prev) => [localEntry, ...prev.filter((e) => e.id !== localEntry.id)]);
+
+    notify('Registro guardado en tu dispositivo y sincronizándose con la nube.', { type: 'success' });
   };
 
-  // Handler para actualizar registro
+  // Handler para actualizar registro (Offline-First)
   const handleUpdateEntry = async (id: string, updatedFields: Partial<TimeEntry>) => {
-    if (isSupabaseConnected) {
-      const supabase = createClient();
-      const { error } = await supabase
-        .from('time_entries')
-        .update(updatedFields)
-        .eq('id', id);
+    if (!user) return;
 
-      if (error) {
-        console.error(error);
-        notify(friendlyError('actualizar el registro'), { type: 'error' });
-        return;
-      }
-    }
+    // 1. Actualizar primero en LocalStorage y encolar sincronización
+    updateLocalFirstEntry(id, updatedFields, user.id, companies);
 
+    // 2. Reflejar al instante en la interfaz
     setEntries((prev) =>
       prev.map((entry) => {
         if (entry.id !== id) return entry;
@@ -276,24 +265,13 @@ export default function EmployeeDashboardPage() {
     );
   };
 
-  // Handler para eliminar registro horario: se borra al instante y se ofrece "Deshacer"
+  // Handler para eliminar registro horario: se borra al instante de LocalStorage y se ofrece "Deshacer"
   const handleDeleteEntry = async (id: string) => {
     const removed = entries.find((entry) => entry.id === id);
-    if (!removed) return;
+    if (!removed || !user) return;
 
-    if (isSupabaseConnected) {
-      const supabase = createClient();
-      const { error } = await supabase
-        .from('time_entries')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        console.error(error);
-        notify(friendlyError('eliminar el registro'), { type: 'error' });
-        return;
-      }
-    }
+    // 1. Borrar primero en LocalStorage y encolar borrado en la nube
+    deleteLocalFirstEntry(id, user.id);
 
     removeWithUndo(
       `Registro eliminado (${removed.company?.name || 'Cliente'} · ${formatMinutes(removed.duration_minutes)})`,
@@ -381,8 +359,27 @@ export default function EmployeeDashboardPage() {
                 Haz clic en cualquier día para plegar o desplegar • Pulsa &quot;Repetir&quot; para reanudar una tarea
               </p>
             </div>
-            <div className="text-xs sm:text-sm text-[#191654] font-bold bg-[#F8F6FC] px-4 py-2 rounded-xl border-2 border-[#D8CFF0] tabular-nums shadow-2xs self-start sm:self-auto">
-              Registros totales: <span className="font-black text-[#8E0E75] text-sm sm:text-base">{entries.length}</span>
+            <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+              {pendingSyncCount > 0 ? (
+                <div 
+                  title="Tus registros están respaldados de forma segura en tu navegador y se subirán a la nube automáticamente al detectar conexión."
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs font-black uppercase tracking-tight shadow-2xs"
+                >
+                  <CloudOff className="h-3.5 w-3.5 text-amber-600 animate-pulse" />
+                  <span>{pendingSyncCount} en cola local (sincronizando...)</span>
+                </div>
+              ) : (
+                <div 
+                  title="Todos tus registros están sincronizados con la nube."
+                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs font-black uppercase tracking-tight shadow-2xs"
+                >
+                  <Cloud className="h-3.5 w-3.5 text-emerald-600" />
+                  <span>Sincronizado con la nube</span>
+                </div>
+              )}
+              <div className="text-xs sm:text-sm text-[#191654] font-bold bg-[#F8F6FC] px-4 py-2 rounded-xl border-2 border-[#D8CFF0] tabular-nums shadow-2xs">
+                Registros totales: <span className="font-black text-[#8E0E75] text-sm sm:text-base">{entries.length}</span>
+              </div>
             </div>
           </div>
 

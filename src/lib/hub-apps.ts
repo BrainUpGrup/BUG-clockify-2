@@ -7,7 +7,7 @@ export interface HubApp {
   description: string;
   category: 'operaciones' | 'gestion' | 'creatividad' | 'administracion';
   badge: string;
-  iconName: 'Clock' | 'CheckSquare' | 'Image' | 'Users' | 'Receipt' | 'BookOpen' | 'Share2' | 'MessageSquare' | 'Video' | 'Server';
+  iconName: 'Clock' | 'CheckSquare' | 'Image' | 'Users' | 'Receipt' | 'BookOpen' | 'Share2' | 'MessageSquare' | 'Video' | 'Server' | 'FolderCheck';
   route: string;
   isReady: boolean; // Si la app está totalmente implementada y operativa en el hub
   version: string;
@@ -66,6 +66,18 @@ export const BRAIN_UP_HUB_APPS: HubApp[] = [
     version: '1.0.0',
   },
   {
+    id: 'archivos',
+    name: 'Brain Storage',
+    tagline: 'Área Trabajador, Validación & Portal Cliente',
+    description: 'Intercambio de entregables con validación de coordinación, avisos de corrección, apartado diferenciado de validados y área cliente aislada para briefings.',
+    category: 'operaciones',
+    badge: 'Simulador Activo',
+    iconName: 'FolderCheck',
+    route: '/apps/archivos',
+    isReady: true,
+    version: '1.0.0-sim',
+  },
+  {
     id: 'subtitulos',
     name: 'Brain Subtitles',
     tagline: 'Pausado · Modo Mantenimiento',
@@ -85,7 +97,7 @@ const STORAGE_KEY_PERMISSIONS = 'bug_hub_user_permissions';
  * Aplicaciones básicas por defecto para trabajadores que aún no tienen permisos personalizados configurados
  * Por defecto: Clockify + TaskFlow + Hosting + Chat + Subtítulos
  */
-export const DEFAULT_EMPLOYEE_APPS: string[] = ['clockify', 'taskflow', 'hosting', 'chat', 'subtitulos'];
+export const DEFAULT_EMPLOYEE_APPS: string[] = ['clockify', 'taskflow', 'hosting', 'chat', 'archivos', 'subtitulos'];
 
 /**
  * Obtiene el mapa de permisos guardado en localStorage
@@ -111,7 +123,7 @@ export function saveUserAppPermissions(userId: string, appIds: string[]): void {
     const current = getStoredPermissionsMap();
     current[userId] = appIds;
     localStorage.setItem(STORAGE_KEY_PERMISSIONS, JSON.stringify(current));
-    
+
     // Despachar evento para sincronización en tiempo real sin recargar página
     window.dispatchEvent(
       new CustomEvent('bug_permissions_updated', {

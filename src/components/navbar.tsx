@@ -29,8 +29,13 @@ import {
   BookOpen,
   Share2,
   Camera,
-  ChevronRight
+  ChevronRight,
+  FolderCheck,
+  Bell,
+  AlertCircle,
+  CheckCheck
 } from 'lucide-react';
+import { FileNotification } from '@/types/files-portal';
 import { useTimer, useTimerSeconds } from '@/context/timer-context';
 import { formatSecondsToTimer } from '@/lib/utils';
 import { canUserAccessHubApp, BRAIN_UP_HUB_APPS, HubApp } from '@/lib/hub-apps';
@@ -81,6 +86,7 @@ export function Navbar() {
   const isTaskFlowActive = pathname.includes('/taskflow');
   const isChatActive = pathname.includes('/chat');
   const isHostingActive = pathname.includes('/hosting');
+  const isArchivosActive = pathname.includes('/archivos');
   const isSubtitulosActive = pathname.includes('/subtitulos');
   const isAdminActive = pathname.includes('/admin');
   const isAdmin = user?.role === 'admin' || user?.email === 'appadmin@brainupgrup.com';
@@ -159,6 +165,7 @@ export function Navbar() {
       case 'Receipt': return Receipt;
       case 'BookOpen': return BookOpen;
       case 'Share2': return Share2;
+      case 'FolderCheck': return FolderCheck;
       default: return CheckSquare;
     }
   };
@@ -169,6 +176,7 @@ export function Navbar() {
     if (app.id === 'hosting') return 'Hosting Control';
     if (app.id === 'subtitulos') return 'Brain Subtitles';
     if (app.id === 'chat') return 'Brain Chat';
+    if (app.id === 'archivos') return 'Brain Storage';
     return app.name;
   };
 
@@ -219,6 +227,8 @@ export function Navbar() {
         isActive = isChatActive;
       } else if (app.id === 'hosting') {
         isActive = isHostingActive;
+      } else if (app.id === 'archivos') {
+        isActive = isArchivosActive;
       } else if (app.id === 'subtitulos') {
         isActive = isSubtitulosActive;
       } else {
@@ -286,10 +296,58 @@ export function Navbar() {
     isClockifyActive,
     isTaskFlowActive,
     isChatActive,
+    isHostingActive,
+    isArchivosActive,
     isSubtitulosActive,
     isAdminActive,
     pathname,
   ]);
+
+  // Campana de notificaciones de archivos (validaciones, correcciones y briefings)
+  const [fileNotifications, setFileNotifications] = React.useState<FileNotification[]>([]);
+  const [unreadFileAlerts, setUnreadFileAlerts] = React.useState(0);
+  const [showFileBell, setShowFileBell] = React.useState(false);
+  const fileBellRef = React.useRef<HTMLDivElement>(null);
+
+  const loadFileNotifications = React.useCallback(async () => {
+    if (!user) return;
+    try {
+      const res = await fetch('/api/files-hub/notifications', { cache: 'no-store' });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data?.ok) {
+        setFileNotifications(data.notifications || []);
+        setUnreadFileAlerts(data.unreadCount || 0);
+      }
+    } catch {
+      // Silencioso en navegación rápida
+    }
+  }, [user]);
+
+  React.useEffect(() => {
+    loadFileNotifications();
+    const timer = setInterval(loadFileNotifications, 30000);
+    const onHubUpdate = () => loadFileNotifications();
+    window.addEventListener('bug_files_hub_updated', onHubUpdate);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('bug_files_hub_updated', onHubUpdate);
+    };
+  }, [loadFileNotifications, pathname]);
+
+  const markAllFileNotificationsRead = async () => {
+    try {
+      await fetch('/api/files-hub/notifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      setFileNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      setUnreadFileAlerts(0);
+    } catch {
+      // Ignorar
+    }
+  };
 
   const desktopNavRef = React.useRef<HTMLElement>(null);
   const mobileNavRef = React.useRef<HTMLDivElement>(null);
@@ -309,9 +367,15 @@ export function Navbar() {
       if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
         setShowProfileMenu(false);
       }
+      if (fileBellRef.current && !fileBellRef.current.contains(e.target as Node)) {
+        setShowFileBell(false);
+      }
     };
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setShowProfileMenu(false);
+      if (e.key === 'Escape') {
+        setShowProfileMenu(false);
+        setShowFileBell(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('keydown', handleEscape);
@@ -596,6 +660,103 @@ export function Navbar() {
             );
           })}
         </nav>
+
+        {/* Campana de Notificaciones de Brain Drive (Correcciones, Validaciones y Briefings) */}
+        <div ref={fileBellRef} className="relative shrink-0 ml-1">
+          <button
+            type="button"
+            onClick={() => setShowFileBell((prev) => !prev)}
+            className={`relative flex items-center justify-center h-10 w-10 sm:h-11 sm:w-11 rounded-full border-2 shadow-2xs hover:shadow-sm transition-all cursor-pointer ${
+              unreadFileAlerts > 0
+                ? 'bg-red-50 border-red-300 text-red-600 hover:border-red-500'
+                : 'bg-[#FAF8FD] hover:bg-white text-[#8E0E75] border-[#D8CFF0] hover:border-[#8E0E75]'
+            }`}
+            title="Notificaciones de archivos y validaciones (Brain Storage)"
+            aria-label="Notificaciones de Brain Storage"
+          >
+            <Bell className="h-5 w-5" />
+            {unreadFileAlerts > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-red-600 text-white text-[10px] font-black flex items-center justify-center border-2 border-white tabular-nums">
+                {unreadFileAlerts > 9 ? '9+' : unreadFileAlerts}
+              </span>
+            )}
+          </button>
+
+          {showFileBell && (
+            <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white rounded-2xl border-2 border-[#D8CFF0] shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+              <div className="px-4 py-3 bg-[#F8F6FC] border-b border-[#EAE4F5] flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Bell className="h-4 w-4 text-[#8E0E75]" />
+                  <span className="text-xs font-black uppercase tracking-wider text-[#191654]">
+                    Avisos de Archivos
+                  </span>
+                </div>
+                {unreadFileAlerts > 0 && (
+                  <button
+                    type="button"
+                    onClick={markAllFileNotificationsRead}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#8E0E75] hover:underline cursor-pointer"
+                  >
+                    <CheckCheck className="h-3.5 w-3.5" />
+                    <span>Marcar leídas</span>
+                  </button>
+                )}
+              </div>
+
+              <div className="max-h-72 overflow-y-auto divide-y divide-[#EAE4F5]">
+                {fileNotifications.length === 0 ? (
+                  <p className="p-5 text-center text-xs text-slate-400 font-medium">
+                    Sin avisos pendientes en este momento.
+                  </p>
+                ) : (
+                  fileNotifications.slice(0, 8).map((n) => {
+                    const isChangeAlert = n.type === 'file_changes_requested';
+                    return (
+                      <Link
+                        key={n.id}
+                        href="/apps/archivos"
+                        onClick={() => setShowFileBell(false)}
+                        className={`block px-4 py-3 hover:bg-[#F8F6FC] transition-colors ${
+                          !n.is_read ? (isChangeAlert ? 'bg-red-50/70' : 'bg-[#FAF8FD]') : ''
+                        }`}
+                      >
+                        <div className="flex items-start gap-2.5">
+                          <AlertCircle
+                            className={`h-4 w-4 shrink-0 mt-0.5 ${
+                              isChangeAlert
+                                ? 'text-red-600'
+                                : n.type === 'file_published' || n.type === 'file_validated'
+                                ? 'text-[#3BB54A]'
+                                : 'text-[#8E0E75]'
+                            }`}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-bold text-[#292929] leading-snug">
+                              {n.title}
+                            </p>
+                            <p className="text-[11px] text-[#4A4A4A] mt-0.5 line-clamp-2">
+                              {n.message}
+                            </p>
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })
+                )}
+              </div>
+
+              <div className="p-2.5 bg-[#F8F6FC] border-t border-[#EAE4F5]">
+                <Link
+                  href="/apps/archivos"
+                  onClick={() => setShowFileBell(false)}
+                  className="block w-full text-center py-2 rounded-xl bg-[#8E0E75] hover:bg-[#700B5C] text-white text-xs font-black uppercase tracking-wider transition-colors"
+                >
+                  Abrir Brain Storage & Entregables
+                </Link>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Botón Circular Minimalista de Atajos de Teclado (A juego con el Avatar) */}
         <button

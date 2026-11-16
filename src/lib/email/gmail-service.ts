@@ -479,3 +479,106 @@ export async function sendCoordinatorEmail({
   }
 }
 
+/**
+ * Envía un correo directo a un destinatario concreto (ej. notificación a un trabajador
+ * cuando la coordinadora solicita cambios en un entregable). Si Gmail no está configurado,
+ * ejecuta una simulación limpia sin errores.
+ */
+export async function sendDirectEmail({
+  to,
+  subject,
+  html,
+  text,
+}: {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+}): Promise<{
+  success: boolean;
+  recipient: string;
+  simulated?: boolean;
+  messageId?: string;
+  error?: string;
+}> {
+  const cleanTo = (to || '').trim().toLowerCase();
+  if (!cleanTo || !cleanTo.includes('@')) {
+    return {
+      success: false,
+      recipient: cleanTo,
+      error: 'Dirección de correo electrónico no válida.',
+    };
+  }
+
+  const { isConfigured, senderEmail, fromName } = getGmailConfigStatus();
+  if (!isConfigured || !senderEmail) {
+    console.info('[GMAIL SIMULACIÓN DIRECTA] Aviso preparado:', {
+      to: cleanTo,
+      subject,
+      sender: `${fromName} <simulated@brainupgrup.com>`,
+    });
+    return {
+      success: true,
+      simulated: true,
+      recipient: cleanTo,
+    };
+  }
+
+  try {
+    const transporter = createGmailTransporter();
+    if (!transporter) {
+      throw new Error('No se pudo inicializar el transporte Gmail.');
+    }
+
+    const info = await transporter.sendMail({
+      from: `"${fromName}" <${senderEmail}>`,
+      to: cleanTo,
+      subject: `[Brain Up IaiaHub] ${subject}`,
+      text,
+      html,
+    });
+
+    return {
+      success: true,
+      recipient: cleanTo,
+      messageId: info.messageId,
+    };
+  } catch (err: any) {
+    console.error('Error enviando correo directo vía Gmail:', err);
+    return {
+      success: false,
+      recipient: cleanTo,
+      error: err?.message || 'Error al enviar correo directo.',
+    };
+  }
+}
+
+export function generateFileCorrectionEmailHtml(params: {
+  workerName: string;
+  reviewerName: string;
+  companyName: string;
+  fileTitle: string;
+  fileName: string;
+  reason: string;
+}): { html: string; text: string } {
+  const html = `
+    <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #F8F6FC; border-radius: 12px; border: 1px solid #D8CFF0; max-width: 620px;">
+      <div style="background: linear-gradient(90deg, #191654, #8E0E75); padding: 14px 18px; border-radius: 10px; color: #FFFFFF;">
+        <h2 style="margin: 0; font-size: 16px;">Corrección Requerida en Archivo • Brain Up IaiaHub</h2>
+      </div>
+      <div style="padding: 16px 4px; color: #292929; font-size: 14px; line-height: 1.5;">
+        <p style="margin-top: 0;">Hola <strong>${params.workerName}</strong>,</p>
+        <p><strong>${params.reviewerName}</strong> ha revisado tu entrega para <strong>${params.companyName}</strong> y solicita una corrección antes de validarla:</p>
+        <div style="background: #FFFFFF; border-left: 4px solid #DC2626; padding: 12px 14px; border-radius: 6px; margin: 12px 0;">
+          <div style="font-size: 12px; color: #6B7280; margin-bottom: 4px;">Pieza: <strong>${params.fileTitle}</strong> (${params.fileName})</div>
+          <div style="font-size: 14px; color: #991B1B; font-weight: bold;">"${params.reason}"</div>
+        </div>
+        <p style="margin-bottom: 0;">Accede al módulo <strong>Brain Storage & Entregables</strong> en IaiaHub para subir la nueva versión corregida.</p>
+      </div>
+    </div>
+  `.trim();
+
+  const text = `Corrección requerida en "${params.fileTitle}" (${params.companyName}) por ${params.reviewerName}: ${params.reason}`;
+  return { html, text };
+}
+

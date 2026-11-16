@@ -73,8 +73,20 @@ export function UserManagement({
     const cleanPwd = newPasswordInput.trim();
 
     try {
-      // 1. Guardar en Supabase profiles directamente
       const supabase = createClient();
+
+      // 1. Actualizar la bóveda segura profile_passwords mediante RPC con SECURITY DEFINER
+      try {
+        await supabase.rpc('admin_set_user_password', {
+          p_email: passwordModalEmployee.email,
+          p_password: cleanPwd,
+          p_is_temp: false,
+        });
+      } catch (rpcErr) {
+        console.warn('Aviso RPC admin_set_user_password:', rpcErr);
+      }
+
+      // 2. Guardar en Supabase profiles asegurando estado activo y configurado
       await supabase
         .from('profiles')
         .update({
@@ -83,16 +95,20 @@ export function UserManagement({
         })
         .eq('id', passwordModalEmployee.id);
 
-      // 2. Disparar endpoint de sincronización
-      await fetch('/api/auth/reset-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'update_password',
-          email: passwordModalEmployee.email,
-          newPassword: cleanPwd,
-        }),
-      });
+      // 3. Notificar al endpoint de sincronización
+      try {
+        await fetch('/api/auth/reset-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'update_password',
+            email: passwordModalEmployee.email,
+            newPassword: cleanPwd,
+          }),
+        });
+      } catch {
+        // Ignorar si el endpoint auxiliar falla
+      }
 
       notify(`Contraseña asignada con éxito a ${passwordModalEmployee.full_name}. Ya puede iniciar sesión.`, { type: 'success' });
       setPasswordModalEmployee(null);

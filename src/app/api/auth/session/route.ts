@@ -230,6 +230,22 @@ export async function POST(req: NextRequest) {
     // Si fallaron todas las validaciones de credenciales
     if (!authenticatedProfile) {
       recordFailedAttempt(rateLimitKey);
+
+      // Registrar auditoría forense de intento fallido
+      try {
+        if (isSupabaseConfigured) {
+          const supabase = createClient(supabaseUrl!, supabaseAnonKey!);
+          await supabase.rpc('log_audit_event', {
+            p_user_email: cleanEmail,
+            p_user_role: 'unauthenticated',
+            p_action: 'AUTH_LOGIN_FAILED',
+            p_entity_type: 'auth',
+            p_details: { reason: 'Credenciales inválidas', ip: req.headers.get('x-forwarded-for') || 'local' },
+            p_severity: 'warning',
+          });
+        }
+      } catch {}
+
       return NextResponse.json(
         { error: 'Correo o contraseña incorrectos. Verifica tus credenciales.' },
         { status: 401 }
@@ -287,6 +303,23 @@ export async function POST(req: NextRequest) {
       path: '/',
       maxAge: 60 * 60 * 24 * 7, // 7 días
     });
+
+    // Registrar auditoría forense de inicio de sesión exitoso
+    try {
+      if (isSupabaseConfigured) {
+        const supabase = createClient(supabaseUrl!, supabaseAnonKey!);
+        await supabase.rpc('log_audit_event', {
+          p_user_id: authenticatedProfile.id,
+          p_user_email: cleanEmail,
+          p_user_role: safeRole,
+          p_action: 'AUTH_LOGIN_SUCCESS',
+          p_entity_type: 'auth',
+          p_entity_id: authenticatedProfile.id,
+          p_details: { full_name: authenticatedProfile.full_name, role: safeRole },
+          p_severity: 'info',
+        });
+      }
+    } catch {}
 
     return res;
   } catch (err) {

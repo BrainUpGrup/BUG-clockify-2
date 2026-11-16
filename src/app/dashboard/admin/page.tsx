@@ -6,7 +6,7 @@ import { useAuth } from '@/context/auth-context';
 import { notify, confirmDialog, friendlyError, flagAccessDenied } from '@/lib/feedback';
 import { createClient } from '@/lib/supabase/client';
 import { MOCK_PROFILES } from '@/lib/mock-data';
-import { Profile, UserRole, ProfileStatus, TimeEntry } from '@/types/database';
+import { Profile, UserRole, ProfileStatus, TimeEntry, AuditLog } from '@/types/database';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { 
   ShieldCheck, 
@@ -17,6 +17,7 @@ import {
   CheckCircle2, 
   XCircle, 
   AlertCircle, 
+  AlertTriangle,
   RefreshCw, 
   Trash2, 
   Edit3, 
@@ -36,7 +37,8 @@ import {
   Building2,
   Calendar,
   Sparkles,
-  Shield
+  Shield,
+  FileText
 } from 'lucide-react';
 import { AppSelect, SelectOption } from '@/components/ui/app-select';
 
@@ -136,8 +138,11 @@ export default function SuperAdminDashboardPage() {
 
   // Datos para Auditoría en Vivo de IaiaHub
   const [auditEntries, setAuditEntries] = useState<TimeEntry[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [auditCategory, setAuditCategory] = useState<'security' | 'operations'>('security');
   const [isLoadingAudit, setIsLoadingAudit] = useState(false);
   const [auditSearchTerm, setAuditSearchTerm] = useState('');
+  const [auditSeverityFilter, setAuditSeverityFilter] = useState<string>('all');
 
   // Protección de ruta estricta: Solo 'admin' puede acceder
   useEffect(() => {
@@ -248,6 +253,18 @@ export default function SuperAdminDashboardPage() {
   const loadAuditData = async () => {
     setIsLoadingAudit(true);
     try {
+      // 1. Cargar Logs de Seguridad Inmutables desde API route
+      try {
+        const auditRes = await fetch('/api/audit/logs?limit=150');
+        const auditJson = await auditRes.json();
+        if (auditJson && auditJson.success && Array.isArray(auditJson.logs)) {
+          setAuditLogs(auditJson.logs);
+        }
+      } catch (err) {
+        console.warn('Aviso cargando logs de auditoría forense:', err);
+      }
+
+      // 2. Cargar registros horarios de Supabase
       if (isSupabaseConnected) {
         const supabase = createClient();
         const { data: entries, error } = await supabase
@@ -802,6 +819,46 @@ export default function SuperAdminDashboardPage() {
       usersCount: activeUsers.size,
     };
   }, [auditEntries]);
+
+  // Filtrado y estadísticas de Auditoría de Seguridad Forense (WORM)
+  const auditSecurityFiltered = useMemo(() => {
+    return auditLogs.filter((log) => {
+      const term = auditSearchTerm.toLowerCase();
+      const matchesSearch =
+        !term ||
+        log.action.toLowerCase().includes(term) ||
+        log.user_email.toLowerCase().includes(term) ||
+        log.entity_type.toLowerCase().includes(term) ||
+        (log.details && JSON.stringify(log.details).toLowerCase().includes(term));
+
+      const matchesSeverity =
+        auditSeverityFilter === 'all' || log.severity === auditSeverityFilter;
+
+      return matchesSearch && matchesSeverity;
+    });
+  }, [auditLogs, auditSearchTerm, auditSeverityFilter]);
+
+  const auditSecurityStats = useMemo(() => {
+    let criticalCount = 0;
+    let warningCount = 0;
+    let infoCount = 0;
+    const uniqueActors = new Set<string>();
+
+    auditLogs.forEach((l) => {
+      if (l.severity === 'critical') criticalCount++;
+      else if (l.severity === 'warning') warningCount++;
+      else infoCount++;
+      if (l.user_email) uniqueActors.add(l.user_email);
+    });
+
+    return {
+      total: auditLogs.length,
+      critical: criticalCount,
+      warning: warningCount,
+      info: infoCount,
+      actorsCount: uniqueActors.size,
+    };
+  }, [auditLogs]);
 
   return (
     <div className="flex-1 flex flex-col bg-[#F8F6FC] font-sans w-full">
@@ -1459,6 +1516,264 @@ export default function SuperAdminDashboardPage() {
           {activeTab === 'audit' && (
             <div className="space-y-6">
               
+              {/* Selector de Subcapa de Auditoría: Seguridad vs Operaciones */}
+              <div className="bg-white border-2 border-[#D8CFF0] p-2 rounded-2xl shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => setAuditCategory('security')}
+                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+                      auditCategory === 'security'
+                        ? 'bg-gradient-to-r from-[#191654] to-[#8E0E75] text-white shadow-xs'
+                        : 'bg-[#F8F6FC] text-[#4A4A4A] hover:text-[#8E0E75] border border-[#D8CFF0]'
+                    }`}
+                  >
+                    <ShieldCheck className="h-4 w-4" />
+                    <span>Seguridad & Gobernanza Forense</span>
+                    <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-white/20 text-current">
+                      {auditLogs.length}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setAuditCategory('operations')}
+                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+                      auditCategory === 'operations'
+                        ? 'bg-gradient-to-r from-[#191654] to-[#8E0E75] text-white shadow-xs'
+                        : 'bg-[#F8F6FC] text-[#4A4A4A] hover:text-[#8E0E75] border border-[#D8CFF0]'
+                    }`}
+                  >
+                    <Clock className="h-4 w-4" />
+                    <span>Control Horario Operativo</span>
+                    <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-white/20 text-current">
+                      {auditEntries.length}
+                    </span>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2 text-[11px] font-bold text-slate-500 pr-2">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>WORM: Registro Inmutable & No Modificable</span>
+                </div>
+              </div>
+
+              {/* VISTA 1: AUDITORÍA DE SEGURIDAD & GOBERNANZA FORENSE (audit_logs) */}
+              {auditCategory === 'security' && (
+                <div className="space-y-6">
+                  {/* Tarjetas de Métricas de Seguridad */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="bg-white border border-[#D8CFF0] p-4 rounded-2xl shadow-xs flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-[#4A4A4A]">Total Eventos Forenses</span>
+                        <p className="text-2xl font-extrabold text-[#191654] tabular-nums">{auditSecurityStats.total}</p>
+                      </div>
+                      <div className="p-3 bg-[#191654]/10 text-[#191654] border border-[#191654]/20 rounded-lg">
+                        <FileText className="h-5 w-5" />
+                      </div>
+                    </div>
+
+                    <div className="bg-white border border-red-200 p-4 rounded-2xl shadow-xs flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-red-700">Eventos Críticos</span>
+                        <p className="text-2xl font-extrabold text-red-600 tabular-nums">{auditSecurityStats.critical}</p>
+                      </div>
+                      <div className="p-3 bg-red-50 text-red-600 border border-red-200 rounded-lg">
+                        <AlertTriangle className="h-5 w-5" />
+                      </div>
+                    </div>
+
+                    <div className="bg-white border border-amber-200 p-4 rounded-2xl shadow-xs flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800">Advertencias</span>
+                        <p className="text-2xl font-extrabold text-amber-600 tabular-nums">{auditSecurityStats.warning}</p>
+                      </div>
+                      <div className="p-3 bg-amber-50 text-amber-600 border border-amber-200 rounded-lg">
+                        <AlertCircle className="h-5 w-5" />
+                      </div>
+                    </div>
+
+                    <div className="bg-white border border-[#D8CFF0] p-4 rounded-2xl shadow-xs flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-[#4A4A4A]">Actores Únicos</span>
+                        <p className="text-2xl font-extrabold text-[#8E0E75] tabular-nums">{auditSecurityStats.actorsCount}</p>
+                      </div>
+                      <div className="p-3 bg-[#8E0E75]/10 text-[#8E0E75] border border-[#8E0E75]/30 rounded-lg">
+                        <Users className="h-5 w-5" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Barra de Filtros de Auditoría de Seguridad */}
+                  <div className="bg-white border border-[#D8CFF0] p-4 rounded-2xl shadow-xs flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#4A4A4A]" />
+                      <input
+                        type="text"
+                        placeholder="Buscar por acción, usuario, entidad o detalle forense..."
+                        value={auditSearchTerm}
+                        onChange={(e) => setAuditSearchTerm(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2 border border-[#D8CFF0] rounded-xl text-xs focus:outline-hidden focus:border-[#8E0E75] bg-[#F8F6FC]"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 bg-[#F8F6FC] p-1 rounded-xl border border-[#D8CFF0] text-[11px] font-bold">
+                        {(['all', 'info', 'warning', 'critical'] as const).map((sev) => (
+                          <button
+                            key={sev}
+                            type="button"
+                            onClick={() => setAuditSeverityFilter(sev)}
+                            className={`px-2.5 py-1 rounded-lg uppercase tracking-wider transition-all cursor-pointer ${
+                              auditSeverityFilter === sev
+                                ? sev === 'critical'
+                                  ? 'bg-red-600 text-white'
+                                  : sev === 'warning'
+                                  ? 'bg-amber-600 text-white'
+                                  : 'bg-[#191654] text-white'
+                                : 'text-slate-600 hover:text-slate-900'
+                            }`}
+                          >
+                            {sev === 'all' ? 'Todos' : sev}
+                          </button>
+                        ))}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={loadAuditData}
+                        className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-[#8E0E75] hover:bg-[#720B5E] text-white text-xs font-bold uppercase tracking-wider transition-all cursor-pointer shadow-xs shrink-0"
+                      >
+                        <RefreshCw className={`h-3.5 w-3.5 ${isLoadingAudit ? 'animate-spin' : ''}`} />
+                        <span>Sincronizar</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Tabla Inmutable de Logs de Seguridad */}
+                  <div className="bg-white border border-[#D8CFF0] rounded-2xl shadow-xs overflow-hidden">
+                    <div className="px-5 py-3.5 bg-[#F8F6FC] border-b border-[#D8CFF0] flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <ShieldCheck className="h-4 w-4 text-[#8E0E75]" />
+                        <span className="text-xs font-extrabold uppercase tracking-wider text-[#292929]">
+                          Bóveda Inmutable de Eventos de Seguridad ({auditSecurityFiltered.length})
+                        </span>
+                      </div>
+                      <span className="text-[11px] font-mono text-[#8E0E75] font-bold">WORM Immutability Activa</span>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="bg-white border-b border-[#EAE4F5] text-[11px] font-extrabold uppercase tracking-wider text-[#4A4A4A]">
+                            <th className="py-3 px-4">Fecha & Hora</th>
+                            <th className="py-3 px-4">Severidad</th>
+                            <th className="py-3 px-4">Acción</th>
+                            <th className="py-3 px-4">Actor / Rol</th>
+                            <th className="py-3 px-4">Entidad</th>
+                            <th className="py-3 px-4">Detalles Forenses</th>
+                            <th className="py-3 px-4">IP / Origen</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#EAE4F5] text-xs">
+                          {isLoadingAudit ? (
+                            <tr>
+                              <td colSpan={7} className="py-8 text-center text-[#4A4A4A]">
+                                <div className="flex items-center justify-center gap-2">
+                                  <RefreshCw className="h-4 w-4 animate-spin text-[#8E0E75]" />
+                                  <span>Cargando eventos de auditoría inmutables...</span>
+                                </div>
+                              </td>
+                            </tr>
+                          ) : auditSecurityFiltered.length === 0 ? (
+                            <tr>
+                              <td colSpan={7} className="py-8 text-center text-[#4A4A4A]">
+                                <p className="font-bold">No hay eventos de seguridad que coincidan con la búsqueda.</p>
+                                <p className="text-[11px] text-slate-400 mt-1">
+                                  Si acabas de desplegar la tabla, ejecuta schema_audit_logs.sql en tu panel de Supabase.
+                                </p>
+                              </td>
+                            </tr>
+                          ) : (
+                            auditSecurityFiltered.map((log) => {
+                              const dateObj = new Date(log.created_at);
+                              const formattedDate = dateObj.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                              const formattedTime = dateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+                              return (
+                                <tr key={log.id} className="hover:bg-[#F8F6FC]/60 transition-colors">
+                                  {/* Fecha & Hora */}
+                                  <td className="py-3 px-4 font-mono text-[11px] text-[#292929] whitespace-nowrap">
+                                    <span className="font-bold block">{formattedDate}</span>
+                                    <span className="text-[#8E0E75] text-[10px]">{formattedTime}</span>
+                                  </td>
+
+                                  {/* Severidad */}
+                                  <td className="py-3 px-4">
+                                    <span
+                                      className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
+                                        log.severity === 'critical'
+                                          ? 'bg-red-100 text-red-800 border border-red-200'
+                                          : log.severity === 'warning'
+                                          ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                                          : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                      }`}
+                                    >
+                                      {log.severity}
+                                    </span>
+                                  </td>
+
+                                  {/* Acción */}
+                                  <td className="py-3 px-4 font-mono font-bold text-xs text-[#191654]">
+                                    {log.action}
+                                  </td>
+
+                                  {/* Actor / Rol */}
+                                  <td className="py-3 px-4">
+                                    <div className="space-y-0.5">
+                                      <span className="font-bold text-[#292929] block">{log.user_email}</span>
+                                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 font-bold uppercase">
+                                        {log.user_role}
+                                      </span>
+                                    </div>
+                                  </td>
+
+                                  {/* Entidad */}
+                                  <td className="py-3 px-4 font-mono text-[11px] text-slate-600">
+                                    <span className="font-bold uppercase text-[#8E0E75] block">{log.entity_type}</span>
+                                    {log.entity_id && <span className="text-[10px] text-slate-400 truncate block max-w-[120px]">{log.entity_id}</span>}
+                                  </td>
+
+                                  {/* Detalles Forenses */}
+                                  <td className="py-3 px-4 max-w-xs">
+                                    {log.details && Object.keys(log.details).length > 0 ? (
+                                      <pre className="text-[10px] font-mono bg-slate-50 p-1.5 rounded border border-slate-200 text-slate-700 overflow-x-auto max-h-16">
+                                        {JSON.stringify(log.details, null, 1)}
+                                      </pre>
+                                    ) : (
+                                      <span className="text-slate-400 italic text-[11px]">Sin detalles adicionales</span>
+                                    )}
+                                  </td>
+
+                                  {/* IP / Origen */}
+                                  <td className="py-3 px-4 font-mono text-[11px] text-slate-500 whitespace-nowrap">
+                                    {log.ip_address || 'Servidor Interno'}
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* VISTA 2: AUDITORÍA DE IMPUTACIONES OPERATIVAS (Brain Time) */}
+              {auditCategory === 'operations' && (
+                <div className="space-y-6">
+              
               {/* Tarjetas de Métricas de Auditoría */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-white border border-[#D8CFF0] p-4 rounded-2xl shadow-xs flex items-center justify-between">
@@ -1636,6 +1951,8 @@ export default function SuperAdminDashboardPage() {
                 </div>
               </div>
             </div>
+            )}
+          </div>
           )}
 
           {/* ============================================================== */}

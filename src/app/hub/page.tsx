@@ -28,6 +28,7 @@ import {
   MessageSquare,
   Video,
   Server,
+  FolderCheck,
   ArrowRight, 
   ShieldCheck, 
   Sliders, 
@@ -185,6 +186,8 @@ export default function BrainUpHubPage() {
         return <Server className={className} />;
       case 'Video':
         return <Video className={className} />;
+      case 'FolderCheck':
+        return <FolderCheck className={className} />;
       default:
         return <CheckSquare className={className} />;
     }

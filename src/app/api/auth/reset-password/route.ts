@@ -175,6 +175,16 @@ export async function POST(req: NextRequest) {
             p_password: tempPass,
             p_is_temp: true,
           });
+          await supabase.rpc('log_audit_event', {
+            p_user_id: caller.id,
+            p_user_email: caller.email,
+            p_user_role: caller.role,
+            p_action: 'PASSWORD_TEMP_RESET_GENERATED',
+            p_entity_type: 'auth',
+            p_entity_id: cleanEmail,
+            p_details: { target_email: cleanEmail, generated_by: caller.email },
+            p_severity: 'warning',
+          });
         } catch (dbErr) {
           console.warn('Aviso: RPC admin_set_user_password en Supabase:', dbErr);
         }
@@ -277,6 +287,16 @@ export async function POST(req: NextRequest) {
             p_email: cleanEmail,
             p_password: cleanNewPassword,
             p_is_temp: false,
+          });
+          await supabase.rpc('log_audit_event', {
+            p_user_id: caller.id,
+            p_user_email: caller.email,
+            p_user_role: caller.role,
+            p_action: isSelf ? 'PASSWORD_SELF_UPDATED' : 'PASSWORD_ADMIN_UPDATED',
+            p_entity_type: 'auth',
+            p_entity_id: cleanEmail,
+            p_details: { target_email: cleanEmail, updated_by: caller.email },
+            p_severity: 'info',
           });
         } catch (dbErr) {
           console.warn('Aviso: RPC admin_set_user_password en Supabase:', dbErr);

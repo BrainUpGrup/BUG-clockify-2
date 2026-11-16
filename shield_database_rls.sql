@@ -34,6 +34,25 @@ alter table public.profiles add constraint profiles_role_check check (role in ('
 -- Asegurar rol de Super Administrador permanente a la cuenta principal
 update public.profiles set role = 'admin', status = 'active' where lower(trim(email)) = 'appadmin@brainupgrup.com';
 
+-- Helper de autorización segura: is_coordinator_or_admin()
+create or replace function public.is_coordinator_or_admin()
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1
+    from public.profiles
+    where id = auth.uid()
+      and role in ('coordinator', 'admin')
+      and status = 'active'
+  );
+$$;
+
+grant execute on function public.is_coordinator_or_admin() to anon, authenticated;
+
 -- ==============================================================================
 -- 2. CREACIÓN DE LA BÓVEDA SEGURA DE CREDENCIALES (profile_passwords)
 -- ==============================================================================
@@ -63,34 +82,34 @@ set custom_password = coalesce(excluded.custom_password, profile_passwords.custo
     temp_password = excluded.temp_password,
     updated_at = now();
 
--- B) Garantizar y blindar las contraseñas maestras y activas del equipo (Seguro anti-pérdida)
+-- B) Semillas iniciales SOLO si el usuario no tiene ninguna contraseña previa (NUNCA sobreescribir)
 insert into public.profile_passwords (profile_id, custom_password, updated_at)
 select id, '123456', now() from public.profiles where lower(trim(email)) = 'appadmin@brainupgrup.com'
-on conflict (profile_id) do update set custom_password = '123456', updated_at = now();
+on conflict (profile_id) do nothing;
 
 insert into public.profile_passwords (profile_id, custom_password, updated_at)
 select id, 'cordinadora2026', now() from public.profiles where lower(trim(email)) = 'montse@brainupgrup.com'
-on conflict (profile_id) do update set custom_password = 'cordinadora2026', updated_at = now();
+on conflict (profile_id) do nothing;
 
 insert into public.profile_passwords (profile_id, custom_password, updated_at)
 select id, 'lidia2026', now() from public.profiles where lower(trim(email)) = 'lidia@brainupgrup.com'
-on conflict (profile_id) do update set custom_password = 'lidia2026', updated_at = now();
+on conflict (profile_id) do nothing;
 
 insert into public.profile_passwords (profile_id, custom_password, updated_at)
 select id, 'Elefantes26', now() from public.profiles where lower(trim(email)) = 'valeria@brainupgrup.com'
-on conflict (profile_id) do update set custom_password = 'Elefantes26', updated_at = now();
+on conflict (profile_id) do nothing;
 
 insert into public.profile_passwords (profile_id, custom_password, updated_at)
 select id, 'eNTRADA1%', now() from public.profiles where lower(trim(email)) = 'cristina@brainupgrup.com'
-on conflict (profile_id) do update set custom_password = 'eNTRADA1%', updated_at = now();
+on conflict (profile_id) do nothing;
 
 insert into public.profile_passwords (profile_id, custom_password, updated_at)
 select id, '12345678', now() from public.profiles where lower(trim(email)) = 'albert@brainupgrup.com'
-on conflict (profile_id) do update set custom_password = '12345678', updated_at = now();
+on conflict (profile_id) do nothing;
 
 insert into public.profile_passwords (profile_id, custom_password, updated_at)
 select id, '123456', now() from public.profiles where lower(trim(email)) = 'peipito@gmail.com'
-on conflict (profile_id) do update set custom_password = '123456', updated_at = now();
+on conflict (profile_id) do nothing;
 
 -- C) Sellar la exposición: Limpiar los campos de contraseñas de public.profiles para que la REST API devuelva NULL
 update public.profiles set custom_password = null, temp_password = null;
@@ -208,17 +227,77 @@ $$;
 
 grant execute on function public.authenticate_employee(text, text) to anon, authenticated;
 
--- B) Asignación y cambio de contraseñas directo desde el panel Super Admin hacia la bóveda
+-- B) Sincronización automática de contraseñas con auth.users
+create or replace function public.sync_profile_to_auth_user(
+  p_profile_id uuid,
+  p_email text,
+  p_password text,
+  p_role text default 'employee'
+)
+returns void
+language plpgsql
+security definer
+set search_path = public, auth, extensions
+as $$
+declare
+  v_encrypted_pw text;
+begin
+  if p_password is null or trim(p_password) = '' then
+    return;
+  end if;
+
+  v_encrypted_pw := extensions.crypt(trim(p_password), extensions.gen_salt('bf'));
+
+  update auth.users
+  set encrypted_password = v_encrypted_pw,
+      email_confirmed_at = coalesce(email_confirmed_at, now()),
+      updated_at = now()
+  where id = p_profile_id or lower(email) = lower(trim(p_email));
+
+  if not found then
+    insert into auth.users (
+      instance_id,
+      id,
+      aud,
+      role,
+      email,
+      encrypted_password,
+      email_confirmed_at,
+      raw_app_meta_data,
+      raw_user_meta_data,
+      created_at,
+      updated_at
+    ) values (
+      '00000000-0000-0000-0000-000000000000',
+      p_profile_id,
+      'authenticated',
+      'authenticated',
+      lower(trim(p_email)),
+      v_encrypted_pw,
+      now(),
+      '{"provider":"email","providers":["email"]}'::jsonb,
+      jsonb_build_object('role', p_role, 'full_name', lower(trim(p_email))),
+      now(),
+      now()
+    );
+  end if;
+end;
+$$;
+
+grant execute on function public.sync_profile_to_auth_user(uuid, text, text, text) to service_role;
+
+-- C) Asignación y cambio de contraseñas directo desde el panel Coordinador/Admin hacia la bóveda y auth.users
 create or replace function public.admin_set_user_password(p_email text, p_password text, p_is_temp boolean default false)
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, auth, extensions
 as $$
 declare
   v_uid uuid;
+  v_role text;
 begin
-  select id into v_uid from public.profiles where lower(trim(email)) = lower(trim(p_email));
+  select id, role into v_uid, v_role from public.profiles where lower(trim(email)) = lower(trim(p_email));
   if v_uid is null then
     return jsonb_build_object('success', false, 'error', 'Usuario no encontrado.');
   end if;
@@ -250,6 +329,9 @@ begin
     where id = v_uid;
   end if;
 
+  -- Sincronizar inmediatamente con auth.users
+  perform public.sync_profile_to_auth_user(v_uid, p_email, p_password, v_role);
+
   return jsonb_build_object('success', true);
 end;
 $$;
@@ -277,13 +359,13 @@ create policy "profiles_select_policy" on public.profiles
   for select using (true);
 
 create policy "profiles_insert_policy" on public.profiles
-  for insert with check (true);
+  for insert with check (status = 'pending' and role = 'employee');
 
 create policy "profiles_update_policy" on public.profiles
-  for update using (true);
+  for update using (id = auth.uid() or public.is_coordinator_or_admin());
 
 create policy "profiles_delete_policy" on public.profiles
-  for delete using (true);
+  for delete using (public.is_coordinator_or_admin());
 
 -- B) TABLA: companies (CLIENTES Y CUOTAS DE BRAIN TIME)
 grant all on public.companies to anon, authenticated, service_role;
@@ -295,16 +377,16 @@ drop policy if exists "companies_update_policy" on public.companies;
 drop policy if exists "companies_delete_policy" on public.companies;
 
 create policy "companies_select_policy" on public.companies
-  for select using (true);
+  for select using (is_active = true or public.is_coordinator_or_admin());
 
 create policy "companies_insert_policy" on public.companies
-  for insert with check (true);
+  for insert with check (public.is_coordinator_or_admin());
 
 create policy "companies_update_policy" on public.companies
-  for update using (true);
+  for update using (public.is_coordinator_or_admin());
 
 create policy "companies_delete_policy" on public.companies
-  for delete using (true);
+  for delete using (public.is_coordinator_or_admin());
 
 -- C) TABLA: time_entries (REGISTROS HORARIOS Y FICHAJES)
 grant all on public.time_entries to anon, authenticated, service_role;
@@ -316,16 +398,16 @@ drop policy if exists "time_entries_update_policy" on public.time_entries;
 drop policy if exists "time_entries_delete_policy" on public.time_entries;
 
 create policy "time_entries_select_policy" on public.time_entries
-  for select using (true);
+  for select using (user_id = auth.uid() or public.is_coordinator_or_admin());
 
 create policy "time_entries_insert_policy" on public.time_entries
-  for insert with check (true);
+  for insert with check (user_id = auth.uid() or public.is_coordinator_or_admin());
 
 create policy "time_entries_update_policy" on public.time_entries
-  for update using (true);
+  for update using (user_id = auth.uid() or public.is_coordinator_or_admin());
 
 create policy "time_entries_delete_policy" on public.time_entries
-  for delete using (true);
+  for delete using (user_id = auth.uid() or public.is_coordinator_or_admin());
 
 -- D) TABLAS TASKFLOW (POST-ITS, LISTAS Y TAREAS)
 grant all on public.taskflow_items to anon, authenticated, service_role;
@@ -341,30 +423,30 @@ drop policy if exists "taskflow_items_insert_policy" on public.taskflow_items;
 drop policy if exists "taskflow_items_update_policy" on public.taskflow_items;
 drop policy if exists "taskflow_items_delete_policy" on public.taskflow_items;
 
-create policy "taskflow_items_select_policy" on public.taskflow_items for select using (true);
-create policy "taskflow_items_insert_policy" on public.taskflow_items for insert with check (true);
-create policy "taskflow_items_update_policy" on public.taskflow_items for update using (true);
-create policy "taskflow_items_delete_policy" on public.taskflow_items for delete using (true);
+create policy "taskflow_items_select_policy" on public.taskflow_items for select using (auth.role() = 'authenticated' or public.is_coordinator_or_admin());
+create policy "taskflow_items_insert_policy" on public.taskflow_items for insert with check (auth.role() = 'authenticated' or public.is_coordinator_or_admin());
+create policy "taskflow_items_update_policy" on public.taskflow_items for update using (auth.role() = 'authenticated' or public.is_coordinator_or_admin());
+create policy "taskflow_items_delete_policy" on public.taskflow_items for delete using (auth.role() = 'authenticated' or public.is_coordinator_or_admin());
 
 drop policy if exists "taskflow_lists_select_policy" on public.taskflow_lists;
 drop policy if exists "taskflow_lists_insert_policy" on public.taskflow_lists;
 drop policy if exists "taskflow_lists_update_policy" on public.taskflow_lists;
 drop policy if exists "taskflow_lists_delete_policy" on public.taskflow_lists;
 
-create policy "taskflow_lists_select_policy" on public.taskflow_lists for select using (true);
-create policy "taskflow_lists_insert_policy" on public.taskflow_lists for insert with check (true);
-create policy "taskflow_lists_update_policy" on public.taskflow_lists for update using (true);
-create policy "taskflow_lists_delete_policy" on public.taskflow_lists for delete using (true);
+create policy "taskflow_lists_select_policy" on public.taskflow_lists for select using (auth.role() = 'authenticated' or public.is_coordinator_or_admin());
+create policy "taskflow_lists_insert_policy" on public.taskflow_lists for insert with check (auth.role() = 'authenticated' or public.is_coordinator_or_admin());
+create policy "taskflow_lists_update_policy" on public.taskflow_lists for update using (auth.role() = 'authenticated' or public.is_coordinator_or_admin());
+create policy "taskflow_lists_delete_policy" on public.taskflow_lists for delete using (auth.role() = 'authenticated' or public.is_coordinator_or_admin());
 
 drop policy if exists "taskflow_postits_select_policy" on public.taskflow_postits;
 drop policy if exists "taskflow_postits_insert_policy" on public.taskflow_postits;
 drop policy if exists "taskflow_postits_update_policy" on public.taskflow_postits;
 drop policy if exists "taskflow_postits_delete_policy" on public.taskflow_postits;
 
-create policy "taskflow_postits_select_policy" on public.taskflow_postits for select using (true);
-create policy "taskflow_postits_insert_policy" on public.taskflow_postits for insert with check (true);
-create policy "taskflow_postits_update_policy" on public.taskflow_postits for update using (true);
-create policy "taskflow_postits_delete_policy" on public.taskflow_postits for delete using (true);
+create policy "taskflow_postits_select_policy" on public.taskflow_postits for select using (auth.role() = 'authenticated' or public.is_coordinator_or_admin());
+create policy "taskflow_postits_insert_policy" on public.taskflow_postits for insert with check (auth.role() = 'authenticated' or public.is_coordinator_or_admin());
+create policy "taskflow_postits_update_policy" on public.taskflow_postits for update using (auth.role() = 'authenticated' or public.is_coordinator_or_admin());
+create policy "taskflow_postits_delete_policy" on public.taskflow_postits for delete using (auth.role() = 'authenticated' or public.is_coordinator_or_admin());
 
 -- E) TABLA: hosting_services (HOSTING, DOMINIOS Y VENCIMIENTOS)
 grant all on public.hosting_services to anon, authenticated, service_role;
@@ -375,7 +457,7 @@ drop policy if exists "hosting_services_insert_policy" on public.hosting_service
 drop policy if exists "hosting_services_update_policy" on public.hosting_services;
 drop policy if exists "hosting_services_delete_policy" on public.hosting_services;
 
-create policy "hosting_services_select_policy" on public.hosting_services for select using (true);
-create policy "hosting_services_insert_policy" on public.hosting_services for insert with check (true);
-create policy "hosting_services_update_policy" on public.hosting_services for update using (true);
-create policy "hosting_services_delete_policy" on public.hosting_services for delete using (true);
+create policy "hosting_services_select_policy" on public.hosting_services for select using (public.is_coordinator_or_admin());
+create policy "hosting_services_insert_policy" on public.hosting_services for insert with check (public.is_coordinator_or_admin());
+create policy "hosting_services_update_policy" on public.hosting_services for update using (public.is_coordinator_or_admin());
+create policy "hosting_services_delete_policy" on public.hosting_services for delete using (public.is_coordinator_or_admin());
