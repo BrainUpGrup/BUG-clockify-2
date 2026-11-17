@@ -71,6 +71,9 @@ El **Jefe** analiza la petición del usuario, consulta el [`README.md`](./README
 ### Paso 4: Validación y Registro Maestro
 El **Jefe** ejecuta `npx tsc --noEmit`, confirma la compilación exitosa y redacta el registro formal de la versión en [`REGISTRO_MAESTRO.md`](./REGISTRO_MAESTRO.md).
 
+### Paso 5: Pregunta Obligatoria de Publicación (`git push`)
+Al finalizar cualquier modificación de código, documentación o migración, se debe **preguntar siempre explícitamente al usuario** al final de la respuesta si desea ejecutar `git add`, `git commit` y `git push` (nunca hacer `git push` por cuenta propia sin su "sí" explícito; cuando confirme que sí, ejecutarlo automáticamente).
+
 ---
 
 ## 🚀 Cómo Invocar a los Agentes en Antigravity

@@ -2637,3 +2637,16 @@
   5. **Directrices Maestras:** DM-01 (0 emojis), DM-13 (Identidad "La Abuela"), DM-15 (Modal Zero-Scroll).
 - **Validación y Pruebas:**
   - `npx tsc --noEmit`: **0 errores de compilación**.
+
+### [v4.4.3] - 2026-11-17 - Unificación de Altura (`h-10`) y Transiciones Hover en los Controles de la Barra Superior
+- **Solicitud del Usuario:**
+  *"no me gusta que tengan diferentes tamaños y diferentes transiciones, entiendo que cada texto tiene una longitud pero la chincheta de fijado no se porque es mas pequeña en cuanto a altura ?"*
+- **Causa Detectada ([`src/components/navbar.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/components/navbar.tsx)):**
+  - Los botones con texto (`Elegir cliente`, `Flotante`) medían `40 px` de alto (`line-height: 20 px` + `py-2` + `border-2`), mientras que la chincheta de fijado (`<Pin className="h-4 w-4" />`) medía `36 px` (`16 px` del icono + `p-2` + `border-2`) y `Iniciar`/`Parar` medían `36 px` por carecer de `border-2`.
+  - Además, cada botón tenía un hover distinto (`Elegir cliente` sin transición, `Flotante` con relleno ciruela `#8E0E75`, y la chincheta con `#F8F6FC` e icono fijo en `#8E0E75`).
+- **Solución Implementada:**
+  - Todos los botones de control del widget central (`Parar`, `Iniciar`, `Elegir cliente`, `Flotante` y chincheta `Pin`) pasan a tener altura fija idéntica `h-10` (`40 px`) y `transition-colors duration-200`.
+  - Los tres controles secundarios (`Elegir cliente`, `Flotante` y chincheta `Pin`) comparten exactamente el mismo estilo y transición (`bg-white hover:bg-[#8E0E75] text-[#8E0E75] hover:text-white border-2 border-[#D8CFF0] hover:border-[#8E0E75]`), eliminando el `text-[#8E0E75]` fijo del icono `<Pin />` para que pase a blanco al hacer hover igual que el resto.
+  - Homogeneizada también la altura `h-9` de los enlaces del bloque de navegación (`<nav>`) entre botones con texto e iconos compactos.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.

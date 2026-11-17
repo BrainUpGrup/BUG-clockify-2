@@ -508,7 +508,7 @@ export function Navbar() {
           {/* Divisor vertical */}
           <div className="h-6 w-px bg-[#D8CFF0] shrink-0" />
 
-          {/* Botones de Control Grandes y Táctiles */}
+          {/* Botones de Control Grandes, Uniformes (h-10) y Táctiles */}
           <div className="flex items-center gap-2 shrink-0">
             {isTimerRunning ? (
               <button
@@ -519,29 +519,29 @@ export function Navbar() {
                     notify(`Registro guardado (${res.durationMinutes}m)`, { type: 'success' });
                   }
                 }}
-                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-[#DC2626] hover:bg-[#B91C1C] text-white shadow-md shadow-red-500/25 transition-all cursor-pointer font-bold text-sm"
+                className="h-10 inline-flex items-center justify-center gap-2 px-3.5 rounded-lg border-2 border-transparent bg-[#DC2626] hover:bg-[#B91C1C] text-white shadow-xs transition-colors duration-200 cursor-pointer font-bold text-sm whitespace-nowrap"
                 title="Detener temporizador y guardar registro en base de datos"
               >
-                <Square className="h-4 w-4 fill-white" />
+                <Square className="h-4 w-4 fill-white shrink-0" />
                 <span>Parar</span>
               </button>
             ) : activeCompanyId && activeCompany ? (
               <button
                 type="button"
                 onClick={() => startTimer(activeCompanyId)}
-                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-[#10B981] hover:bg-[#059669] text-white shadow-md shadow-emerald-500/25 transition-all cursor-pointer font-bold text-sm"
+                className="h-10 inline-flex items-center justify-center gap-2 px-3.5 rounded-lg border-2 border-transparent bg-[#10B981] hover:bg-[#059669] text-white shadow-xs transition-colors duration-200 cursor-pointer font-bold text-sm whitespace-nowrap"
                 title="Iniciar temporizador en esta empresa"
               >
-                <Play className="h-4 w-4 fill-white" />
+                <Play className="h-4 w-4 fill-white shrink-0" />
                 <span>Iniciar</span>
               </button>
             ) : (
               <Link
                 href="/dashboard/employee"
-                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-white border-2 border-[#D8CFF0] hover:border-[#8E0E75] text-[#8E0E75] font-bold text-sm"
+                className="h-10 inline-flex items-center justify-center gap-2 px-3.5 rounded-lg bg-white hover:bg-[#8E0E75] text-[#8E0E75] hover:text-white border-2 border-[#D8CFF0] hover:border-[#8E0E75] shadow-xs transition-colors duration-200 cursor-pointer font-bold text-sm whitespace-nowrap"
                 title="Elige un cliente para poder iniciar el temporizador"
               >
-                <Building2 className="h-4 w-4" />
+                <Building2 className="h-4 w-4 shrink-0" />
                 <span>Elegir cliente</span>
               </Link>
             )}
@@ -554,11 +554,11 @@ export function Navbar() {
                   window.dispatchEvent(new CustomEvent('bug_open_pip_window'));
                 }
               }}
-              className="p-2 2xl:px-3 rounded-lg bg-white hover:bg-[#8E0E75] hover:text-white text-[#8E0E75] border-2 border-[#D8CFF0] hover:border-[#8E0E75] shadow-xs transition-all cursor-pointer flex items-center gap-1.5 text-sm font-semibold"
+              className="h-10 w-10 2xl:w-auto 2xl:px-3.5 inline-flex items-center justify-center gap-2 rounded-lg bg-white hover:bg-[#8E0E75] text-[#8E0E75] hover:text-white border-2 border-[#D8CFF0] hover:border-[#8E0E75] shadow-xs transition-colors duration-200 cursor-pointer font-bold text-sm whitespace-nowrap"
               title="Abrir ventana flotante siempre visible"
               aria-label="Abrir ventana flotante"
             >
-              <ExternalLink className="h-4 w-4" />
+              <ExternalLink className="h-4 w-4 shrink-0" />
               <span className="hidden 2xl:inline">Flotante</span>
             </button>
 
@@ -570,11 +570,11 @@ export function Navbar() {
                   window.dispatchEvent(new CustomEvent('bug_open_floating_widget'));
                 }
               }}
-              className="p-2 rounded-lg bg-white hover:bg-[#F8F6FC] text-[#8E0E75] border-2 border-[#D8CFF0] hover:border-[#8E0E75] shadow-xs transition-all cursor-pointer"
+              className="h-10 w-10 inline-flex items-center justify-center rounded-lg bg-white hover:bg-[#8E0E75] text-[#8E0E75] hover:text-white border-2 border-[#D8CFF0] hover:border-[#8E0E75] shadow-xs transition-colors duration-200 cursor-pointer"
               title="Fijar widget arrastrable en pantalla"
               aria-label="Fijar widget del temporizador"
             >
-              <Pin className="h-4 w-4 text-[#8E0E75]" />
+              <Pin className="h-4 w-4 shrink-0" />
             </button>
           </div>
         </div>
@@ -636,10 +636,10 @@ export function Navbar() {
                 aria-current={link.isActive ? 'page' : undefined}
                 title={link.label}
                 aria-label={link.label}
-                className={`animate-nav-item relative z-10 whitespace-nowrap flex items-center justify-center transition-all duration-200 cursor-pointer rounded-lg text-sm ${
+                className={`animate-nav-item relative z-10 h-9 whitespace-nowrap flex items-center justify-center transition-colors duration-200 cursor-pointer rounded-lg text-sm ${
                   isIconOnly
-                    ? 'px-2.5 py-2'
-                    : 'gap-2 px-3 lg:px-3.5 py-2'
+                    ? 'w-9'
+                    : 'gap-2 px-3 lg:px-3.5'
                 } ${
                   isTargeted
                     ? 'text-white font-bold'
