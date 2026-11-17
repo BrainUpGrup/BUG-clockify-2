@@ -2650,3 +2650,19 @@
   - Homogeneizada también la altura `h-9` de los enlaces del bloque de navegación (`<nav>`) entre botones con texto e iconos compactos.
 - **Validación y Pruebas:**
   - `npx tsc --noEmit`: **0 errores de compilación**.
+
+### [v4.4.4] - 2026-11-17 - Filtro Activos/Archivados y Eliminación Definitiva de Clientes con Confirmación Crítica
+- **Solicitud del Usuario:**
+  *"en este apartado quiero que cuando archives algo te salga en otro apartado que haya un filtro que sea, activos/archivados y así lo dividimos mejor, por otro lado necesito que te deje eliminar clientes aunque tengan horas registradas. No obstante que antes de poder eliminarlo te salga una pantalla que ponga en MUY GRANDE ESTAS SEGURO DE QUE QUIERES ELIMINAR (NOMBRE DE LA EMPRESA) ESTA ACCION SERÁ IRREVERSIBLE Y SE PERDERAN TODAS LAS HORAS DE ESTE CLIENTE"*
+- **Decisiones Técnicas y Solución Implementada:**
+  1. **Filtro Segmentado Activos / Archivados ([`src/components/coordinator/company-crud.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/components/coordinator/company-crud.tsx)):**
+     - Añadido selector de estado `Activos (N)` / `Archivados (M)` (activo por defecto en `Activos`). Al archivar una empresa, desaparece de `Activos` y pasa inmediatamente al apartado `Archivados`, donde incorpora el botón `Reactivar` (`RotateCcw`).
+     - Feedback visual mediante `notify()` al archivar o reactivar en [`src/app/dashboard/coordinator/page.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/app/dashboard/coordinator/page.tsx).
+  2. **Pantalla de Confirmación Crítica en Muy Grande ([`src/components/coordinator/delete-company-modal.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/components/coordinator/delete-company-modal.tsx)):**
+     - Nuevo modal destructivo de alto impacto con el mensaje en tipografía gigante en mayúsculas: `¿ESTÁS SEGURO DE QUE QUIERES ELIMINAR {NOMBRE DE LA EMPRESA}?` y bloque de alerta rojo con: `ESTA ACCIÓN SERÁ IRREVERSIBLE Y SE PERDERÁN TODAS LAS HORAS DE ESTE CLIENTE`, mostrando además el cómputo exacto de registros y horas afectadas.
+  3. **Eliminación en Cascada Permitida ([`src/app/dashboard/coordinator/page.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/app/dashboard/coordinator/page.tsx)):**
+     - Suprimido el bloqueo previo cuando el cliente tenía horas imputadas en `handleDeleteCompany`.
+     - Eliminación de `time_entries` y `companies` en Supabase (respaldada por `ON DELETE CASCADE`), limpieza inmediata en memoria (`companies`, `allEntries`) y cachés locales (`bug_clockify_cache_companies`, `bug_clockify_cache_entries_*`, `bug_clockify_active_company_*`).
+  4. **Directrices Maestras:** DM-01 (0 emojis, icono Lucide `AlertTriangle`), DM-13 (Identidad "La Abuela"), DM-15 (Modal Zero-Scroll).
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.

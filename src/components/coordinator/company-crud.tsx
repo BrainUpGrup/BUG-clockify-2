@@ -16,11 +16,12 @@ import {
   Search,
   CheckCircle2,
   Upload,
-  Download
+  Download,
+  RotateCcw
 } from 'lucide-react';
 import { Company, TimeEntry, ClientType } from '@/types/database';
-import { confirmDialog, notify } from '@/lib/feedback';
 import { EditCompanyModal } from '@/components/coordinator/edit-company-modal';
+import { DeleteCompanyModal } from '@/components/coordinator/delete-company-modal';
 import { CompanyImportModal } from '@/components/coordinator/company-import-modal';
 import { CompanyLogo } from '@/components/ui/company-logo';
 import { 
@@ -76,7 +77,10 @@ export function CompanyCrud({
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [isCreatingCompany, setIsCreatingCompany] = useState(false);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
+  const [deletingCompany, setDeletingCompany] = useState<Company | null>(null);
+  const [isDeletingCompany, setIsDeletingCompany] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'active' | 'archived'>('active');
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleCreateCompanySubmit = async (e: React.FormEvent) => {
@@ -105,7 +109,13 @@ export function CompanyCrud({
     }
   };
 
+  const activeCount = companies.filter((c) => c.is_active).length;
+  const archivedCount = companies.filter((c) => !c.is_active).length;
+
   const filteredCompanies = companies.filter((company) => {
+    const matchesStatus = statusFilter === 'active' ? company.is_active : !company.is_active;
+    if (!matchesStatus) return false;
+
     if (!searchQuery.trim()) return true;
     const term = searchQuery.toLowerCase().trim();
     return (
@@ -115,6 +125,25 @@ export function CompanyCrud({
       (company.contact_email && company.contact_email.toLowerCase().includes(term))
     );
   });
+
+  const deletingCompanyEntries = deletingCompany
+    ? entries.filter((e) => e.company_id === deletingCompany.id)
+    : [];
+  const deletingCompanyTotalMinutes = deletingCompanyEntries.reduce(
+    (sum, e) => sum + e.duration_minutes,
+    0
+  );
+
+  const handleConfirmDeleteCompany = async () => {
+    if (!deletingCompany) return;
+    setIsDeletingCompany(true);
+    try {
+      await onDeleteCompany(deletingCompany.id);
+      setDeletingCompany(null);
+    } finally {
+      setIsDeletingCompany(false);
+    }
+  };
 
   return (
     <div className="w-full space-y-6">
@@ -323,6 +352,42 @@ export function CompanyCrud({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {/* Filtro Activos / Archivados */}
+            <div
+              className="inline-flex items-center rounded-xl bg-white p-1 border border-[#D8CFF0] shadow-2xs"
+              role="tablist"
+              aria-label="Filtrar empresas por estado"
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={statusFilter === 'active'}
+                onClick={() => setStatusFilter('active')}
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-extrabold uppercase tracking-tight transition-all cursor-pointer ${
+                  statusFilter === 'active'
+                    ? 'bg-[#8E0E75] text-white shadow-xs'
+                    : 'text-[#4A4A4A] hover:text-[#8E0E75]'
+                }`}
+              >
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                <span>Activos ({activeCount})</span>
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={statusFilter === 'archived'}
+                onClick={() => setStatusFilter('archived')}
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-extrabold uppercase tracking-tight transition-all cursor-pointer ${
+                  statusFilter === 'archived'
+                    ? 'bg-[#191654] text-white shadow-xs'
+                    : 'text-[#4A4A4A] hover:text-[#191654]'
+                }`}
+              >
+                <Archive className="h-3.5 w-3.5" />
+                <span>Archivados ({archivedCount})</span>
+              </button>
+            </div>
+
             {/* Buscador Rápido de Empresas */}
             <div className="relative w-full sm:w-56">
               <Search className="h-4 w-4 text-[#8E0E75] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -377,7 +442,11 @@ export function CompanyCrud({
           </div>
         ) : filteredCompanies.length === 0 ? (
           <div className="p-8 text-center text-xs text-[#4A4A4A]">
-            No se encontraron empresas con el término &quot;{searchQuery}&quot;.
+            {searchQuery.trim()
+              ? `No se encontraron empresas en ${statusFilter === 'active' ? 'Activos' : 'Archivados'} con el término "${searchQuery}".`
+              : statusFilter === 'active'
+              ? 'No hay empresas activas en este momento.'
+              : 'No hay empresas archivadas en este apartado.'}
           </div>
         ) : (
           <div className="w-full overflow-x-auto">
@@ -490,28 +559,24 @@ export function CompanyCrud({
                           <button
                             type="button"
                             onClick={() => onToggleCompanyStatus(company.id, company.is_active)}
-                            className="p-1.5 rounded-lg border border-[#D8CFF0] bg-white text-[#4A4A4A] hover:bg-[#F8F6FC] hover:text-[#8E0E75] transition-colors cursor-pointer"
+                            className={`p-1.5 rounded-lg border border-[#D8CFF0] bg-white transition-colors cursor-pointer ${
+                              company.is_active
+                                ? 'text-[#4A4A4A] hover:bg-[#F8F6FC] hover:text-[#8E0E75]'
+                                : 'text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300'
+                            }`}
                             title={company.is_active ? 'Archivar Empresa' : 'Reactivar Empresa'}
                             aria-label={company.is_active ? `Archivar ${company.name}` : `Reactivar ${company.name}`}
                           >
-                            <Archive className="h-4 w-4" />
+                            {company.is_active ? <Archive className="h-4 w-4" /> : <RotateCcw className="h-4 w-4" />}
                           </button>
 
-                          {/* Botón Eliminar */}
+                          {/* Botón Eliminar Definitivamente */}
                           <button
                             type="button"
-                            onClick={async () => {
-                              const ok = await confirmDialog({
-                                title: `¿Eliminar la empresa "${company.name}"?`,
-                                message: 'Solo es posible si no tiene horas registradas. Si las tiene, archívala.',
-                                confirmLabel: 'Eliminar',
-                                danger: true,
-                              });
-                              if (ok) onDeleteCompany(company.id);
-                            }}
+                            onClick={() => setDeletingCompany(company)}
                             aria-label={`Eliminar empresa ${company.name}`}
                             className="p-1.5 rounded-lg border border-rose-200 bg-white text-rose-500 hover:bg-rose-50 hover:text-rose-700 transition-colors cursor-pointer"
-                            title="Eliminar Empresa"
+                            title="Eliminar Empresa y todas sus horas"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -532,6 +597,16 @@ export function CompanyCrud({
         company={editingCompany}
         onClose={() => setEditingCompany(null)}
         onSave={onUpdateCompany}
+      />
+
+      {/* Modal de Confirmación Crítica de Eliminación */}
+      <DeleteCompanyModal
+        company={deletingCompany}
+        entriesCount={deletingCompanyEntries.length}
+        totalMinutes={deletingCompanyTotalMinutes}
+        isDeleting={isDeletingCompany}
+        onClose={() => !isDeletingCompany && setDeletingCompany(null)}
+        onConfirmDelete={handleConfirmDeleteCompany}
       />
 
       {/* Modal de Importación CSV de Empresas */}

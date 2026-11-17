@@ -291,22 +291,37 @@ export default function CoordinatorDashboardPage() {
 
   // Manejar toggle de estado de empresa (activar/archivar)
   const handleToggleCompanyStatus = async (id: string, currentStatus: boolean) => {
+    const nextStatus = !currentStatus;
     if (isSupabaseConnected) {
       try {
         const supabase = createClient();
-        await supabase
+        const { error } = await supabase
           .from('companies')
-          .update({ is_active: !currentStatus })
+          .update({ is_active: nextStatus })
           .eq('id', id);
+
+        if (error) {
+          console.error('Error al cambiar estado de empresa:', error);
+          notify('No se pudo actualizar el estado de la empresa: ' + error.message, { type: 'error' });
+          return;
+        }
       } catch (err) {
         console.error(err);
+        notify('Error inesperado al actualizar el estado de la empresa.', { type: 'error' });
+        return;
       }
     }
     setCompanies((prev) => {
-      const next = prev.map((c) => (c.id === id ? { ...c, is_active: !currentStatus } : c));
+      const next = prev.map((c) => (c.id === id ? { ...c, is_active: nextStatus } : c));
       safeSetLocalStorage('bug_clockify_cache_companies', next);
       return next;
     });
+    notify(
+      nextStatus
+        ? 'Empresa reactivada. Ya aparece en Activos.'
+        : 'Empresa archivada. Puedes consultarla o reactivarla en el filtro Archivados.',
+      { type: 'success' }
+    );
   };
 
   // Manejar edición de empresa desde el panel de coordinadora
@@ -423,27 +438,56 @@ export default function CoordinatorDashboardPage() {
     }
   };
 
-  // Manejar eliminación de empresa
+  // Manejar eliminación definitiva de empresa (incluye borrado de todas sus horas registradas tras doble confirmación)
   const handleDeleteCompany = async (id: string) => {
-    const hasEntries = allEntries.some((e) => e.company_id === id);
-    if (hasEntries) {
-      notify('No se puede eliminar una empresa que tiene horas imputadas. Puedes archivarla en su lugar.', { type: 'warning', duration: 6000 });
-      return;
-    }
-
     if (isSupabaseConnected) {
       try {
         const supabase = createClient();
-        await supabase.from('companies').delete().eq('id', id);
+        // Limpiar registros horarios asociados explícitamente además del ON DELETE CASCADE en BD
+        const { error: entriesError } = await supabase.from('time_entries').delete().eq('company_id', id);
+        if (entriesError) {
+          console.error('Error al eliminar horas de la empresa:', entriesError);
+        }
+
+        const { error: companyError } = await supabase.from('companies').delete().eq('id', id);
+        if (companyError) {
+          console.error('Error al eliminar empresa en Supabase:', companyError);
+          notify('Error al eliminar la empresa: ' + companyError.message, { type: 'error' });
+          return;
+        }
       } catch (err) {
-        console.error(err);
+        console.error('Excepción al eliminar empresa:', err);
+        notify('Error inesperado al eliminar la empresa.', { type: 'error' });
+        return;
       }
     }
+
     setCompanies((prev) => {
       const next = prev.filter((c) => c.id !== id);
       safeSetLocalStorage('bug_clockify_cache_companies', next);
       return next;
     });
+    setAllEntries((prev) => prev.filter((e) => e.company_id !== id));
+
+    try {
+      if (user?.id) {
+        const cacheKey = `bug_clockify_cache_entries_${user.id}`;
+        const localEntries = safeGetLocalStorage<TimeEntry[] | null>(cacheKey, null);
+        if (localEntries) {
+          safeSetLocalStorage(
+            cacheKey,
+            localEntries.filter((e) => e.company_id !== id),
+            200
+          );
+        }
+      }
+      if (localStorage.getItem('bug_clockify_active_company_id') === id) {
+        localStorage.removeItem('bug_clockify_active_company_id');
+        localStorage.removeItem('bug_clockify_active_company_obj');
+      }
+    } catch {}
+
+    notify('Empresa y todas sus horas asociadas eliminadas definitivamente.', { type: 'success' });
   };
 
   // Manejar importación masiva de empresas desde archivo CSV
