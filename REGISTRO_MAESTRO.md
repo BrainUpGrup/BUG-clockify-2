@@ -2666,3 +2666,18 @@
   4. **Directrices Maestras:** DM-01 (0 emojis, icono Lucide `AlertTriangle`), DM-13 (Identidad "La Abuela"), DM-15 (Modal Zero-Scroll).
 - **Validación y Pruebas:**
   - `npx tsc --noEmit`: **0 errores de compilación**.
+
+### [v4.4.5] - 2026-11-17 - Procesado, Encuadre Uniforme (.webp 256x256) y Carga Masiva de Logotipos Corporativos
+- **Solicitud del Usuario:**
+  *"vale en esta carpeta tienes todos los logos, ponlos bien encuadrados todos con el mismo formato y añadelo a sus respectivas empresas, luego dime que empresas te han faltado, y recuerda comprimirlo pasandolo a .webp"*
+- **Decisiones Técnicas y Solución Implementada:**
+  1. **Normalización y Compresión a `.webp` (`public/logos/*.webp`):**
+     - Procesados los **28 logotipos** recibidos en `Logos_empresas_brain_up.zip` (incluyendo conversión de `MG-THINGS` en formato `JXL` vía `ffmpeg`, limpieza de fondo blanco en JPG/JFIF/PNG opacos preservando interiores, recorte exacto al contenido visible y reencuadre simétrico con margen uniforme dentro de lienzo transparente cuadrado `256x256` en formato `WebP`).
+     - Reducción de peso total desde **2.239,8 KB** a **229,5 KB** (`-89,8%` de ahorro acumulado).
+  2. **Vinculación en Supabase (`public.companies`):**
+     - Asignado `logo_url = '/logos/<slug>.webp'` en las **28 empresas** correspondientes.
+     - Identificadas **10 empresas pendientes de logotipo** (`9 activas` y `1 archivada`: `BY NEURAL`).
+  3. **Directrices Maestras:** DM-01 (0 emojis), Paso 5 (`git push` bajo confirmación del usuario).
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+  - Comprobación visual de los 28 logotipos renderizados y verificación REST en Supabase (`28/38` con logotipo asignado, `10` sin logotipo).
