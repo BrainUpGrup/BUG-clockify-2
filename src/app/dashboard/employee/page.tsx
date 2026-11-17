@@ -180,24 +180,14 @@ export default function EmployeeDashboardPage() {
     };
   }, [user]);
 
-  // Seleccionar automáticamente la empresa y sincronizar con la cabecera
+  // Sincronizar empresa únicamente si ya hay una activa en sesión (ej. temporizador corriendo o elegida en esta visita).
+  // Por defecto al entrar, mantener "Sin empresa" ('') para obligar a elegir cliente explícitamente.
   useEffect(() => {
-    if (companies.length > 0 && !selectedCompanyId) {
-      try {
-        const preferredId = activeCompanyId || localStorage.getItem('bug_clockify_last_company_id');
-        const found = preferredId && companies.find((c) => c.id === preferredId && c.is_active);
-        if (found) {
-          setSelectedCompanyId(found.id);
-          setActiveCompany(found);
-          return;
-        }
-      } catch (e) {
-        console.warn('Local storage error:', e);
-      }
-      const firstActive = companies.find((c) => c.is_active) || companies[0];
-      if (firstActive) {
-        setSelectedCompanyId(firstActive.id);
-        setActiveCompany(firstActive);
+    if (companies.length > 0 && activeCompanyId && !selectedCompanyId) {
+      const found = companies.find((c) => c.id === activeCompanyId && c.is_active);
+      if (found) {
+        setSelectedCompanyId(found.id);
+        setActiveCompany(found);
       }
     }
   }, [companies, selectedCompanyId, activeCompanyId, setActiveCompany]);
@@ -213,10 +203,14 @@ export default function EmployeeDashboardPage() {
 
   // Sincronizar activeCompany en TimerContext cuando cambia selectedCompany
   useEffect(() => {
-    if (selectedCompany) {
-      setActiveCompany(selectedCompany);
+    if (selectedCompanyId) {
+      if (selectedCompany) {
+        setActiveCompany(selectedCompany);
+      }
+    } else {
+      setActiveCompany(null);
     }
-  }, [selectedCompany, setActiveCompany]);
+  }, [selectedCompanyId, selectedCompany, setActiveCompany]);
 
   // Handler para iniciar temporizador repitiendo una tarea previa
   const handleRepeatEntry = (entry: TimeEntry) => {

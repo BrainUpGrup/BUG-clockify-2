@@ -95,40 +95,39 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
   const defaultTitleRef = useRef<string>('');
   const defaultFaviconRef = useRef<string>('');
 
-  // Restaurar estado inicial desde localStorage
+  // Restaurar estado inicial desde localStorage solo si había un cronómetro corriendo;
+  // en estado normal al entrar, iniciar siempre en "Sin empresa".
   useEffect(() => {
     try {
-      const savedCompanyId = localStorage.getItem(TIMER_STORAGE_KEY_COMPANY);
-      if (savedCompanyId) {
-        setActiveCompanyIdState(savedCompanyId);
-      }
-
-      // Restaurar el objeto de empresa completa
-      const savedCompObj = localStorage.getItem(TIMER_STORAGE_KEY_COMPANY_OBJ);
-      if (savedCompObj) {
-        try {
-          const comp = JSON.parse(savedCompObj) as Company;
-          setActiveCompanyState(comp);
-        } catch {}
-      } else if (savedCompanyId) {
-        // Fallback a caché de empresas
-        const cachedComps = safeGetLocalStorage<Company[]>('bug_clockify_cache_companies', []);
-        const found = cachedComps.find((c) => c.id === savedCompanyId);
-        if (found) {
-          setActiveCompanyState(found);
-        }
-      }
-
-      const savedDesc = localStorage.getItem(TIMER_STORAGE_KEY_DESC);
-      if (savedDesc) {
-        setActiveDescriptionState(savedDesc);
-      }
-
       const wasRunning = localStorage.getItem(TIMER_STORAGE_KEY_RUNNING) === 'true';
       const savedStartTs = localStorage.getItem(TIMER_STORAGE_KEY_START_TS);
       const savedStartIso = localStorage.getItem(TIMER_STORAGE_KEY_START_ISO);
 
       if (wasRunning && savedStartTs) {
+        const savedCompanyId = localStorage.getItem(TIMER_STORAGE_KEY_COMPANY);
+        if (savedCompanyId) {
+          setActiveCompanyIdState(savedCompanyId);
+        }
+
+        const savedCompObj = localStorage.getItem(TIMER_STORAGE_KEY_COMPANY_OBJ);
+        if (savedCompObj) {
+          try {
+            const comp = JSON.parse(savedCompObj) as Company;
+            setActiveCompanyState(comp);
+          } catch {}
+        } else if (savedCompanyId) {
+          const cachedComps = safeGetLocalStorage<Company[]>('bug_clockify_cache_companies', []);
+          const found = cachedComps.find((c) => c.id === savedCompanyId);
+          if (found) {
+            setActiveCompanyState(found);
+          }
+        }
+
+        const savedDesc = localStorage.getItem(TIMER_STORAGE_KEY_DESC);
+        if (savedDesc) {
+          setActiveDescriptionState(savedDesc);
+        }
+
         const startTs = parseInt(savedStartTs, 10);
         if (!isNaN(startTs) && startTs > 0) {
           startTimestampRef.current = startTs;
@@ -137,6 +136,9 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
           setStartTimeIso(savedStartIso || new Date(startTs).toISOString());
           setIsTimerRunning(true);
         }
+      } else {
+        localStorage.removeItem(TIMER_STORAGE_KEY_COMPANY);
+        localStorage.removeItem(TIMER_STORAGE_KEY_COMPANY_OBJ);
       }
     } catch (e) {
       console.warn('Error restoring timer state:', e);
@@ -285,6 +287,13 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
   const setActiveCompanyId = useCallback((id: string) => {
     setActiveCompanyIdState(id);
     try {
+      if (!id) {
+        setActiveCompanyState(null);
+        localStorage.removeItem(TIMER_STORAGE_KEY_COMPANY);
+        localStorage.removeItem(TIMER_STORAGE_KEY_COMPANY_OBJ);
+        return;
+      }
+
       localStorage.setItem(TIMER_STORAGE_KEY_COMPANY, id);
       localStorage.setItem('bug_clockify_last_company_id', id);
 
@@ -312,7 +321,9 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
         console.warn('Error saving company:', e);
       }
     } else {
+      setActiveCompanyIdState('');
       try {
+        localStorage.removeItem(TIMER_STORAGE_KEY_COMPANY);
         localStorage.removeItem(TIMER_STORAGE_KEY_COMPANY_OBJ);
       } catch {}
     }

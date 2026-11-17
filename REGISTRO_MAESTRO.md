@@ -2595,6 +2595,24 @@
 - **Validación y Pruebas:**
   - `npx tsc --noEmit`: **0 errores de compilación**.
 
+### [v4.4.0] - 2026-11-17 - Selector de Empresa por Defecto en "Sin empresa" + Aviso de Selección Obligatoria
+- **Solicitud del Usuario:**
+  *"quiero que el estado comun de el selector de empresa cuando entro sea 'sin empresa' y que ponga un cartelito que diga algo como 'selecciona un cliente para poder comenzar a contabilizar las horas por cliente'"*
+- **Decisiones Técnicas y Solución Implementada:**
+  1. **Inicio Limpio Sin Empresa Preseleccionada ([`src/context/timer-context.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/context/timer-context.tsx) y [`src/app/dashboard/employee/page.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/app/dashboard/employee/page.tsx)):**
+     - `TimerContext` solo restaura `activeCompanyId` / `activeCompany` desde `localStorage` si hay un temporizador activo corriendo (`bug_clockify_timer_running === 'true'`). En cualquier acceso normal sin cronómetro en curso, arranca en `''` / `null` ("Sin empresa").
+     - Se elimina la auto-selección automática de `ALEHUUB` (primera empresa activa alfabética) al cargar `/dashboard/employee`.
+     - Al elegir `"Sin empresa"` en el selector, se limpia `activeCompany` de forma inmediata.
+  2. **Cartel de Aviso y Estado Visual "Sin empresa" ([`src/components/employee/company-hero-banner.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/components/employee/company-hero-banner.tsx)):**
+     - Añadida la opción explícita `{ value: '', label: 'Sin empresa' }` al desplegable `AppSelect`.
+     - Cuando no hay cliente seleccionado, la tarjeta muestra el badge `Sin Cliente Fijado`, título `Sin empresa`, y el cartel informativo destacado en ámbar: *"Selecciona un cliente para poder comenzar a contabilizar las horas por cliente"*.
+  3. **Coherencia en [`src/components/employee/time-tracker-bar.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/components/employee/time-tracker-bar.tsx) y [`src/components/navbar.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/components/navbar.tsx):**
+     - `Navbar` muestra `Sin empresa` cuando no hay cliente fijado.
+     - `TimeTrackerBar` indica `Sin empresa seleccionada` en la píldora de cliente, adapta el placeholder del cajón de texto y atenúa visualmente `Iniciar` / `Añadir` invitando a seleccionar primero un cliente.
+  4. **Directrices Maestras:** DM-01 (0 emojis, icono Lucide `AlertCircle`), DM-02 (`AppSelect` in-app), DM-13 (Identidad "La Abuela").
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+
 
 
 

@@ -492,9 +492,9 @@ export function Navbar() {
               </span>
               <span
                 className="text-sm font-bold text-[#191654] truncate max-w-[130px] 2xl:max-w-[190px] leading-tight group-hover:text-[#8E0E75] transition-colors"
-                title={activeCompany?.name || 'Elegir cliente'}
+                title={activeCompany?.name || 'Sin empresa'}
               >
-                {activeCompany?.name || 'Elegir cliente'}
+                {activeCompany?.name || 'Sin empresa'}
               </span>
             </div>
           </Link>

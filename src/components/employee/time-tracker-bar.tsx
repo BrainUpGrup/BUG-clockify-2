@@ -539,7 +539,13 @@ export function TimeTrackerBar({
             >
               <Building2 className={`h-4 w-4 ${showCompanyStatsPop ? 'text-white' : 'text-[#8E0E75]'}`} />
               <span>
-                Este cliente (mes): <strong>{formatMinutes(monthCompanyMinutes)}</strong>
+                {selectedCompany ? (
+                  <>
+                    Este cliente (mes): <strong>{formatMinutes(monthCompanyMinutes)}</strong>
+                  </>
+                ) : (
+                  <strong>Sin empresa seleccionada</strong>
+                )}
               </span>
               <ChevronDown className={`h-4 w-4 transition-transform ${showCompanyStatsPop ? 'rotate-180' : ''}`} />
             </button>
@@ -695,7 +701,11 @@ export function TimeTrackerBar({
               }}
               aria-label="Descripción de la tarea"
               aria-invalid={descriptionMissing}
-              placeholder={`¿En qué estás trabajando para ${selectedCompany?.name || 'este cliente'}? (↵ para iniciar)`}
+              placeholder={
+                selectedCompany
+                  ? `¿En qué estás trabajando para ${selectedCompany.name}? (↵ para iniciar)`
+                  : 'Selecciona un cliente arriba para poder comenzar a contabilizar las horas...'
+              }
               className={`w-full px-5 py-3.5 sm:py-4 rounded-xl border-2 bg-white text-base sm:text-lg text-[#292929] placeholder:text-slate-400 focus:ring-2 focus:ring-[#8E0E75]/15 outline-none transition-all font-semibold shadow-xs ${
                 descriptionMissing ? 'border-red-400 focus:border-red-500' : 'border-[#D8CFF0] focus:border-[#8E0E75]'
               }`}
@@ -760,7 +770,14 @@ export function TimeTrackerBar({
                 <button
                   type="button"
                   onClick={handleStartTimer}
-                  className="w-full h-13 sm:h-15 flex items-center justify-center gap-2 px-4 sm:px-6 py-3 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-bold text-base sm:text-lg active:scale-[0.98] shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/40 hover:scale-[1.02] transition-all cursor-pointer"
+                  title={
+                    !selectedCompanyId
+                      ? 'Selecciona un cliente para poder comenzar a contabilizar las horas por cliente'
+                      : 'Iniciar temporizador'
+                  }
+                  className={`w-full h-13 sm:h-15 flex items-center justify-center gap-2 px-4 sm:px-6 py-3 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-bold text-base sm:text-lg active:scale-[0.98] shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/40 hover:scale-[1.02] transition-all cursor-pointer ${
+                    !selectedCompanyId ? 'opacity-55 hover:opacity-80' : ''
+                  }`}
                 >
                   <Play className="h-5 w-5 sm:h-6 sm:w-6 fill-current" />
                   <span>Iniciar</span>
@@ -787,7 +804,14 @@ export function TimeTrackerBar({
                 type="submit"
                 id="btn-submit-manual-entry"
                 disabled={isSubmitting}
-                className="w-full h-13 sm:h-15 flex items-center justify-center gap-2 px-4 sm:px-6 py-3 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-bold text-base sm:text-lg active:scale-[0.98] shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/40 hover:scale-[1.02] transition-all disabled:opacity-50 cursor-pointer"
+                title={
+                  !selectedCompanyId
+                    ? 'Selecciona un cliente para poder comenzar a contabilizar las horas por cliente'
+                    : 'Añadir registro manual'
+                }
+                className={`w-full h-13 sm:h-15 flex items-center justify-center gap-2 px-4 sm:px-6 py-3 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-bold text-base sm:text-lg active:scale-[0.98] shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/40 hover:scale-[1.02] transition-all disabled:opacity-50 cursor-pointer ${
+                  !selectedCompanyId ? 'opacity-55 hover:opacity-80' : ''
+                }`}
               >
                 <Plus className="h-5 w-5 sm:h-6 sm:w-6" />
                 <span>{isSubmitting ? '...' : 'Añadir'}</span>
