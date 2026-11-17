@@ -714,9 +714,16 @@ export default function ArchivosHubPage() {
               <div className="h-6 w-px bg-slate-200 hidden sm:block" />
 
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-gradient-to-br from-[#191654] to-[#8E0E75] text-white shrink-0">
-                  <Building2 className="h-5 w-5" />
-                </div>
+                {activeCompany.logo_url ? (
+                  <div className="h-9 w-9 rounded-xl bg-white border border-[#D8CFF0] flex items-center justify-center shrink-0 overflow-hidden p-1 shadow-2xs">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={activeCompany.logo_url} alt={activeCompany.name} className="h-full w-full object-contain" />
+                  </div>
+                ) : (
+                  <div className="p-2 rounded-xl bg-gradient-to-br from-[#191654] to-[#8E0E75] text-white shrink-0">
+                    <Building2 className="h-5 w-5" />
+                  </div>
+                )}
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <h2 className="text-base sm:text-lg font-black text-[#191654] uppercase tracking-tight">

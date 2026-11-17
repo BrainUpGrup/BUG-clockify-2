@@ -88,8 +88,14 @@ export default function EmployeeDashboardPage() {
           ]);
 
           if (compRes.data && compRes.data.length > 0) {
-            setCompanies(compRes.data as Company[]);
-            safeSetLocalStorage('bug_clockify_cache_companies', compRes.data);
+            const loadedCompanies = compRes.data as Company[];
+            setCompanies(loadedCompanies);
+            safeSetLocalStorage('bug_clockify_cache_companies', loadedCompanies);
+            const activeId = safeGetLocalStorage<string>('bug_clockify_active_company_id', '');
+            const currActive = activeId ? loadedCompanies.find((c) => c.id === activeId) : undefined;
+            if (currActive) {
+              window.dispatchEvent(new CustomEvent('bug-company-updated', { detail: currActive }));
+            }
           }
           if (entriesRes.data && entriesRes.data.length > 0) {
             const cloudEntries = entriesRes.data as unknown as TimeEntry[];

@@ -20,6 +20,7 @@ import {
 import { useTimer, useTimerSeconds } from '@/context/timer-context';
 import { formatSecondsToTimer } from '@/lib/utils';
 import { notify } from '@/lib/feedback';
+import { CompanyLogo } from '@/components/ui/company-logo';
 
 export function FloatingTimerCompanion() {
   const pathname = usePathname();
@@ -512,7 +513,7 @@ export function FloatingTimerCompanion() {
 
               {/* Empresa activa en modo píldora */}
               <div className="flex items-center gap-1.5 max-w-[110px] min-w-0 pr-1">
-                <Building2 className="h-3 w-3 text-[#8E0E75] shrink-0" />
+                <CompanyLogo company={activeCompany} size="xs" />
                 <span 
                   className="text-[11px] font-black uppercase text-[#191654] truncate leading-tight"
                   title={activeCompany?.name || 'Cliente'}
@@ -642,8 +643,8 @@ export function FloatingTimerCompanion() {
               {/* Empresa en Curso y Cronómetro */}
               <div className="flex items-center justify-between p-2 rounded-lg bg-[#F8F6FC] border border-[#D8CFF0]">
                 <div className="flex items-center gap-2 min-w-0 pr-2">
-                  <div className="h-7 w-7 rounded-xs bg-white border border-[#D8CFF0] flex items-center justify-center shrink-0 text-[#8E0E75]">
-                    <Building2 className="h-3.5 w-3.5" />
+                  <div className="h-7 w-7 rounded-md bg-white border border-[#D8CFF0] flex items-center justify-center shrink-0 text-[#8E0E75] overflow-hidden p-0.5">
+                    <CompanyLogo company={activeCompany} size="sm" className="h-full w-full" />
                   </div>
                   <div className="flex flex-col min-w-0">
                     <span className="text-[11px] font-black uppercase text-[#8E0E75] leading-none">

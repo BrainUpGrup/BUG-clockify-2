@@ -154,3 +154,68 @@ export async function compressAvatarImage(
   URL.revokeObjectURL(img.src);
   return result;
 }
+
+/**
+ * Escala y comprime el logotipo de una empresa/cliente (PNG, JPG, WebP o SVG)
+ * a formato WebP ligero preservando su proporción original y transparencia alfa.
+ */
+export async function compressCompanyLogoToWebP(
+  file: File,
+  maxDimension: number = 256,
+  quality: number = 0.86
+): Promise<CompressedImageResult> {
+  const img = await loadImageFromFile(file);
+
+  try {
+    const srcWidth = img.naturalWidth || img.width || maxDimension;
+    const srcHeight = img.naturalHeight || img.height || maxDimension;
+    const scale = Math.min(maxDimension / srcWidth, maxDimension / srcHeight, 1);
+
+    const targetWidth = Math.max(1, Math.round(srcWidth * scale));
+    const targetHeight = Math.max(1, Math.round(srcHeight * scale));
+
+    const canvas = document.createElement('canvas');
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      throw new Error('El navegador no soporta Canvas 2D para comprimir logotipos.');
+    }
+
+    // Preservar canal alfa transparente para logotipos PNG/WebP/SVG
+    ctx.clearRect(0, 0, targetWidth, targetHeight);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+    let dataUrl = canvas.toDataURL('image/webp', quality);
+    let mimeType = 'image/webp';
+
+    if (!dataUrl.startsWith('data:image/webp')) {
+      dataUrl = canvas.toDataURL('image/png');
+      mimeType = 'image/png';
+    }
+
+    const base64Part = dataUrl.split(',')[1] || '';
+    const paddingMatch = base64Part.match(/=+$/);
+    const paddingLen = paddingMatch ? paddingMatch[0].length : 0;
+    const compressedBytes = Math.max(0, Math.floor((base64Part.length * 3) / 4) - paddingLen);
+
+    const originalBytes = file.size;
+    const compressionRatioPercent =
+      originalBytes > 0 ? Math.round(((originalBytes - compressedBytes) / originalBytes) * 100) : 0;
+
+    return {
+      dataUrl,
+      originalBytes,
+      compressedBytes,
+      compressionRatioPercent,
+      width: targetWidth,
+      height: targetHeight,
+      mimeType,
+    };
+  } finally {
+    URL.revokeObjectURL(img.src);
+  }
+}

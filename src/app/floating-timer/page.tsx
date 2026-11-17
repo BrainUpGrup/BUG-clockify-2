@@ -23,6 +23,7 @@ import { createClient } from '@/lib/supabase/client';
 import { formatSecondsToTimer, safeGetLocalStorage, safeSetLocalStorage } from '@/lib/utils';
 import { MOCK_COMPANIES } from '@/lib/mock-data';
 import { Company } from '@/types/database';
+import { CompanyLogo } from '@/components/ui/company-logo';
 
 export default function FloatingTimerPage() {
   const { user } = useAuth();
@@ -356,8 +357,8 @@ export default function FloatingTimerPage() {
       {/* Contenido Principal: Empresa y Cronómetro */}
       <div className="my-1.5 p-2.5 rounded-xl bg-[#F8F6FC] border border-[#D8CFF0] flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0 pr-1">
-          <div className="h-8 w-8 rounded-xs bg-white border border-[#D8CFF0] flex items-center justify-center shrink-0 text-[#8E0E75]">
-            <Building2 className="h-4 w-4" />
+          <div className="h-8 w-8 rounded-lg bg-white border border-[#D8CFF0] flex items-center justify-center shrink-0 text-[#8E0E75] overflow-hidden p-1">
+            <CompanyLogo company={activeCompany} size="sm" className="h-full w-full" />
           </div>
           <div className="flex flex-col min-w-0">
             <span className="text-[10px] font-black uppercase text-[#8E0E75] tracking-wider leading-none">

@@ -320,25 +320,67 @@ export default function CoordinatorDashboardPage() {
       contact_name?: string | null;
       contact_email?: string | null;
       is_active?: boolean;
+      logo_url?: string | null;
     }
   ) => {
+    const syncCompanyLocally = (updated: Company) => {
+      setCompanies((prev) => {
+        const next = prev.map((c) => (c.id === id ? updated : c));
+        safeSetLocalStorage('bug_clockify_cache_companies', next);
+        return next;
+      });
+      setAllEntries((prev) =>
+        prev.map((e) =>
+          e.company_id === id
+            ? { ...e, company: { ...(e.company || {}), ...updated } as Company }
+            : e
+        )
+      );
+      try {
+        if (localStorage.getItem('bug_clockify_active_company_id') === id) {
+          localStorage.setItem('bug_clockify_active_company_obj', JSON.stringify(updated));
+        }
+        window.dispatchEvent(new CustomEvent('bug-company-updated', { detail: updated }));
+      } catch {}
+    };
+
     if (isSupabaseConnected) {
       try {
         const supabase = createClient();
-        const { data, error } = await supabase
+        const basePayload = {
+          name: updates.name,
+          client_type: updates.client_type,
+          monthly_hours_quota: updates.client_type === 'cuota' ? updates.monthly_hours_quota : null,
+          cif: updates.cif || null,
+          contact_name: updates.contact_name || null,
+          contact_email: updates.contact_email || null,
+          ...(typeof updates.is_active === 'boolean' ? { is_active: updates.is_active } : {}),
+        };
+        const fullPayload =
+          updates.logo_url !== undefined
+            ? { ...basePayload, logo_url: updates.logo_url || null }
+            : basePayload;
+
+        let { data, error } = await supabase
           .from('companies')
-          .update({
-            name: updates.name,
-            client_type: updates.client_type,
-            monthly_hours_quota: updates.client_type === 'cuota' ? updates.monthly_hours_quota : null,
-            cif: updates.cif || null,
-            contact_name: updates.contact_name || null,
-            contact_email: updates.contact_email || null,
-            ...(typeof updates.is_active === 'boolean' ? { is_active: updates.is_active } : {}),
-          })
+          .update(fullPayload)
           .eq('id', id)
           .select()
           .single();
+
+        // Fallback si la columna logo_url aún no se ha creado en Supabase
+        let missingLogoColumn = false;
+        if (error && updates.logo_url !== undefined && error.message?.toLowerCase().includes('logo_url')) {
+          missingLogoColumn = true;
+          const retry = await supabase
+            .from('companies')
+            .update(basePayload)
+            .eq('id', id)
+            .select()
+            .single();
+          data = retry.data;
+          error = retry.error;
+        }
 
         if (error) {
           console.error('Error al actualizar la empresa en Supabase:', error);
@@ -347,60 +389,36 @@ export default function CoordinatorDashboardPage() {
         }
 
         if (data) {
-          const updated = data as Company;
-          setCompanies((prev) => {
-            const next = prev.map((c) => (c.id === id ? updated : c));
-            safeSetLocalStorage('bug_clockify_cache_companies', next);
-            return next;
-          });
-          // Actualizar registros de tiempo si cambió el nombre
-          setAllEntries((prev) =>
-            prev.map((e) =>
-              e.company_id === id
-                ? { ...e, company: { ...(e.company || {}), ...updated } as Company }
-                : e
-            )
-          );
-          notify('Empresa actualizada correctamente.', { type: 'success' });
+          const updated: Company = missingLogoColumn
+            ? ({ ...data, logo_url: updates.logo_url ?? undefined } as Company)
+            : (data as Company);
+          syncCompanyLocally(updated);
+          if (missingLogoColumn) {
+            notify('Cambios guardados. Ejecuta migration_company_logo.sql en Supabase para guardar el logo en la nube.', {
+              type: 'warning',
+            });
+          } else {
+            notify('Empresa actualizada correctamente.', { type: 'success' });
+          }
         }
       } catch (err) {
         console.error('Excepción al actualizar empresa:', err);
         notify('Error inesperado al actualizar la empresa.', { type: 'error' });
       }
     } else {
-      setCompanies((prev) => {
-        const next = prev.map((c) =>
-          c.id === id
-            ? {
-                ...c,
-                name: updates.name,
-                client_type: updates.client_type,
-                monthly_hours_quota: updates.client_type === 'cuota' ? updates.monthly_hours_quota : null,
-                cif: updates.cif ?? c.cif,
-                contact_name: updates.contact_name ?? c.contact_name,
-                contact_email: updates.contact_email ?? c.contact_email,
-                ...(typeof updates.is_active === 'boolean' ? { is_active: updates.is_active } : {}),
-              }
-            : c
-        );
-        safeSetLocalStorage('bug_clockify_cache_companies', next);
-        return next;
-      });
-      setAllEntries((prev) =>
-        prev.map((e) =>
-          e.company_id === id
-            ? {
-                ...e,
-                company: {
-                  ...(e.company || {}),
-                  name: updates.name,
-                  client_type: updates.client_type,
-                  monthly_hours_quota: updates.client_type === 'cuota' ? updates.monthly_hours_quota : null,
-                } as Company,
-              }
-            : e
-        )
-      );
+      const existing = companies.find((c) => c.id === id);
+      const updated: Company = {
+        ...(existing || ({ id, created_at: new Date().toISOString() } as Company)),
+        name: updates.name,
+        client_type: updates.client_type,
+        monthly_hours_quota: updates.client_type === 'cuota' ? updates.monthly_hours_quota : null,
+        cif: updates.cif ?? existing?.cif,
+        contact_name: updates.contact_name ?? existing?.contact_name,
+        contact_email: updates.contact_email ?? existing?.contact_email,
+        is_active: typeof updates.is_active === 'boolean' ? updates.is_active : (existing?.is_active ?? true),
+        ...(updates.logo_url !== undefined ? { logo_url: updates.logo_url || undefined } : {}),
+      };
+      syncCompanyLocally(updated);
       notify('Empresa actualizada (modo local).', { type: 'success' });
     }
   };

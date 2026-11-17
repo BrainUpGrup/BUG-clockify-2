@@ -2620,3 +2620,20 @@
 
 
 
+
+### [v4.4.2] - 2026-11-17 - Carga de Logotipos de Empresa con Compresión Automática a WebP y Visualización Global
+- **Solicitud del Usuario:**
+  *"desde esta pagina necesito que me dejes subir el logo de la empresa y que se ponga y que siempre que haya algo con ACONS que se ponga ese logo, sí que es cierto que lo tendremos que pasar por una escala de PNG a WebP para comprimir los logos y que no sufra mucho."*
+- **Decisiones Técnicas y Solución Implementada:**
+  1. **Conversor y Compresor de Logotipos PNG/Imagen a WebP ([`src/lib/image-compression.ts`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/lib/image-compression.ts)):**
+     - Nueva función `compressCompanyLogoToWebP(file, maxDimension = 256, quality = 0.86)`: escala proporcionalmente imágenes grandes (`PNG`, `JPG`, `WebP`, `SVG`) manteniendo relación de aspecto original y canal alfa transparente (`clearRect` sin relleno de fondo), y las comprime a `image/webp` con estadísticas de reducción de peso.
+  2. **Modal Compacto Zero-Scroll ([`src/components/coordinator/edit-company-modal.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/components/coordinator/edit-company-modal.tsx)):**
+     - Integrado el selector de logotipo junto al nombre de la empresa (`md:col-span-7` / `md:col-span-5`) cumpliendo DM-15 (sin añadir altura ni scroll), con previsualización al instante, botón `Subir / Cambiar`, botón de borrado y lectura del tamaño final comprimido en WebP.
+  3. **Persistencia Cloud + Caché en Vivo ([`src/app/dashboard/coordinator/page.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/app/dashboard/coordinator/page.tsx), [`migration_company_logo.sql`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/migration_company_logo.sql) y [`src/context/timer-context.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/context/timer-context.tsx)):**
+     - Guardado de `logo_url` en `public.companies` con respaldo automático si la columna SQL aún no se ha creado (`PGRST204`), actualización de caché local (`bug_clockify_cache_companies`, `bug_clockify_active_company_obj`) y evento en vivo `bug-company-updated`.
+     - Añadido script idempotente [`migration_company_logo.sql`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/migration_company_logo.sql) (`alter table public.companies add column if not exists logo_url text null;`) para activar la persistencia en Supabase.
+  4. **Componente Reutilizable y Presencia Global ([`src/components/ui/company-logo.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/components/ui/company-logo.tsx)):**
+     - Renderizado consistente del logotipo corporativo (ej. `ACONS`) con fallback seguro a `Building2` en: Tabla CRUD de Empresas (`company-crud.tsx`), Banner Hero y Desplegable `AppSelect` de Cliente (`company-hero-banner.tsx`), Tarjetas de Estadísticas (`employee-stats.tsx`), Barra de Control Horario y píldoras diarias (`time-tracker-bar.tsx`), Historial de Registros y su selector inline (`time-entries-list.tsx`), Navbar (`navbar.tsx`), Temporizador Flotante y Compañero PiP (`floating-timer/page.tsx`, `floating-timer-companion.tsx`), Informes y Cuotas (`monthly-reports.tsx`), Brain Storage (`apps/archivos/page.tsx`), Brain Chat (`chat-view.tsx`) y TaskFlow (`kanban-board.tsx`, `task-list-view.tsx`).
+  5. **Directrices Maestras:** DM-01 (0 emojis), DM-13 (Identidad "La Abuela"), DM-15 (Modal Zero-Scroll).
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.

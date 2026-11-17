@@ -28,6 +28,7 @@ import {
   FileText
 } from 'lucide-react';
 import { Channel, ChatMessage, ChatAttachment } from '@/types/chat';
+import { CompanyLogo } from '@/components/ui/company-logo';
 import { compressImageForChat, generateVideoPoster, formatFileSize, getAttachmentType } from '@/lib/chat-attachments';
 import { Profile } from '@/types/database';
 import { AppSelect, SelectOption } from '@/components/ui/app-select';
@@ -199,9 +200,9 @@ export function ChatView({
       {/* 1. CABECERA DEL CANAL (ESTILO SLACK CON IDENTIDAD BRAIN UP) */}
       <header className="h-14 px-4 border-b border-[#D8CFF0] bg-white flex items-center justify-between shrink-0 z-10">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="p-1 rounded-xs bg-[#F8F6FC] text-[#8E0E75] shrink-0 border border-[#D8CFF0]">
+          <div className="h-8 w-8 rounded-lg bg-[#F8F6FC] text-[#8E0E75] shrink-0 border border-[#D8CFF0] flex items-center justify-center overflow-hidden p-1">
             {channel.type === 'client' ? (
-              <Building2 className="h-4 w-4" />
+              <CompanyLogo company={channel.company} size="sm" className="h-full w-full" />
             ) : channel.type === 'dm' ? (
               <span className="h-2.5 w-2.5 rounded-full bg-[#3BB54A]" />
             ) : (
@@ -273,8 +274,12 @@ export function ChatView({
           
           {/* Mensaje de Bienvenida al Canal */}
           <div className="py-4 text-center border-b border-[#F8F6FC] space-y-1">
-            <div className="h-10 w-10 rounded-full bg-[#F8F6FC] border border-[#D8CFF0] text-[#8E0E75] flex items-center justify-center mx-auto">
-              {channel.type === 'client' ? <Building2 className="h-5 w-5" /> : <Hash className="h-5 w-5" />}
+            <div className="h-11 w-11 rounded-full bg-[#F8F6FC] border border-[#D8CFF0] text-[#8E0E75] flex items-center justify-center mx-auto overflow-hidden p-1.5">
+              {channel.type === 'client' ? (
+                <CompanyLogo company={channel.company} size="md" className="h-full w-full" />
+              ) : (
+                <Hash className="h-5 w-5" />
+              )}
             </div>
             <h3 className="text-sm font-black uppercase text-[#292929]">
               Inicio de #{channel.name}

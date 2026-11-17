@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { Company, Profile, TimeEntry } from '@/types/database';
 import { formatMinutes } from '@/lib/utils';
+import { CompanyLogo } from '@/components/ui/company-logo';
 import { AppSelect } from '@/components/ui/app-select';
 import { TaskFlowItem } from '@/lib/calendar-export';
 import { getStoredTaskFlowItems, getUpcomingDeliverablesForCompany } from '@/lib/taskflow-data';
@@ -520,8 +521,9 @@ export function MonthlyReports({
                 options={companies.map((c) => ({
                   value: c.id,
                   label: `${c.name} (${c.client_type === 'cuota' ? `Cuota ${c.monthly_hours_quota}h` : 'Puntual'})`,
+                  icon: <CompanyLogo company={c} size="sm" />,
                 }))}
-                icon={<Building2 className="h-4 w-4" />}
+                icon={!selectedCompanyId ? <Building2 className="h-4 w-4" /> : undefined}
               />
             </div>
           )}
@@ -709,8 +711,8 @@ export function MonthlyReports({
                   >
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-2.5">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-white border border-[#D8CFF0] text-[#8E0E75]">
-                          <Building2 className="h-4 w-4" />
+                        <div className="h-9 w-9 rounded-lg bg-white border border-[#D8CFF0] text-[#8E0E75] flex items-center justify-center shrink-0 overflow-hidden p-1">
+                          <CompanyLogo company={item.company} size="sm" className="h-full w-full" />
                         </div>
                         <div>
                           <h4 className="font-extrabold text-sm text-[#292929]">{item.company.name}</h4>
@@ -856,8 +858,10 @@ export function MonthlyReports({
                     return (
                       <tr key={c.id} className="hover:bg-[#F8F6FC]/60 transition-colors">
                         <td className="px-6 py-3.5 font-bold text-[#292929]">
-                          <div className="flex items-center gap-2">
-                            <Building2 className="h-4 w-4 text-[#8E0E75]" />
+                          <div className="flex items-center gap-2.5">
+                            <div className="h-7 w-7 rounded-lg bg-white border border-[#D8CFF0] flex items-center justify-center shrink-0 overflow-hidden p-0.5">
+                              <CompanyLogo company={c} size="sm" className="h-full w-full" />
+                            </div>
                             <span>{c.name}</span>
                           </div>
                         </td>
@@ -934,8 +938,8 @@ export function MonthlyReports({
           <div className="w-full rounded-2xl border-2 border-[#D0C4EB] bg-white p-6 shadow-md shadow-[#191654]/6 space-y-5">
             <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-[#EAE4F5] gap-3">
               <div className="flex items-center gap-3">
-                <div className="p-3 rounded-xl bg-[#F8F6FC] text-[#8E0E75] border border-[#D8CFF0]">
-                  <Building2 className="h-6 w-6" />
+                <div className="h-12 w-12 rounded-xl bg-[#F8F6FC] text-[#8E0E75] border border-[#D8CFF0] flex items-center justify-center shrink-0 overflow-hidden p-1.5">
+                  <CompanyLogo company={currentCompany} size="md" className="h-full w-full" />
                 </div>
                 <div>
                   <h3 className="text-lg font-extrabold uppercase tracking-tight text-[#292929]">
@@ -1433,12 +1437,13 @@ export function MonthlyReports({
                   const percent = currentEmployeeStats.totalMin > 0
                     ? (item.minutes / currentEmployeeStats.totalMin) * 100
                     : 0;
+                  const compObj = companies.find((c) => c.name === item.companyName);
 
                   return (
                     <div key={idx} className="p-3.5 rounded-xl border border-[#EAE4F5] bg-white shadow-2xs">
                       <div className="flex items-center justify-between text-xs mb-1.5">
                         <div className="flex items-center gap-2">
-                          <Building2 className="h-3.5 w-3.5 text-[#8E0E75]" />
+                          <CompanyLogo company={compObj} size="xs" />
                           <span className="font-bold text-[#292929]">{item.companyName}</span>
                           <span className="text-[11px] text-[#4A4A4A]">({item.isCuota ? 'Cliente Cuota' : 'Puntual'})</span>
                         </div>

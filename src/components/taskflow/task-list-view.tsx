@@ -17,6 +17,7 @@ import {
   Check
 } from 'lucide-react';
 import { TaskFlowItem, TaskStatus, getGoogleCalendarUrl, downloadSingleEventIcs } from '@/lib/calendar-export';
+import { CompanyLogo } from '@/components/ui/company-logo';
 
 interface TaskListViewProps {
   items: TaskFlowItem[];
@@ -113,8 +114,8 @@ export function TaskListView({
 
                   {/* Cliente */}
                   <td className="py-3 px-4">
-                    <span className="inline-flex items-center gap-1 font-semibold text-[#8E0E75] text-[11px]">
-                      <Building2 className="h-3 w-3 shrink-0" />
+                    <span className="inline-flex items-center gap-1.5 font-semibold text-[#8E0E75] text-[11px]">
+                      <CompanyLogo companyId={item.companyId} name={item.companyName} size="xs" />
                       <span>{item.companyName}</span>
                     </span>
                   </td>

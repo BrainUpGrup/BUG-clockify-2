@@ -4,6 +4,7 @@ import React from 'react';
 import { AlertCircle, Building2, CheckCircle2, Shield, Sparkles } from 'lucide-react';
 import { Company } from '@/types/database';
 import { AppSelect } from '@/components/ui/app-select';
+import { CompanyLogo } from '@/components/ui/company-logo';
 
 interface CompanyHeroBannerProps {
   companies: Company[];
@@ -29,6 +30,7 @@ export function CompanyHeroBanner({
         c.client_type === 'cuota'
           ? `${c.name} [Cuota: ${c.monthly_hours_quota}h]`
           : `${c.name} [Puntual]`,
+      icon: <CompanyLogo company={c} size="sm" />,
     })),
   ];
 
@@ -147,7 +149,7 @@ export function CompanyHeroBanner({
             placeholder="Sin empresa"
             ariaLabel="Seleccionar cliente"
             searchable
-            icon={<Building2 className="h-4 w-4 text-[#8E0E75]" />}
+            icon={!hasCompany ? <Building2 className="h-4 w-4 text-[#8E0E75]" /> : undefined}
             options={selectOptions}
             className="w-full text-sm sm:text-base font-bold"
           />

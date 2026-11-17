@@ -23,6 +23,7 @@ import {
 import { Company, TimeEntry, EntryComputeType } from '@/types/database';
 import { formatSecondsToTimer, parseDurationToMinutes, formatMinutes } from '@/lib/utils';
 import { AppCalendar } from '@/components/ui/app-calendar';
+import { CompanyLogo } from '@/components/ui/company-logo';
 import { useTimer, useTimerSeconds } from '@/context/timer-context';
 import { notify } from '@/lib/feedback';
 import { DurationPreview } from '@/components/ui/duration-preview';
@@ -537,7 +538,15 @@ export function TimeTrackerBar({
               }`}
               title="Haz clic para ver las horas dedicadas a este cliente"
             >
-              <Building2 className={`h-4 w-4 ${showCompanyStatsPop ? 'text-white' : 'text-[#8E0E75]'}`} />
+              {selectedCompany ? (
+                <CompanyLogo
+                  company={selectedCompany}
+                  size="sm"
+                  iconClassName={showCompanyStatsPop ? 'text-white' : 'text-[#8E0E75]'}
+                />
+              ) : (
+                <Building2 className={`h-4 w-4 ${showCompanyStatsPop ? 'text-white' : 'text-[#8E0E75]'}`} />
+              )}
               <span>
                 {selectedCompany ? (
                   <>
@@ -558,7 +567,7 @@ export function TimeTrackerBar({
               >
                 <div className="flex items-center justify-between pb-2 mb-3 border-b border-[#EAE4F5]">
                   <div className="flex items-center gap-1.5 text-xs font-black uppercase text-[#8E0E75] truncate max-w-[280px]">
-                    <Building2 className="h-4 w-4 shrink-0 text-[#8E0E75]" />
+                    <CompanyLogo company={selectedCompany} size="sm" />
                     <span className="truncate">{selectedCompany?.name || 'Cliente Seleccionado'}</span>
                   </div>
                   <button 
@@ -866,6 +875,12 @@ export function TimeTrackerBar({
                       : 'bg-[#F8F6FC] text-[#292929] border-[#D8CFF0]'
                   }`}
                 >
+                  <CompanyLogo
+                    company={item.company}
+                    size="sm"
+                    className={item.company.id === selectedCompanyId ? 'bg-white rounded-xs p-0.5' : ''}
+                    iconClassName={item.company.id === selectedCompanyId ? 'text-white' : 'text-[#8E0E75]'}
+                  />
                   <span>{item.company.name}:</span>
                   <strong className="font-mono tabular-nums">{formatMinutes(item.minutes)}</strong>
                 </span>

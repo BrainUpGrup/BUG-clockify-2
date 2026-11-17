@@ -139,6 +139,7 @@ export default function SuperAdminDashboardPage() {
   // Datos para Auditoría en Vivo de IaiaHub
   const [auditEntries, setAuditEntries] = useState<TimeEntry[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [auditNotice, setAuditNotice] = useState<string | null>(null);
   const [auditCategory, setAuditCategory] = useState<'security' | 'operations'>('security');
   const [isLoadingAudit, setIsLoadingAudit] = useState(false);
   const [auditSearchTerm, setAuditSearchTerm] = useState('');
@@ -259,6 +260,7 @@ export default function SuperAdminDashboardPage() {
         const auditJson = await auditRes.json();
         if (auditJson && auditJson.success && Array.isArray(auditJson.logs)) {
           setAuditLogs(auditJson.logs);
+          setAuditNotice(auditJson.message || null);
         }
       } catch (err) {
         console.warn('Aviso cargando logs de auditoría forense:', err);
@@ -1689,8 +1691,8 @@ export default function SuperAdminDashboardPage() {
                             <tr>
                               <td colSpan={7} className="py-8 text-center text-[#4A4A4A]">
                                 <p className="font-bold">No hay eventos de seguridad que coincidan con la búsqueda.</p>
-                                <p className="text-[11px] text-slate-400 mt-1">
-                                  Si acabas de desplegar la tabla, ejecuta schema_audit_logs.sql en tu panel de Supabase.
+                                <p className="text-[11px] text-slate-500 mt-1">
+                                  {auditNotice || 'Cuando se produzcan accesos o cambios administrativos aparecerán aquí en tiempo real.'}
                                 </p>
                               </td>
                             </tr>

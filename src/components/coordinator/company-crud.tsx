@@ -22,6 +22,7 @@ import { Company, TimeEntry, ClientType } from '@/types/database';
 import { confirmDialog, notify } from '@/lib/feedback';
 import { EditCompanyModal } from '@/components/coordinator/edit-company-modal';
 import { CompanyImportModal } from '@/components/coordinator/company-import-modal';
+import { CompanyLogo } from '@/components/ui/company-logo';
 import { 
   downloadCompanyCSVTemplate, 
   exportCompaniesToCSV, 
@@ -49,6 +50,7 @@ interface CompanyCrudProps {
       contact_name?: string | null;
       contact_email?: string | null;
       is_active?: boolean;
+      logo_url?: string | null;
     }
   ) => Promise<void>;
   onBatchImportCompanies: (companies: ParsedCompanyItem[], replaceAll: boolean) => Promise<void>;
@@ -399,8 +401,10 @@ export function CompanyCrud({
                   return (
                     <tr key={company.id} className="hover:bg-[#F8F6FC] transition-colors border-b border-[#F0EAF8] last:border-b-0">
                       <td className="px-6 py-3.5">
-                        <div className="flex items-center gap-2">
-                          <Building2 className="h-4 w-4 text-[#8E0E75] shrink-0" />
+                        <div className="flex items-center gap-2.5">
+                          <div className="h-8 w-8 rounded-lg bg-white border border-[#D8CFF0] flex items-center justify-center shrink-0 overflow-hidden p-1 shadow-2xs">
+                            <CompanyLogo company={company} size="md" className="h-full w-full" />
+                          </div>
                           <div>
                             <button
                               type="button"

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireActiveUser } from '@/lib/api-auth';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createAdminSupabaseClient, createServerSupabaseClient } from '@/lib/supabase/server';
 import { AuditLog } from '@/types/database';
 
 export const runtime = 'nodejs';
@@ -9,6 +9,8 @@ export const dynamic = 'force-dynamic';
 /**
  * GET /api/audit/logs
  * Devuelve el registro inmutable de auditoría para Coordinadores y Super Administradores.
+ * Utiliza SUPABASE_SERVICE_ROLE_KEY en el servidor (tras verificar sesión HMAC + rol)
+ * para leer `audit_logs` sin abrir la tabla al rol público `anon`.
  */
 export async function GET(req: NextRequest) {
   const { profile, errorResponse } = await requireActiveUser(req);
@@ -24,8 +26,11 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const supabase = createServerSupabaseClient();
-    const limit = Math.min(250, parseInt(req.nextUrl.searchParams.get('limit') || '100', 10));
+    const adminSupabase = createAdminSupabaseClient();
+    const supabase = adminSupabase || createServerSupabaseClient();
+
+    const parsedLimit = parseInt(req.nextUrl.searchParams.get('limit') || '100', 10);
+    const limit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? Math.min(250, parsedLimit) : 100;
     const actionFilter = req.nextUrl.searchParams.get('action') || undefined;
     const severityFilter = req.nextUrl.searchParams.get('severity') || undefined;
 
@@ -45,12 +50,12 @@ export async function GET(req: NextRequest) {
     const { data, error } = await query;
 
     if (error) {
-      // Si la tabla no ha sido creada aún en Supabase, responder lista vacía con instrucción clara
       if (error.code === 'PGRST205') {
         return NextResponse.json({
           success: true,
           logs: [],
           tableReady: false,
+          serviceRoleConfigured: !!adminSupabase,
           message: 'Ejecuta schema_audit_logs.sql en Supabase para activar la persistencia en base de datos.',
         });
       }
@@ -59,8 +64,13 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      logs: data as AuditLog[],
+      logs: (data || []) as AuditLog[],
       tableReady: true,
+      serviceRoleConfigured: !!adminSupabase,
+      message:
+        !adminSupabase && (!data || data.length === 0)
+          ? 'Falta SUPABASE_SERVICE_ROLE_KEY en las variables de entorno del servidor para leer audit_logs protegida por RLS.'
+          : undefined,
     });
   } catch (err: any) {
     return NextResponse.json({ error: err?.message || 'Error consultando auditoría' }, { status: 500 });
@@ -69,11 +79,14 @@ export async function GET(req: NextRequest) {
 
 /**
  * POST /api/audit/logs
- * Permite registrar un evento de auditoría desde el servidor.
+ * Permite registrar un evento de auditoría desde una sesión autenticada.
  */
 export async function POST(req: NextRequest) {
-  const { profile, user } = await requireActiveUser(req);
-  
+  const { profile, user, errorResponse } = await requireActiveUser(req);
+  if (errorResponse || !profile) {
+    return errorResponse || NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+  }
+
   try {
     const body = await req.json();
     const { action, entityType, entityId, details, severity } = body;
@@ -82,20 +95,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Campos requeridos: action y entityType' }, { status: 400 });
     }
 
-    const supabase = createServerSupabaseClient();
+    const supabase = createAdminSupabaseClient() || createServerSupabaseClient();
     const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.ip || null;
 
-    const { data, error } = await supabase.from('audit_logs').insert([{
-      user_id: profile?.id || user?.id || null,
-      user_email: profile?.full_name || user?.email || 'sistema@brainupgrup.com',
-      user_role: profile?.role || 'system',
-      action,
-      entity_type: entityType,
-      entity_id: entityId || null,
-      details: details || {},
-      ip_address: clientIp,
-      severity: severity || 'info',
-    }]).select('id').single();
+    const { data, error } = await supabase
+      .from('audit_logs')
+      .insert([
+        {
+          user_id: profile.id || user?.id || null,
+          user_email: user?.email || profile.full_name || 'sistema@brainupgrup.com',
+          user_role: profile.role || 'system',
+          action,
+          entity_type: entityType,
+          entity_id: entityId || null,
+          details: details || {},
+          ip_address: clientIp,
+          severity: severity || 'info',
+        },
+      ])
+      .select('id')
+      .single();
 
     if (error) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -106,4 +125,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: err?.message || 'Error registrando evento de auditoría' }, { status: 500 });
   }
 }
-

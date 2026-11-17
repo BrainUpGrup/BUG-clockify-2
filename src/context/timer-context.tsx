@@ -192,7 +192,24 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
     };
 
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+
+    const handleCompanyUpdated = (ev: Event) => {
+      const updated = (ev as CustomEvent<Company>).detail;
+      if (!updated?.id) return;
+      setActiveCompanyState((prev) => {
+        if (prev?.id !== updated.id) return prev;
+        try {
+          localStorage.setItem(TIMER_STORAGE_KEY_COMPANY_OBJ, JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
+    };
+    window.addEventListener('bug-company-updated', handleCompanyUpdated);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('bug-company-updated', handleCompanyUpdated);
+    };
   }, [activeCompanyId, activeDescription]);
 
   // Intervalo de cálculo preciso basado en timestamp

@@ -21,6 +21,7 @@ import { TimeEntry, Company } from '@/types/database';
 import { formatMinutes, formatDateSpanish, parseDurationToMinutes } from '@/lib/utils';
 import { AppSelect } from '@/components/ui/app-select';
 import { AppCalendar } from '@/components/ui/app-calendar';
+import { CompanyLogo } from '@/components/ui/company-logo';
 import { DurationPreview } from '@/components/ui/duration-preview';
 import { useTimer } from '@/context/timer-context';
 
@@ -441,7 +442,8 @@ export function TimeEntriesList({
             {!isCollapsed && (
               <div className="divide-y-2 divide-[#EAE4F5]">
                 {dayEntries.map((entry) => {
-                  const companyName = entry.company?.name || 'Cliente';
+                  const companyObj = companies.find((c) => c.id === entry.company_id) || entry.company;
+                  const companyName = companyObj?.name || 'Cliente';
                   const isEditingTime = editingDurationId === entry.id;
                   const isEditingDesc = editingDescId === entry.id;
                   const isEditingComp = editingCompanyId === entry.id;
@@ -508,18 +510,18 @@ export function TimeEntriesList({
                                 options={companies.filter((c) => c.is_active).map((c) => ({
                                   value: c.id,
                                   label: c.name,
+                                  icon: <CompanyLogo company={c} size="sm" />,
                                 }))}
-                                icon={<Building2 className="h-4 w-4 text-[#8E0E75]" />}
                               />
                             </div>
                           ) : (
                             <button
                               type="button"
                               onClick={() => setEditingCompanyId(entry.id)}
-                              className="inline-flex items-center gap-1.5 font-bold text-[#8E0E75] bg-[#F8F6FC] hover:bg-[#D8CFF0]/40 px-3.5 py-1.5 rounded-xl border-2 border-[#D8CFF0] uppercase tracking-tight text-xs sm:text-sm transition-colors cursor-pointer shadow-2xs"
+                              className="inline-flex items-center gap-2 font-bold text-[#8E0E75] bg-[#F8F6FC] hover:bg-[#D8CFF0]/40 px-3.5 py-1.5 rounded-xl border-2 border-[#D8CFF0] uppercase tracking-tight text-xs sm:text-sm transition-colors cursor-pointer shadow-2xs"
                               title="Haz clic para cambiar el cliente"
                             >
-                              <Building2 className="h-4 w-4 text-[#8E0E75]" />
+                              <CompanyLogo company={companyObj} size="sm" />
                               <span>{companyName}</span>
                             </button>
                           )}

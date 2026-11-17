@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { TimeEntry, Company } from '@/types/database';
 import { formatMinutes } from '@/lib/utils';
+import { CompanyLogo } from '@/components/ui/company-logo';
 
 interface EmployeeStatsProps {
   entries: TimeEntry[];
@@ -242,8 +243,8 @@ export function EmployeeStats({ entries, selectedCompany }: EmployeeStatsProps) 
               <span className="text-xs font-extrabold uppercase tracking-wider text-[#8E0E75] truncate max-w-[200px]">
                 HORAS HOY EN {selectedCompany?.name || 'CLIENTE'}
               </span>
-              <div className="p-1.5 rounded-lg bg-[#F8F6FC] text-[#8E0E75] border border-[#D8CFF0]">
-                <Building2 className="h-4 w-4" />
+              <div className="h-8 w-8 rounded-lg bg-[#F8F6FC] text-[#8E0E75] border border-[#D8CFF0] flex items-center justify-center overflow-hidden p-1 shrink-0">
+                <CompanyLogo company={selectedCompany} size="sm" className="h-full w-full" />
               </div>
             </div>
             <div className="mt-2 flex items-baseline gap-2">

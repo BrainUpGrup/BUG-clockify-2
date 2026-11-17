@@ -21,6 +21,7 @@ import {
   Check
 } from 'lucide-react';
 import { TaskFlowItem, TaskStatus, getGoogleCalendarUrl, downloadSingleEventIcs } from '@/lib/calendar-export';
+import { CompanyLogo } from '@/components/ui/company-logo';
 
 interface KanbanBoardProps {
   items: TaskFlowItem[];
@@ -211,8 +212,8 @@ export function KanbanBoard({
                       {/* Fila 2: Empresa y Horario */}
                       <div className="flex flex-col gap-1 text-[11px] text-[#4A4A4A] pt-1 border-t border-[#F8F6FC]">
                         <div className="flex items-center justify-between text-[#8E0E75] font-semibold text-[11px]">
-                          <span className="flex items-center gap-1 truncate">
-                            <Building2 className="h-3 w-3 shrink-0" />
+                          <span className="flex items-center gap-1.5 truncate">
+                            <CompanyLogo companyId={item.companyId} name={item.companyName} size="xs" />
                             <span className="truncate">{item.companyName}</span>
                           </span>
 

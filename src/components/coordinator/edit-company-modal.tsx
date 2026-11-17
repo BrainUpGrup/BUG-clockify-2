@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Building2, 
   X, 
@@ -11,9 +11,13 @@ import {
   User, 
   FileText, 
   CheckCircle2, 
-  Archive 
+  Archive,
+  Upload,
+  Trash2,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { Company, ClientType } from '@/types/database';
+import { compressCompanyLogoToWebP, formatBytes } from '@/lib/image-compression';
 
 interface EditCompanyModalProps {
   isOpen: boolean;
@@ -29,6 +33,7 @@ interface EditCompanyModalProps {
       contact_name?: string | null;
       contact_email?: string | null;
       is_active?: boolean;
+      logo_url?: string | null;
     }
   ) => Promise<void>;
 }
@@ -46,7 +51,18 @@ export function EditCompanyModal({
   const [contactName, setContactName] = useState('');
   const [contactEmail, setContactEmail] = useState('');
   const [isActive, setIsActive] = useState(true);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [logoStats, setLogoStats] = useState<{
+    originalBytes: number;
+    compressedBytes: number;
+    savings: number;
+    width: number;
+    height: number;
+  } | null>(null);
+  const [isCompressingLogo, setIsCompressingLogo] = useState(false);
+  const [logoError, setLogoError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Sincronizar estado local al abrir el modal con la empresa seleccionada
   useEffect(() => {
@@ -62,8 +78,41 @@ export function EditCompanyModal({
       setContactName(company.contact_name || '');
       setContactEmail(company.contact_email || '');
       setIsActive(company.is_active ?? true);
+      setLogoUrl(company.logo_url || null);
+      setLogoStats(null);
+      setLogoError(null);
     }
   }, [company]);
+
+  const handleLogoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setLogoError('Selecciona una imagen válida (PNG, JPG, WebP o SVG).');
+      return;
+    }
+
+    setLogoError(null);
+    setIsCompressingLogo(true);
+    try {
+      const result = await compressCompanyLogoToWebP(file, 256, 0.86);
+      setLogoUrl(result.dataUrl);
+      setLogoStats({
+        originalBytes: result.originalBytes,
+        compressedBytes: result.compressedBytes,
+        savings: result.compressionRatioPercent,
+        width: result.width,
+        height: result.height,
+      });
+    } catch (err) {
+      console.error('Error al comprimir logotipo a WebP:', err);
+      setLogoError('No se pudo procesar la imagen. Prueba con otro PNG o JPG.');
+    } finally {
+      setIsCompressingLogo(false);
+    }
+  };
 
   // Listener para cerrar con tecla Escape
   useEffect(() => {
@@ -93,6 +142,7 @@ export function EditCompanyModal({
         contact_name: contactName.trim() || null,
         contact_email: contactEmail.trim() || null,
         is_active: isActive,
+        logo_url: logoUrl,
       });
       onClose();
     } finally {
@@ -145,7 +195,7 @@ export function EditCompanyModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-4 font-sans">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5">
             {/* Nombre de la Empresa */}
-            <div className="md:col-span-12">
+            <div className="md:col-span-7">
               <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#292929] mb-1.5">
                 Nombre de la Empresa / Cliente <span className="text-[#8E0E75]">*</span>
               </label>
@@ -158,6 +208,78 @@ export function EditCompanyModal({
                 required
                 autoFocus
               />
+            </div>
+
+            {/* Logotipo Corporativo (Escala y compresión automática a WebP) */}
+            <div className="md:col-span-5">
+              <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#292929] mb-1.5">
+                Logotipo (PNG a WebP)
+              </label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                onChange={handleLogoFileChange}
+                className="hidden"
+              />
+              <div className="flex items-center gap-2.5 p-1.5 rounded-xl border border-[#D8CFF0] bg-[#F8F6FC] min-h-[44px]">
+                <div className="h-9 w-9 rounded-lg border border-dashed border-[#D8CFF0] bg-white flex items-center justify-center shrink-0 overflow-hidden p-1">
+                  {logoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={logoUrl}
+                      alt={name || 'Logo empresa'}
+                      className="h-full w-full object-contain"
+                    />
+                  ) : (
+                    <ImageIcon className="h-4 w-4 text-slate-400" />
+                  )}
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  {logoStats ? (
+                    <p className="text-[11px] font-extrabold text-emerald-700 truncate tabular-nums">
+                      WebP {logoStats.width}x{logoStats.height} · {formatBytes(logoStats.compressedBytes)}
+                    </p>
+                  ) : (
+                    <p className="text-[11px] font-semibold text-[#4A4A4A] truncate">
+                      {logoUrl ? 'Logo activo (WebP)' : 'Sin logo asignado'}
+                    </p>
+                  )}
+                  {logoError && (
+                    <p className="text-[10px] font-bold text-red-600 truncate">{logoError}</p>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    disabled={isCompressingLogo || isSaving}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#8E0E75] hover:bg-[#700B5C] text-white text-[11px] font-extrabold uppercase tracking-tight transition-colors cursor-pointer disabled:opacity-50"
+                    title="Subir PNG o imagen (se convierte y comprime a WebP)"
+                  >
+                    <Upload className="h-3 w-3" />
+                    <span>{isCompressingLogo ? '...' : logoUrl ? 'Cambiar' : 'Subir'}</span>
+                  </button>
+                  {logoUrl && (
+                    <button
+                      type="button"
+                      disabled={isSaving}
+                      onClick={() => {
+                        setLogoUrl(null);
+                        setLogoStats(null);
+                        setLogoError(null);
+                      }}
+                      className="p-1.5 rounded-lg border border-rose-200 bg-white text-rose-500 hover:bg-rose-50 hover:text-rose-700 transition-colors cursor-pointer"
+                      title="Quitar logotipo"
+                      aria-label="Quitar logotipo"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Tipo de Relación Comercial (Cuota vs Puntual) */}
