@@ -313,7 +313,7 @@ insert into public.profiles (id, full_name, email, role, status, department, ava
 values (
   '00000000-0000-0000-0000-000000000001',
   'Super Administrador',
-  'appadmin@brainupgrup.com',
+  'desarrollo@brainupgrup.com',
   'admin',
   'active',
   'Sistemas & Seguridad',

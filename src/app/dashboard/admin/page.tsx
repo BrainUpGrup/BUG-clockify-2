@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import { MOCK_PROFILES } from '@/lib/mock-data';
 import { Profile, UserRole, ProfileStatus, TimeEntry, AuditLog } from '@/types/database';
 import { UserAvatar } from '@/components/ui/user-avatar';
+import { SUPER_ADMIN_EMAIL, isSuperAdminEmail } from '@/lib/admin-identity';
 import { 
   ShieldCheck, 
   Users, 
@@ -150,7 +151,7 @@ export default function SuperAdminDashboardPage() {
     if (!authLoading) {
       if (!user) {
         router.replace('/login');
-      } else if (user.role !== 'admin' && user.email !== 'appadmin@brainupgrup.com') {
+      } else if (user.role !== 'admin' && !isSuperAdminEmail(user.email)) {
         flagAccessDenied('La Subcapa Super Admin es exclusiva del Super Administrador.');
         router.replace(user.role === 'coordinator' ? '/dashboard/coordinator' : '/dashboard/employee');
       }
@@ -170,10 +171,9 @@ export default function SuperAdminDashboardPage() {
           .order('created_at', { ascending: false });
 
         if (!error && data) {
-          // Sanitización estricta: appadmin@brainupgrup.com SIEMPRE es rol 'admin' y NUNCA 'coordinator'
+          // Sanitización estricta: la cuenta maestra Super Admin SIEMPRE es rol 'admin' y NUNCA 'coordinator'
           const sanitized = (data as Profile[]).map((p) => {
-            const isSuperAdminEmail = p.email?.toLowerCase().trim() === 'appadmin@brainupgrup.com';
-            if (isSuperAdminEmail) {
+            if (isSuperAdminEmail(p.email)) {
               return {
                 ...p,
                 role: 'admin' as UserRole,
@@ -196,11 +196,11 @@ export default function SuperAdminDashboardPage() {
     let combined = [...MOCK_PROFILES];
 
     // Incluir cuenta super admin fija si no está
-    if (!combined.some((p) => p.email?.toLowerCase().trim() === 'appadmin@brainupgrup.com')) {
+    if (!combined.some((p) => isSuperAdminEmail(p.email))) {
       combined.unshift({
         id: '00000000-0000-0000-0000-000000000001',
         full_name: 'Super Administrador',
-        email: 'appadmin@brainupgrup.com',
+        email: SUPER_ADMIN_EMAIL,
         role: 'admin',
         status: 'active',
         department: 'Sistemas & Seguridad',
@@ -240,7 +240,7 @@ export default function SuperAdminDashboardPage() {
 
     // Asegurar que la cuenta de Super Admin en combined sea estrictamente 'admin'
     combined = combined.map((p) => {
-      if (p.email?.toLowerCase().trim() === 'appadmin@brainupgrup.com') {
+      if (isSuperAdminEmail(p.email)) {
         return { ...p, role: 'admin' as UserRole, status: 'active' as ProfileStatus };
       }
       return p;
@@ -311,7 +311,7 @@ export default function SuperAdminDashboardPage() {
   };
 
   useEffect(() => {
-    if (user?.role === 'admin' || user?.email === 'appadmin@brainupgrup.com') {
+    if (user?.role === 'admin' || isSuperAdminEmail(user?.email)) {
       loadProfiles();
     }
   }, [user, isSupabaseConnected]);
@@ -613,7 +613,7 @@ export default function SuperAdminDashboardPage() {
   const handleQuickRoleChange = async (profileId: string, newRole: UserRole) => {
     const target = profiles.find((p) => p.id === profileId);
     if (!target) return;
-    if (target.email === 'appadmin@brainupgrup.com') {
+    if (isSuperAdminEmail(target.email)) {
       notify('La cuenta maestra de Super Administrador no puede cambiar de rol.', { type: 'warning' });
       return;
     }
@@ -649,7 +649,7 @@ export default function SuperAdminDashboardPage() {
 
   // Eliminar cuenta con confirmación de seguridad
   const handleDeleteUser = async (profileId: string, profileEmail: string) => {
-    if (profileEmail === 'appadmin@brainupgrup.com') {
+    if (isSuperAdminEmail(profileEmail)) {
       notify('No es posible eliminar la cuenta principal de Super Administrador.', { type: 'warning' });
       return;
     }
@@ -694,7 +694,7 @@ export default function SuperAdminDashboardPage() {
 
   // Resetear contraseña de usuario generando clave temporal de un solo uso (OTP)
   const handleResetUserPassword = async (targetProfile: Profile) => {
-    if (targetProfile.email === 'appadmin@brainupgrup.com') {
+    if (isSuperAdminEmail(targetProfile.email)) {
       notify('No se puede resetear la cuenta maestra de Super Administrador con OTP.', { type: 'warning' });
       return;
     }
@@ -744,7 +744,7 @@ export default function SuperAdminDashboardPage() {
   // Perfiles filtrados con asignación de rol estricta (Super Admin nunca es coordinador)
   const filteredProfiles = useMemo(() => {
     return profiles.filter((p) => {
-      const isSuperAdmin = p.email?.toLowerCase().trim() === 'appadmin@brainupgrup.com';
+      const isSuperAdmin = isSuperAdminEmail(p.email);
       const effectiveRole: UserRole = isSuperAdmin ? 'admin' : p.role;
 
       const matchesSearch =
@@ -764,7 +764,7 @@ export default function SuperAdminDashboardPage() {
     return profiles.filter((p) => 
       p.role === 'coordinator' && 
       (p.status || 'active') === 'active' &&
-      p.email?.toLowerCase().trim() !== 'appadmin@brainupgrup.com'
+      !isSuperAdminEmail(p.email)
     );
   }, [profiles]);
 
@@ -774,10 +774,10 @@ export default function SuperAdminDashboardPage() {
   const employeesCount = profiles.filter((p) => 
     p.role === 'employee' && 
     (p.status || 'active') === 'active' &&
-    p.email?.toLowerCase().trim() !== 'appadmin@brainupgrup.com'
+    !isSuperAdminEmail(p.email)
   ).length;
   const adminCount = profiles.filter((p) => 
-    (p.role === 'admin' || p.email?.toLowerCase().trim() === 'appadmin@brainupgrup.com') &&
+    (p.role === 'admin' || isSuperAdminEmail(p.email)) &&
     (p.status || 'active') === 'active'
   ).length;
   const pendingCount = profiles.filter((p) => (p.status || 'active') === 'pending').length;
@@ -875,7 +875,7 @@ export default function SuperAdminDashboardPage() {
                 SUBCAPA MASTER SUPERADMIN
               </span>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold text-[#4A4A4A] bg-[#F8F6FC] border border-[#D8CFF0]">
-                {user?.email || 'appadmin@brainupgrup.com'}
+                {user?.email || SUPER_ADMIN_EMAIL}
               </span>
             </div>
             <h1 className="text-2xl font-extrabold uppercase tracking-tight text-[#292929]">
@@ -1165,7 +1165,7 @@ export default function SuperAdminDashboardPage() {
                         </tr>
                       ) : (
                         filteredProfiles.map((p) => {
-                          const isMainAdmin = p.email === 'appadmin@brainupgrup.com';
+                          const isMainAdmin = isSuperAdminEmail(p.email);
 
                           return (
                             <tr key={p.id} className="hover:bg-[#F8F6FC]/60 transition-colors">
@@ -2010,10 +2010,10 @@ export default function SuperAdminDashboardPage() {
                       Correo Maestro Super Admin
                     </span>
                     <div className="flex items-center justify-between font-mono text-[#292929]">
-                      <span>appadmin@brainupgrup.com</span>
+                      <span>{SUPER_ADMIN_EMAIL}</span>
                       <button
                         type="button"
-                        onClick={() => handleCopyText('appadmin@brainupgrup.com', 'admin_email')}
+                        onClick={() => handleCopyText(SUPER_ADMIN_EMAIL, 'admin_email')}
                         className="text-[#8E0E75] hover:text-[#720B5E] p-1 cursor-pointer"
                         title="Copiar correo"
                       >
@@ -2103,7 +2103,7 @@ export default function SuperAdminDashboardPage() {
                     value={editRole}
                     onChange={(val) => setEditRole(val as UserRole)}
                     options={EDIT_ROLE_OPTIONS}
-                    disabled={editingProfile.email === 'appadmin@brainupgrup.com'}
+                    disabled={isSuperAdminEmail(editingProfile.email)}
                     className="w-full text-xs font-bold"
                     ariaLabel="Rol en la Empresa"
                   />

@@ -68,12 +68,12 @@ export function CompanyHeroBanner({
         {/* Lado izquierdo: Hueco para Logo + Nombre Gigante + Cuota o Aviso de Selección */}
         <div className="flex items-center gap-5 sm:gap-6 flex-1 min-w-0">
           
-          {/* HUECO PARA EL LOGO (Listo para logo real o icono representativo) */}
+          {/* HUECO PARA EL LOGO (Marco sólido corporativo a juego con el contenedor principal) */}
           <div
-            className={`relative h-20 w-20 sm:h-24 sm:w-24 shrink-0 rounded-2xl border-2 border-dashed bg-white flex flex-col items-center justify-center p-2 shadow-xs transition-all group ${
+            className={`relative h-20 w-20 sm:h-24 sm:w-24 shrink-0 rounded-2xl border-2 bg-white flex flex-col items-center justify-center p-2 shadow-xs transition-all group ${
               hasCompany
-                ? 'border-[#8E0E75]/40 hover:border-[#8E0E75]'
-                : 'border-[#D8CFF0] hover:border-[#8E0E75]/60'
+                ? 'border-[#8E0E75]'
+                : 'border-[#D8CFF0] hover:border-[#8E0E75]'
             }`}
           >
             {selectedCompany?.logo_url ? (

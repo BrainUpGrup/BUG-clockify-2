@@ -15,6 +15,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
+import { SUPER_ADMIN_EMAIL } from '@/lib/admin-identity';
 
 // El acceso rápido con cuentas demo solo se muestra en desarrollo, o si se habilita
 // explícitamente con NEXT_PUBLIC_SHOW_DEMO_LOGIN=true (p. ej. en un entorno de staging).
@@ -271,11 +272,14 @@ export default function LoginPage() {
               </span>
             </button>
 
-            {/* Super Admin */}
+            {/* Super Admin (solo rellena correo por seguridad; no expone la clave en cliente) */}
             <button
               type="button"
               disabled={isSubmitting}
-              onClick={() => handleQuickLogin('appadmin@brainupgrup.com', 'BrainUp2026!')}
+              onClick={() => {
+                setEmail(SUPER_ADMIN_EMAIL);
+                setErrorMessage('');
+              }}
               className="w-full flex items-center justify-between p-2.5 rounded-md border-2 border-[#D8CFF0] bg-[#F8F6FC] hover:bg-[#191654] hover:border-[#191654] hover:text-white group transition-all text-left cursor-pointer disabled:opacity-50 shadow-2xs hover:shadow-md hover:scale-[1.01] active:scale-[0.99]"
             >
               <div className="flex items-center gap-3">
@@ -287,12 +291,12 @@ export default function LoginPage() {
                     Super Administrador
                   </div>
                   <div className="text-[11px] text-slate-500 group-hover:text-white/80 font-mono mt-0.5">
-                    appadmin@brainupgrup.com
+                    {SUPER_ADMIN_EMAIL}
                   </div>
                 </div>
               </div>
               <span className="text-xs font-black uppercase px-3 py-1 rounded-lg bg-white group-hover:bg-white/20 text-[#191654] group-hover:text-white border border-[#D8CFF0] group-hover:border-transparent shrink-0 shadow-2xs">
-                Entrar
+                Rellenar
               </span>
             </button>
           </div>

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { signSessionToken, verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth/session';
 import { UserRole, ProfileStatus, Profile } from '@/types/database';
+import { SUPER_ADMIN_EMAIL, isSuperAdminEmail } from '@/lib/admin-identity';
 
 // Rate Limiter en memoria: IP/email -> intentos fallidos y timestamp
 const loginRateLimitMap = new Map<string, { count: number; firstAttempt: number }>();
@@ -204,11 +205,11 @@ export async function POST(req: NextRequest) {
 
     // C) Fallback local demo/dev si Supabase no está disponible
     if (!authenticatedProfile && !isSupabaseConfigured && process.env.NODE_ENV !== 'production') {
-      if (cleanEmail === 'appadmin@brainupgrup.com' && cleanPass === '123456') {
+      if (isSuperAdminEmail(cleanEmail) && cleanPass === '123456') {
         authenticatedProfile = {
           id: '8b2a428b-9fb2-4a26-b298-696f8510d770',
           full_name: 'Super Administrador',
-          email: 'appadmin@brainupgrup.com',
+          email: SUPER_ADMIN_EMAIL,
           role: 'admin',
           status: 'active',
           department: 'Sistemas & Seguridad',
@@ -271,7 +272,7 @@ export async function POST(req: NextRequest) {
     resetFailedAttempts(rateLimitKey);
 
     const safeRole: UserRole =
-      cleanEmail === 'appadmin@brainupgrup.com' ? 'admin' : (authenticatedProfile.role || 'employee');
+      isSuperAdminEmail(cleanEmail) ? 'admin' : (authenticatedProfile.role || 'employee');
 
     // Firmar criptográficamente el token de sesión
     const token = await signSessionToken({

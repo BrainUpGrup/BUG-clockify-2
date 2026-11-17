@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
+import { isSuperAdminEmail } from '@/lib/admin-identity';
 import { 
   Clock, 
   BarChart3, 
@@ -89,7 +90,7 @@ export function Navbar() {
   const isArchivosActive = pathname.includes('/archivos');
   const isSubtitulosActive = pathname.includes('/subtitulos');
   const isAdminActive = pathname.includes('/admin');
-  const isAdmin = user?.role === 'admin' || user?.email === 'appadmin@brainupgrup.com';
+  const isAdmin = user?.role === 'admin' || isSuperAdminEmail(user?.email);
   const isCoordinator = user?.role === 'coordinator' || isAdmin;
 
   // Permisos efectivos de acceso por rol y matriz de coordinación

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useAuth } from '@/context/auth-context';
 import { createClient } from '@/lib/supabase/client';
 import { MOCK_PROFILES } from '@/lib/mock-data';
+import { isSuperAdminEmail } from '@/lib/admin-identity';
 import { Profile } from '@/types/database';
 import { 
   BRAIN_UP_HUB_APPS, 
@@ -257,7 +258,7 @@ export default function BrainUpHubPage() {
             )}
 
             {/* Ajustes de permisos: el coordinador los abre en Coordinación */}
-            {user.role === 'coordinator' && user.email !== 'appadmin@brainupgrup.com' && (
+            {user.role === 'coordinator' && !isSuperAdminEmail(user.email) && (
               <Link
                 href="/dashboard/coordinator"
                 className="inline-flex items-center gap-2 self-start sm:self-auto px-3.5 py-2 rounded-lg border-2 border-[#D8CFF0] bg-white text-sm font-semibold text-[#8E0E75] hover:border-[#8E0E75]"
@@ -266,7 +267,7 @@ export default function BrainUpHubPage() {
                 Permisos del HUB
               </Link>
             )}
-            {(user.role === 'admin' || user.email === 'appadmin@brainupgrup.com') && (
+            {(user.role === 'admin' || isSuperAdminEmail(user.email)) && (
               <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
                 <Link
                   href="/dashboard/admin"
@@ -304,7 +305,7 @@ export default function BrainUpHubPage() {
             <div className="space-y-5 sm:space-y-6">
 
               {/* Banner Maestro Exclusivo para Super Administrador */}
-              {(user.role === 'admin' || user.email === 'appadmin@brainupgrup.com') && (
+              {(user.role === 'admin' || isSuperAdminEmail(user.email)) && (
                 <div className="w-full p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-[#191654] via-[#4A0E4E] to-[#8E0E75] text-white shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-white/10">
                   <div className="flex items-start sm:items-center gap-3.5">
                     <div className="p-3 rounded-xl bg-white/10 border border-white/20 text-white shrink-0 shadow-xs">

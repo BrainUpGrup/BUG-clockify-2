@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Profile, UserRole } from '@/types/database';
 import { createClient } from '@/lib/supabase/client';
 import { MOCK_PROFILES } from '@/lib/mock-data';
+import { SUPER_ADMIN_EMAIL, isSuperAdminEmail } from '@/lib/admin-identity';
 
 interface AuthContextType {
   user: Profile | null;
@@ -42,7 +43,7 @@ function persistUser(profile: Profile | null) {
   if (typeof window === 'undefined') return;
   try {
     if (profile) {
-      if (profile.email && profile.email.toLowerCase() === 'appadmin@brainupgrup.com') {
+      if (isSuperAdminEmail(profile.email)) {
         profile.role = 'admin';
       }
       localStorage.setItem('bug_clockify_current_user', JSON.stringify(profile));
@@ -77,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (stored) {
         const parsed = JSON.parse(stored) as Profile;
         if (parsed && parsed.status !== 'pending') {
-          if (parsed.email && parsed.email.toLowerCase() === 'appadmin@brainupgrup.com') {
+          if (isSuperAdminEmail(parsed.email)) {
             parsed.role = 'admin';
           }
           setUser(parsed);
@@ -143,7 +144,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               } else {
                 const safeProfile = {
                   ...profile,
-                  role: profile.email && profile.email.toLowerCase() === 'appadmin@brainupgrup.com' ? 'admin' : profile.role,
+                  role: isSuperAdminEmail(profile.email) ? 'admin' : profile.role,
                   avatar_url: profile.avatar_url || undefined,
                 } as Profile;
                 setUser(safeProfile);
@@ -199,7 +200,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (sData.success && sData.user) {
           const loggedProfile = {
             ...sData.user,
-            role: cleanEmail === 'appadmin@brainupgrup.com' ? 'admin' : sData.user.role,
+            role: isSuperAdminEmail(cleanEmail) ? 'admin' : sData.user.role,
           } as Profile;
           setUser(loggedProfile);
           persistUser(loggedProfile);
@@ -267,7 +268,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 department: 'Creatividad & Operaciones',
                 created_at: '2026-01-01T00:00:00Z',
               };
-            } else if (cleanEmail === 'appadmin@brainupgrup.com') {
+            } else if (isSuperAdminEmail(cleanEmail)) {
               otpProfile = {
                 id: '8b2a428b-9fb2-4a26-b298-696f8510d770',
                 full_name: 'Super Administrador',
@@ -383,11 +384,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // 4. ACCESO DEMO EXCLUSIVAMENTE EN ENTORNO LOCAL DE DESARROLLO SIN SUPABASE
     if (isDevOrDemo && !isSupabaseConnected) {
-      if (cleanEmail === 'appadmin@brainupgrup.com') {
+      if (isSuperAdminEmail(cleanEmail)) {
         const adminProfile: Profile = {
           id: '8b2a428b-9fb2-4a26-b298-696f8510d770',
           full_name: 'Super Administrador',
-          email: 'appadmin@brainupgrup.com',
+          email: SUPER_ADMIN_EMAIL,
           role: 'admin',
           status: 'active',
           department: 'Sistemas & Seguridad',

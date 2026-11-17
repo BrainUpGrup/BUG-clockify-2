@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { verifySessionToken, SESSION_COOKIE_NAME, SessionPayload } from '@/lib/auth/session';
+import { isSuperAdminEmail } from '@/lib/admin-identity';
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
@@ -68,7 +69,7 @@ export async function middleware(request: NextRequest) {
     userRole = verifiedSession.role;
     userStatus = verifiedSession.status;
   } else if (sessionUser) {
-    userRole = sessionUser.email === 'appadmin@brainupgrup.com' ? 'admin' : (sessionUser.user_metadata?.role || 'employee');
+    userRole = isSuperAdminEmail(sessionUser.email) ? 'admin' : (sessionUser.user_metadata?.role || 'employee');
   }
 
   const isAuthenticated = !!verifiedSession || !!sessionUser;

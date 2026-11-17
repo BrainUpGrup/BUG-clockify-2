@@ -2681,3 +2681,45 @@
 - **Validación y Pruebas:**
   - `npx tsc --noEmit`: **0 errores de compilación**.
   - Comprobación visual de los 28 logotipos renderizados y verificación REST en Supabase (`28/38` con logotipo asignado, `10` sin logotipo).
+
+### [v4.4.6] - 2026-11-17 - Ampliación de Logotipo y Nombre en Tarjetas de Brain Storage
+- **Solicitud del Usuario:**
+  *"quiero que el logo y el nombre ocupe todo el espacio bien gran y que se ve bienn"* (sobre la cuadrícula de tarjetas de clientes en Brain Storage).
+- **Solución Implementada ([`src/app/apps/archivos/page.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/app/apps/archivos/page.tsx)):**
+  - Ampliada la caja de logotipo / iniciales de `28 px` (`h-7 w-7`) a `48–56 px` (`h-12 w-12 sm:h-14 sm:w-14`) con `rounded-xl`.
+  - Aumentado el título del cliente a `text-base sm:text-[17px] font-black` dentro de la zona superior `flex-1` para aprovechar todo el espacio disponible sobre las métricas `Env. / Rec. / Val.`, manteniendo `truncate` en 1 línea estricta y proporción compacta Zero-Scroll (DM-15).
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+
+### [v4.4.7] - 2026-11-17 - Punto Verde de Notificación con Pop-up de Detalle en Cajones de Brain Storage
+- **Solicitud del Usuario:**
+  *"es ideal, el único problema son las etiquetas de corrección requerida y nuevo briefing, creo que lo mejor sería ponerle como un punto verde tipo notificación con el número de cosas a revisar y que si pongo el clic encima me salga un pop-up que me diga qué está pasando para mantener el formato de los cajones"*
+- **Solución Implementada ([`src/app/apps/archivos/page.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/app/apps/archivos/page.tsx)):**
+  - Eliminadas las píldoras apiladas internas (`Corrección requerida` / `Nuevo briefing`) dentro de cada tarjeta para mantener idéntica altura y simetría en las 7 columnas de toda la cuadrícula.
+  - Añadido un indicador circular verde corporativo (`#3BB54A`) en la esquina superior derecha del cajón con el recuento total de elementos por revisar (`correctionFiles.length + newBriefings.length`).
+  - Al pulsar sobre el punto verde (`e.stopPropagation()`), se abre un pop-up compacto con el desglose exacto de archivos con corrección requerida (incluyendo el motivo) y nuevos briefings recibidos, además de acceso directo **"Abrir carpeta"**.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+
+### [v4.4.8] - 2026-11-17 - Marco Sólido `#8E0E75` en el Recuadro del Logotipo de Cliente
+- **Solicitud del Usuario:**
+  *"cambia las líneas discontinuas de alrededor del logo por una línea continua del mismo color que el marco grande, el lila fuerte ese"*
+- **Solución Implementada ([`src/components/employee/company-hero-banner.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/components/employee/company-hero-banner.tsx)):**
+  - Eliminado `border-dashed` y la opacidad `/40` en el recuadro del logotipo del banner principal, sustituyéndolo por una línea continua sólida `border-2 border-[#8E0E75]` cuando hay cliente fijado (`hasCompany`) para igualar exactamente el borde exterior del banner.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+
+### [v4.4.9] - 2026-11-17 - Rotación de Cuenta Super Administrador a `desarrollo@brainupgrup.com`
+- **Solicitud del Usuario:**
+  *"vale vamos a añadir una cuenta de super admin y vamos a eliminar la otra, la nueva cuenta de super admin será desarrollo@brainupgrup.com"*
+- **Decisiones Técnicas y Seguridad:**
+  1. **Identidad Centralizada ([`src/lib/admin-identity.ts`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/lib/admin-identity.ts)):**
+     - Definida la constante canónica `SUPER_ADMIN_EMAIL = 'desarrollo@brainupgrup.com'` y el helper `isSuperAdminEmail()` para eliminar todas las referencias dispersas de `appadmin@brainupgrup.com`.
+  2. **Actualización en Código y Protección de Credenciales:**
+     - Actualizados [`src/middleware.ts`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/middleware.ts), [`src/app/api/auth/session/route.ts`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/app/api/auth/session/route.ts), [`src/context/auth-context.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/context/auth-context.tsx), [`src/components/navbar.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/components/navbar.tsx), [`src/app/hub/page.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/app/hub/page.tsx), [`src/app/dashboard/admin/page.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/app/dashboard/admin/page.tsx), [`src/app/login/page.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/app/login/page.tsx) y [`schema.sql`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/schema.sql).
+     - En [`src/app/login/page.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/app/login/page.tsx), el botón de acceso rápido de desarrollo solo rellena el correo (`desarrollo@brainupgrup.com`) sin exponer ninguna contraseña en el cliente.
+  3. **Script SQL Seguro para Supabase ([`migration_rotate_superadmin.sql`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/migration_rotate_superadmin.sql)):**
+     - Añadida migración SQL transaccional (sin contraseñas en claro en el repositorio) que crea/actualiza `desarrollo@brainupgrup.com` en `profiles`, `profile_passwords` y `auth.users`, y elimina `appadmin@brainupgrup.com`.
+  4. **Directrices Maestras:** DM-01 (0 emojis), DM-08 (bóveda sellada y sin secretos en Git), Paso 5 (`git push` bajo confirmación).
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.

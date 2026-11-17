@@ -196,7 +196,7 @@ begin
     v_details := jsonb_build_object('email', OLD.email, 'full_name', OLD.full_name, 'role', OLD.role);
 
     insert into public.audit_logs (user_id, user_email, user_role, action, entity_type, entity_id, details, severity)
-    values (OLD.id, OLD.email, OLD.role, v_action, 'profiles', OLD.id::text, v_details, v_severity);
+    values (null, OLD.email, OLD.role, v_action, 'profiles', OLD.id::text, v_details, v_severity);
 
     return OLD;
   end if;

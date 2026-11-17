@@ -79,6 +79,9 @@ export default function ArchivosHubPage() {
   // Modal para ver el árbol del Google Drive simulado
   const [showDriveTreeModal, setShowDriveTreeModal] = useState<boolean>(false);
 
+  // Pop-up al pulsar el punto verde de notificaciones de un cajón de empresa
+  const [alertPopupCompanyId, setAlertPopupCompanyId] = useState<string | null>(null);
+
   // Modal Subir Archivo para el Cliente (Columna Enviados)
   const [showUploadModal, setShowUploadModal] = useState<boolean>(false);
   const [uploadTitle, setUploadTitle] = useState<string>('');
@@ -166,6 +169,15 @@ export default function ArchivosHubPage() {
     }
   }, [authLoading, user, fetchHubData]);
 
+  useEffect(() => {
+    if (!alertPopupCompanyId) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setAlertPopupCompanyId(null);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [alertPopupCompanyId]);
+
   // Consolidar lista de empresas (reales + accesos + archivos del simulador)
   const mergedCompanies = useMemo(() => {
     const map = new Map<string, { id: string; name: string; logo_url?: string }>();
@@ -192,8 +204,9 @@ export default function ArchivosHubPage() {
         sent: number;
         received: number;
         validated: number;
-        hasCorrection: boolean;
-        hasNewBriefing: boolean;
+        correctionFiles: InternalWorkFile[];
+        newBriefings: ClientBriefingFile[];
+        alertCount: number;
       }
     >();
 
@@ -205,9 +218,10 @@ export default function ArchivosHubPage() {
       ).length;
       const received = compBriefings.length;
       const validated = compFiles.filter((f) => f.status === 'validated').length;
-      const hasCorrection = compFiles.some((f) => f.status === 'changes_requested');
-      const hasNewBriefing = compBriefings.some((b) => b.status === 'new');
-      stats.set(c.id, { sent, received, validated, hasCorrection, hasNewBriefing });
+      const correctionFiles = compFiles.filter((f) => f.status === 'changes_requested');
+      const newBriefings = compBriefings.filter((b) => b.status === 'new');
+      const alertCount = correctionFiles.length + newBriefings.length;
+      stats.set(c.id, { sent, received, validated, correctionFiles, newBriefings, alertCount });
     });
 
     return stats;
@@ -610,8 +624,9 @@ export default function ArchivosHubPage() {
                   sent: 0,
                   received: 0,
                   validated: 0,
-                  hasCorrection: false,
-                  hasNewBriefing: false,
+                  correctionFiles: [],
+                  newBriefings: [],
+                  alertCount: 0,
                 };
                 const initials = comp.name
                   .split(' ')
@@ -622,48 +637,55 @@ export default function ArchivosHubPage() {
                   .toUpperCase();
 
                 return (
-                  <button
+                  <div
                     key={comp.id}
-                    type="button"
+                    role="button"
+                    tabIndex={0}
                     title={comp.name}
                     onClick={() => setSelectedCompanyId(comp.id)}
-                    className="group relative text-left p-2.5 sm:p-3 rounded-2xl bg-white border-2 border-[#D8CFF0] hover:border-[#8E0E75] hover:shadow-md transition-all duration-150 flex flex-col justify-between gap-2 cursor-pointer min-h-[94px] focus:outline-none focus:ring-2 focus:ring-[#8E0E75]/20"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setSelectedCompanyId(comp.id);
+                      }
+                    }}
+                    className="group relative text-left p-2.5 sm:p-3 rounded-2xl bg-white border-2 border-[#D8CFF0] hover:border-[#8E0E75] hover:shadow-md transition-all duration-150 flex flex-col justify-between gap-2 cursor-pointer min-h-[112px] focus:outline-none focus:ring-2 focus:ring-[#8E0E75]/20"
                   >
-                    {/* ENCABEZADO DEL RECUADRO: Logo/Iniciales + Nombre en 1 línea estricta */}
-                    <div className="flex items-center gap-2 w-full">
+                    {/* PUNTO VERDE DE NOTIFICACIÓN CON CONTADOR (CLIC PARA VER POP-UP SIN ROMPER ALTURA) */}
+                    {stats.alertCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAlertPopupCompanyId(comp.id);
+                        }}
+                        title={`${stats.alertCount} ${stats.alertCount === 1 ? 'aviso por revisar' : 'avisos por revisar'}. Haz clic para ver el detalle.`}
+                        aria-label={`${stats.alertCount} notificaciones pendientes en ${comp.name}`}
+                        className="absolute -top-2 -right-2 z-10 h-6 min-w-6 px-1.5 rounded-full bg-[#3BB54A] hover:bg-[#2F9A3D] text-white text-xs font-black tabular-nums border-2 border-white shadow-md flex items-center justify-center cursor-pointer transition-transform hover:scale-110"
+                      >
+                        <span className="absolute inset-0 rounded-full bg-[#3BB54A] animate-ping opacity-30 pointer-events-none" />
+                        <span className="relative">{stats.alertCount}</span>
+                      </button>
+                    )}
+
+                    {/* ENCABEZADO DEL RECUADRO: Logo grande y Nombre ocupando todo el ancho */}
+                    <div className="flex-1 flex items-center gap-3 w-full min-w-0">
                       {comp.logo_url ? (
-                        <div className="h-7 w-7 rounded-lg bg-white border border-[#D8CFF0] flex items-center justify-center shrink-0 overflow-hidden p-0.5 shadow-2xs group-hover:scale-105 transition-transform">
+                        <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl bg-white border border-[#D8CFF0] flex items-center justify-center shrink-0 overflow-hidden p-0.5 shadow-2xs group-hover:scale-105 transition-transform">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={comp.logo_url} alt={comp.name} className="h-full w-full object-contain" />
                         </div>
                       ) : (
-                        <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-[#191654] to-[#8E0E75] text-white flex items-center justify-center font-black text-[10px] shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                        <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl bg-gradient-to-br from-[#191654] to-[#8E0E75] text-white flex items-center justify-center font-black text-base sm:text-lg shrink-0 shadow-xs group-hover:scale-105 transition-transform">
                           {initials || 'EM'}
                         </div>
                       )}
                       <div className="min-w-0 flex-1">
-                        <h3 className="text-[15px] font-black text-[#191654] truncate tracking-tight group-hover:text-[#8E0E75] transition-colors">
+                        <h3 className="text-base sm:text-[17px] font-black text-[#191654] truncate tracking-tight leading-tight group-hover:text-[#8E0E75] transition-colors">
                           {comp.name}
                         </h3>
                       </div>
                     </div>
-
-                    {/* ALERTAS COMPACTAS (CORRECCIÓN / BRIEFING NUEVO) */}
-                    {(stats.hasCorrection || stats.hasNewBriefing) && (
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        {stats.hasCorrection && (
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-red-100 text-red-800 text-[9px] font-black uppercase">
-                            <AlertTriangle className="h-2.5 w-2.5 text-red-600" />
-                            <span>Corrección requerida</span>
-                          </span>
-                        )}
-                        {stats.hasNewBriefing && (
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-900 text-[9px] font-black uppercase">
-                            <Inbox className="h-2.5 w-2.5 text-amber-600" />
-                            <span>Nuevo briefing</span>
-                          </span>
-                        )}
-                      </div>
-                    )}
 
                     {/* MINI-PÍLDORAS CON LAS 3 MÉTRICAS: ENVIADOS, RECIBIDOS, VALIDADOS */}
                     <div className="grid grid-cols-3 gap-1 pt-2 border-t border-slate-100 w-full text-center">
@@ -686,11 +708,120 @@ export default function ArchivosHubPage() {
                         </span>
                       </div>
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>
           )}
+
+          {/* POP-UP DETALLE DE NOTIFICACIONES AL PULSAR EL PUNTO VERDE */}
+          {alertPopupCompanyId && (() => {
+            const popupComp = mergedCompanies.find((c) => c.id === alertPopupCompanyId);
+            const popupStats = companyStats.get(alertPopupCompanyId);
+            if (!popupComp || !popupStats) return null;
+
+            return (
+              <div
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-[1px] p-4 animate-in fade-in duration-150"
+                onClick={() => setAlertPopupCompanyId(null)}
+                role="dialog"
+                aria-modal="true"
+                aria-label={`Avisos pendientes en ${popupComp.name}`}
+              >
+                <div
+                  className="w-full max-w-md rounded-2xl border-2 border-[#3BB54A] bg-white shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="bg-gradient-to-r from-[#191654] to-[#8E0E75] px-5 py-3.5 text-white flex items-center justify-between">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="h-6 min-w-6 px-1.5 rounded-full bg-[#3BB54A] text-white text-xs font-black tabular-nums flex items-center justify-center shrink-0">
+                        {popupStats.alertCount}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-purple-200 leading-none">
+                          Pendientes de revisar
+                        </p>
+                        <h4 className="text-sm font-black uppercase tracking-tight truncate mt-0.5">
+                          {popupComp.name}
+                        </h4>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setAlertPopupCompanyId(null)}
+                      className="h-8 w-8 rounded-lg bg-white/15 hover:bg-white/25 flex items-center justify-center text-white transition-colors cursor-pointer shrink-0"
+                      aria-label="Cerrar aviso"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  <div className="p-4 space-y-3 max-h-[340px] overflow-y-auto">
+                    {popupStats.correctionFiles.length > 0 && (
+                      <div className="rounded-xl border border-red-200 bg-red-50/70 p-3 space-y-2">
+                        <div className="flex items-center gap-1.5 text-xs font-black uppercase text-red-800">
+                          <AlertTriangle className="h-4 w-4 text-red-600 shrink-0" />
+                          <span>Corrección requerida ({popupStats.correctionFiles.length})</span>
+                        </div>
+                        <ul className="space-y-1.5">
+                          {popupStats.correctionFiles.map((file) => (
+                            <li key={file.id} className="text-xs bg-white rounded-lg border border-red-100 px-2.5 py-1.5">
+                              <p className="font-bold text-[#191654] truncate">{file.title || file.file_name}</p>
+                              {file.review_reason && (
+                                <p className="text-[11px] text-red-700 mt-0.5">{file.review_reason}</p>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {popupStats.newBriefings.length > 0 && (
+                      <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3 space-y-2">
+                        <div className="flex items-center gap-1.5 text-xs font-black uppercase text-amber-900">
+                          <Inbox className="h-4 w-4 text-amber-600 shrink-0" />
+                          <span>Nuevo briefing recibido ({popupStats.newBriefings.length})</span>
+                        </div>
+                        <ul className="space-y-1.5">
+                          {popupStats.newBriefings.map((brief) => (
+                            <li key={brief.id} className="text-xs bg-white rounded-lg border border-amber-100 px-2.5 py-1.5">
+                              <p className="font-bold text-[#191654] truncate">{brief.title || brief.file_name}</p>
+                              {(brief.uploaded_by_contact || brief.description) && (
+                                <p className="text-[11px] text-amber-800 mt-0.5 truncate">
+                                  {brief.uploaded_by_contact ? `Enviado por ${brief.uploaded_by_contact}` : brief.description}
+                                </p>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="px-4 py-3 bg-[#F8F6FC] border-t border-[#EAE4F5] flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setAlertPopupCompanyId(null)}
+                      className="px-3.5 py-1.5 rounded-xl border border-[#D8CFF0] bg-white hover:bg-[#EAE4F5] text-xs font-bold text-[#4A4A4A] cursor-pointer"
+                    >
+                      Cerrar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAlertPopupCompanyId(null);
+                        setSelectedCompanyId(popupComp.id);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-[#8E0E75] hover:bg-[#700B5C] text-white text-xs font-extrabold uppercase tracking-wider cursor-pointer shadow-xs"
+                    >
+                      <span>Abrir carpeta</span>
+                      <ArrowUpRight className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 
