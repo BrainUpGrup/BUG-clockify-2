@@ -2723,3 +2723,17 @@
   4. **Directrices Maestras:** DM-01 (0 emojis), DM-08 (bóveda sellada y sin secretos en Git), Paso 5 (`git push` bajo confirmación).
 - **Validación y Pruebas:**
   - `npx tsc --noEmit`: **0 errores de compilación**.
+
+### [v4.4.10] - 2026-11-18 - Segunda Remesa de Logotipos WebP (`256x256`) y Reemplazo de `ASOVALL`
+- **Solicitud del Usuario:**
+  *"Añade estos logos que son los que faltan (`ALEHUUB`, `ALPHA MEDIA GROUP`, `AMORE DI CUORE`, `AONCHIP`, `AORTAHUB`, `FEEL THE ENEMY`, `LEGENDS DANCE HALL`, `SOYCO`) y cambiar logo también de `ASOVALL`"*
+- **Decisiones Técnicas y Solución Implementada:**
+  1. **Conversión, Encuadre y Compresión WebP ([`public/logos/`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/public/logos)):**
+     - Procesados y centrados a formato cuadrado transparente `256x256` `.webp`: `alehuub.webp` (`2.7 KB`), `alpha-media-group.webp` (`4.4 KB`), `amore-di-cuore.webp` (`10.6 KB`), `aonchip.webp` (`6.7 KB`), `aortahub.webp` (`6.4 KB`, limpieza de fondo blanco por borde), `legends-dance-hall.webp` (`16.7 KB`), `soyco.webp` (`9.0 KB`) y nuevo `asovall.webp` (`3.0 KB`, sustituyendo al anterior).
+  2. **Sincronización en Supabase (`public.companies`):**
+     - Asignado `logo_url = '/logos/<slug>.webp'` en esas 8 empresas y restaurado `valherum.webp` en `VALHERUM` (`35/38` empresas ya cuentan con logotipo).
+     - Pendientes sin archivo de logo recibido (`3/38`): `FEEL THE ENEMY` (no incluido en la carpeta), `ACONS` y `BY NEURAL` (archivada).
+  3. **Directrices Maestras:** DM-01 (0 emojis), Paso 5 (`git push` bajo confirmación).
+- **Validación y Pruebas:**
+  - Comprobación visual del encuadre de los 8 logotipos y verificación REST en Supabase (`35/38` con logo).
+  - `npx tsc --noEmit`: **0 errores de compilación**.
