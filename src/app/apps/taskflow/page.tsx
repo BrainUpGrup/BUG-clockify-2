@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/auth-context';
 import { useTimer } from '@/context/timer-context';
-import { createClient } from '@/lib/supabase/client';
 import { MOCK_COMPANIES, MOCK_PROFILES } from '@/lib/mock-data';
 import { Company, Profile } from '@/types/database';
 import { canUserAccessHubApp } from '@/lib/hub-apps';
@@ -361,11 +360,11 @@ function TaskFlowContent() {
           setCompanies(JSON.parse(cachedComp));
           return;
         }
-        const supabase = createClient();
-        const { data } = await supabase.from('companies').select('*').order('name');
-        if (data && data.length > 0) {
-          setCompanies(data);
-          localStorage.setItem('bug_clockify_cache_companies', JSON.stringify(data));
+        const res = await fetch('/api/data/companies', { cache: 'no-store' });
+        const json = await res.json();
+        if (res.ok && json?.success && Array.isArray(json.companies) && json.companies.length > 0) {
+          setCompanies(json.companies);
+          localStorage.setItem('bug_clockify_cache_companies', JSON.stringify(json.companies));
         } else {
           setCompanies(MOCK_COMPANIES);
         }
@@ -385,11 +384,11 @@ function TaskFlowContent() {
           setProfiles(JSON.parse(cachedProf));
           return;
         }
-        const supabase = createClient();
-        const { data } = await supabase.from('profiles').select('*').order('full_name');
-        if (data && data.length > 0) {
-          setProfiles(data);
-          localStorage.setItem('bug_clockify_cache_profiles', JSON.stringify(data));
+        const res = await fetch('/api/data/profiles', { cache: 'no-store' });
+        const json = await res.json();
+        if (res.ok && json?.success && Array.isArray(json.profiles) && json.profiles.length > 0) {
+          setProfiles(json.profiles);
+          localStorage.setItem('bug_clockify_cache_profiles', JSON.stringify(json.profiles));
         } else {
           setProfiles(MOCK_PROFILES);
         }

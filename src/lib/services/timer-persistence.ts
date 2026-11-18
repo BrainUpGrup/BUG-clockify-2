@@ -89,12 +89,13 @@ export async function saveStoppedTimerEntry(params: SaveStoppedTimerParams): Pro
       finalCompanyId = firstActive.id;
       targetCompany = firstActive;
     } else {
-      // Intentar consultar una empresa activa a Supabase
+      // Consultar empresas activas vía endpoint autenticado de servidor
       try {
-        const { data: dbComps } = await supabase.from('companies').select('*').eq('is_active', true).limit(1);
-        if (dbComps && dbComps.length > 0) {
-          finalCompanyId = dbComps[0].id;
-          targetCompany = dbComps[0] as Company;
+        const res = await fetch('/api/data/companies', { cache: 'no-store' });
+        const json = await res.json();
+        if (res.ok && json?.success && Array.isArray(json.companies) && json.companies.length > 0) {
+          finalCompanyId = json.companies[0].id;
+          targetCompany = json.companies[0] as Company;
         }
       } catch {}
     }

@@ -1,6 +1,5 @@
 import { HostingService, HostingMetrics, HostingAlert, NotificationStages, ServiceType } from '@/types/hosting';
 import { INITIAL_HOSTING_SERVICES } from '@/lib/hosting-seed-data';
-import { createClient } from '@/lib/supabase/client';
 
 const STORAGE_KEY_HOSTING = 'bug_hosting_services_cache';
 
@@ -79,28 +78,26 @@ export function toSupabaseHostingPayload(s: HostingService) {
  * Obtiene la lista completa de servicios desde Supabase o caché local (con fallback a la semilla Cdmon)
  */
 export async function getHostingServices(): Promise<HostingService[]> {
-  // 1. Intentar cargar desde Supabase si la tabla existe
+  // 1. Cargar mediante API autenticada de servidor
   try {
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from('hosting_services')
-      .select('*')
-      .order('expiration_date', { ascending: true });
-
-    if (!error && data) {
+    const res = await fetch('/api/data/hosting', { cache: 'no-store' });
+    const json = await res.json();
+    if (res.ok && json?.success && Array.isArray(json.services)) {
+      const data = json.services as HostingService[];
       if (data.length > 0) {
         if (typeof window !== 'undefined') {
           localStorage.setItem(STORAGE_KEY_HOSTING, JSON.stringify(data));
         }
-        return data as HostingService[];
+        return data;
       } else {
-        // La tabla existe pero aún está vacía: sincronizar los 153 servicios de Cdmon en Supabase
-        console.info('Poblando 153 servicios Cdmon en tabla hosting_services de Supabase...');
+        // La tabla existe pero aún está vacía: sincronizar los 153 servicios de Cdmon mediante servidor
+        console.info('Poblando 153 servicios Cdmon en tabla hosting_services...');
         const payloads = INITIAL_HOSTING_SERVICES.map(toSupabaseHostingPayload);
-        const chunkSize = 50;
-        for (let i = 0; i < payloads.length; i += chunkSize) {
-          await supabase.from('hosting_services').upsert(payloads.slice(i, i + chunkSize));
-        }
+        await fetch('/api/data/hosting', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ records: payloads }),
+        });
         if (typeof window !== 'undefined') {
           localStorage.setItem(STORAGE_KEY_HOSTING, JSON.stringify(INITIAL_HOSTING_SERVICES));
         }
@@ -108,7 +105,7 @@ export async function getHostingServices(): Promise<HostingService[]> {
       }
     }
   } catch (err) {
-    console.warn('Supabase hosting_services no disponible, recurriendo a almacenamiento local:', err);
+    console.warn('API /api/data/hosting no disponible, recurriendo a almacenamiento local:', err);
   }
 
   // 2. Fallback a almacenamiento local o semilla inicial de 153 servicios
@@ -143,15 +140,19 @@ export async function saveHostingService(service: HostingService): Promise<Hosti
 
   const payload = toSupabaseHostingPayload(updatedService);
 
-  // Guardar en Supabase
+  // Guardar mediante API autenticada de servidor
   try {
-    const supabase = createClient();
-    const { error } = await supabase.from('hosting_services').upsert(payload);
-    if (error) {
-      console.warn('Aviso al guardar en Supabase hosting_services:', error.message);
+    const res = await fetch('/api/data/hosting', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ record: payload }),
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      console.warn('Aviso al guardar en /api/data/hosting:', errData?.error || res.status);
     }
   } catch (err) {
-    console.warn('No se pudo guardar en Supabase, guardando en local:', err);
+    console.warn('No se pudo guardar en servidor, guardando en local:', err);
   }
 
   // Guardar en localStorage
@@ -181,20 +182,20 @@ export async function saveHostingService(service: HostingService): Promise<Hosti
 export async function batchSaveHostingServices(services: HostingService[]): Promise<void> {
   if (!services || services.length === 0) return;
 
-  // 1. Guardar en Supabase en bloques de 50
+  // 1. Guardar mediante API autenticada en servidor
   try {
-    const supabase = createClient();
     const payloads = services.map(toSupabaseHostingPayload);
-    const chunkSize = 50;
-    for (let i = 0; i < payloads.length; i += chunkSize) {
-      const chunk = payloads.slice(i, i + chunkSize);
-      const { error } = await supabase.from('hosting_services').upsert(chunk);
-      if (error) {
-        console.warn('Error guardando bloque de hostings en Supabase:', error.message);
-      }
+    const res = await fetch('/api/data/hosting', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ records: payloads }),
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      console.warn('Error guardando lote de hostings en servidor:', errData?.error || res.status);
     }
   } catch (err) {
-    console.warn('Error en batchSaveHostingServices para Supabase:', err);
+    console.warn('Error en batchSaveHostingServices para servidor:', err);
   }
 
   // 2. Guardar en localStorage
@@ -213,13 +214,13 @@ export async function batchSaveHostingServices(services: HostingService[]): Prom
  */
 export async function deleteHostingService(id: string): Promise<boolean> {
   try {
-    const supabase = createClient();
-    const { error } = await supabase.from('hosting_services').delete().eq('id', id);
-    if (error) {
-      console.warn('Aviso al borrar de Supabase hosting_services:', error.message);
+    const res = await fetch(`/api/data/hosting?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      console.warn('Aviso al borrar en /api/data/hosting:', errData?.error || res.status);
     }
   } catch (err) {
-    console.warn('Error al borrar de Supabase:', err);
+    console.warn('Error al borrar en servidor:', err);
   }
 
   if (typeof window !== 'undefined') {

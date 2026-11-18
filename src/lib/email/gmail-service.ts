@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
 import { HostingAlert, HostingService } from '@/types/hosting';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createDataSupabaseClient } from '@/lib/supabase/server';
 
 export interface CoordinatorRecipient {
   email: string;
@@ -54,12 +54,14 @@ export async function getCoordinatorRecipients(): Promise<CoordinatorRecipient[]
 
   // 2. Consultar perfiles en Supabase con rol 'coordinator' o 'admin'
   try {
-    const supabase = createServerSupabaseClient();
-    const { data: profiles, error } = await supabase
-      .from('profiles')
-      .select('id, email, full_name, role, status')
-      .in('role', ['coordinator', 'admin'])
-      .eq('status', 'active');
+    const supabase = createDataSupabaseClient();
+    const { data: profiles, error } = supabase
+      ? await supabase
+          .from('profiles')
+          .select('id, email, full_name, role, status')
+          .in('role', ['coordinator', 'admin'])
+          .eq('status', 'active')
+      : { data: null, error: null };
 
     if (!error && profiles && profiles.length > 0) {
       profiles.forEach((p) => {

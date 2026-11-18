@@ -4,7 +4,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import { notify, confirmDialog, friendlyError, flagAccessDenied } from '@/lib/feedback';
-import { createClient } from '@/lib/supabase/client';
 import { MOCK_PROFILES } from '@/lib/mock-data';
 import { Profile, UserRole, ProfileStatus, TimeEntry, AuditLog } from '@/types/database';
 import { UserAvatar } from '@/components/ui/user-avatar';
@@ -164,15 +163,12 @@ export default function SuperAdminDashboardPage() {
 
     if (isSupabaseConnected) {
       try {
-        const supabase = createClient();
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .order('created_at', { ascending: false });
+        const res = await fetch('/api/data/profiles', { cache: 'no-store' });
+        const json = await res.json();
 
-        if (!error && data) {
+        if (res.ok && json?.success && Array.isArray(json.profiles)) {
           // Sanitización estricta: la cuenta maestra Super Admin SIEMPRE es rol 'admin' y NUNCA 'coordinator'
-          const sanitized = (data as Profile[]).map((p) => {
+          const sanitized = (json.profiles as Profile[]).map((p) => {
             if (isSuperAdminEmail(p.email)) {
               return {
                 ...p,
@@ -188,7 +184,7 @@ export default function SuperAdminDashboardPage() {
           return;
         }
       } catch (e) {
-        console.warn('Error al cargar perfiles desde Supabase:', e);
+        console.warn('Error al cargar perfiles desde servidor:', e);
       }
     }
 
@@ -266,30 +262,13 @@ export default function SuperAdminDashboardPage() {
         console.warn('Aviso cargando logs de auditoría forense:', err);
       }
 
-      // 2. Cargar registros horarios de Supabase
+      // 2. Cargar registros horarios vía API autenticada
       if (isSupabaseConnected) {
-        const supabase = createClient();
-        const { data: entries, error } = await supabase
-          .from('time_entries')
-          .select(`
-            id,
-            user_id,
-            company_id,
-            work_date,
-            start_time,
-            end_time,
-            duration_minutes,
-            description,
-            compute_type,
-            created_at,
-            company:companies(id, name, client_type),
-            profile:profiles(id, full_name, email, role, avatar_url, department)
-          `)
-          .order('created_at', { ascending: false })
-          .limit(60);
+        const res = await fetch('/api/data/time-entries?scope=all&limit=60', { cache: 'no-store' });
+        const json = await res.json();
 
-        if (!error && entries) {
-          setAuditEntries(entries as unknown as TimeEntry[]);
+        if (res.ok && json?.success && Array.isArray(json.entries)) {
+          setAuditEntries(json.entries as TimeEntry[]);
           setIsLoadingAudit(false);
           return;
         }
@@ -374,64 +353,24 @@ export default function SuperAdminDashboardPage() {
       };
 
       if (isSupabaseConnected) {
-        const supabase = createClient();
-
-        // 1. Intentar registrar en Supabase Auth si está habilitado (no bloqueante si da email rate limit)
-        try {
-          const { data: authData, error: authErr } = await supabase.auth.signUp({
+        const res = await fetch('/api/data/profiles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            full_name: cleanName,
             email: cleanEmail,
             password: cleanPass,
-            options: {
-              data: {
-                full_name: cleanName,
-                role: createRole,
-                status: 'active',
-                department: newProfile.department,
-              },
-            },
-          });
-
-          if (authData?.user) {
-            newProfile.id = authData.user.id;
-          } else if (authErr) {
-            console.warn('Aviso en Supabase Auth signUp (continuando con inserción de perfil directa):', authErr.message);
-          }
-        } catch (authE) {
-          console.warn('Excepción en Supabase Auth signUp:', authE);
+            role: createRole,
+            department: newProfile.department,
+          }),
+        });
+        const json = await res.json();
+        if (!res.ok || !json?.profile) {
+          setCreateFeedback({ error: json?.error || 'No se pudo crear el usuario en el servidor.' });
+          setIsCreatingUser(false);
+          return;
         }
-
-        // 2. Insertar / Upsert en tabla profiles con contraseña directa
-        const safeProfilePayload = {
-          id: newProfile.id,
-          full_name: newProfile.full_name,
-          email: newProfile.email,
-          role: newProfile.role,
-          status: newProfile.status,
-          department: newProfile.department,
-          password_configured: true,
-          custom_password: cleanPass,
-          temp_password: null,
-          created_at: newProfile.created_at,
-        };
-
-        const { error: profErr } = await supabase
-          .from('profiles')
-          .upsert(safeProfilePayload);
-
-        if (profErr) {
-          console.warn('Advertencia al insertar perfil en Supabase:', profErr);
-        }
-
-        // 3. Fijar también mediante RPC admin_set_user_password
-        try {
-          await supabase.rpc('admin_set_user_password', {
-            p_email: cleanEmail,
-            p_password: cleanPass,
-            p_is_temp: false,
-          });
-        } catch (rpcErr) {
-          console.warn('Aviso RPC admin_set_user_password:', rpcErr);
-        }
+        newProfile.id = json.profile.id;
       }
 
       // Guardar también en localStorage para consistencia inmediata
@@ -501,7 +440,6 @@ export default function SuperAdminDashboardPage() {
 
     try {
       if (isSupabaseConnected) {
-        const supabase = createClient();
         const updatePayload: Record<string, unknown> = {
           full_name: updatedProfile.full_name,
           role: updatedProfile.role,
@@ -510,27 +448,21 @@ export default function SuperAdminDashboardPage() {
         };
 
         if (hasNewPassword) {
-          updatePayload.custom_password = editNewPassword.trim();
-          updatePayload.password_configured = true;
-          updatePayload.temp_password = null;
-          try {
-            await supabase.rpc('admin_set_user_password', {
-              p_email: updatedProfile.email,
-              p_password: editNewPassword.trim(),
-              p_is_temp: false,
-            });
-          } catch (rpcE) {
-            console.warn('Aviso RPC admin_set_user_password:', rpcE);
-          }
+          updatePayload.password = editNewPassword.trim();
         }
 
-        const { error } = await supabase
-          .from('profiles')
-          .update(updatePayload)
-          .eq('id', updatedProfile.id);
+        const res = await fetch('/api/data/profiles', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: updatedProfile.id,
+            updates: updatePayload,
+          }),
+        });
 
-        if (error) {
-          console.warn('Aviso al actualizar en Supabase:', error.message);
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          console.warn('Aviso al actualizar en API /api/data/profiles:', errData.error || res.statusText);
         }
       }
 
@@ -580,13 +512,13 @@ export default function SuperAdminDashboardPage() {
 
     if (isSupabaseConnected) {
       try {
-        const supabase = createClient();
-        await supabase
-          .from('profiles')
-          .update({ status: newStatus })
-          .eq('id', profileId);
+        await fetch('/api/data/profiles', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: profileId, updates: { status: newStatus } }),
+        });
       } catch (e) {
-        console.error('Error actualizando estado en Supabase:', e);
+        console.error('Error actualizando estado en servidor:', e);
       }
     }
 
@@ -622,13 +554,13 @@ export default function SuperAdminDashboardPage() {
 
     if (isSupabaseConnected) {
       try {
-        const supabase = createClient();
-        await supabase
-          .from('profiles')
-          .update({ role: newRole })
-          .eq('id', profileId);
+        await fetch('/api/data/profiles', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: profileId, updates: { role: newRole } }),
+        });
       } catch (e) {
-        console.error('Error actualizando rol en Supabase:', e);
+        console.error('Error actualizando rol en servidor:', e);
       }
     }
 
@@ -664,10 +596,9 @@ export default function SuperAdminDashboardPage() {
 
     if (isSupabaseConnected) {
       try {
-        const supabase = createClient();
-        await supabase.from('profiles').delete().eq('id', profileId);
+        await fetch(`/api/data/profiles?id=${encodeURIComponent(profileId)}`, { method: 'DELETE' });
       } catch (e) {
-        console.error('Error al eliminar en Supabase:', e);
+        console.error('Error al eliminar en servidor:', e);
       }
     }
 

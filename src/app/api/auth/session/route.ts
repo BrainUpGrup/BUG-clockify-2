@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { createDataSupabaseClient } from '@/lib/supabase/server';
 import { signSessionToken, verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth/session';
 import { UserRole, ProfileStatus, Profile } from '@/types/database';
 import { SUPER_ADMIN_EMAIL, isSuperAdminEmail } from '@/lib/admin-identity';
@@ -187,9 +188,10 @@ export async function POST(req: NextRequest) {
           });
 
           if (!authErr && authData?.user) {
-            const { data: dbProf } = await supabase
+            const dataSupabase = createDataSupabaseClient() || supabase;
+            const { data: dbProf } = await dataSupabase
               .from('profiles')
-              .select('*')
+              .select('id, full_name, email, role, status, department, avatar_url, password_configured, created_at')
               .eq('id', authData.user.id)
               .maybeSingle();
 

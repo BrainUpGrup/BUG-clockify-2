@@ -8,17 +8,16 @@ import { CompanyCrud } from '@/components/coordinator/company-crud';
 import { UserManagement } from '@/components/coordinator/user-management';
 import { useAuth } from '@/context/auth-context';
 import { notify, flagAccessDenied } from '@/lib/feedback';
-import { createClient } from '@/lib/supabase/client';
-import { 
-  MOCK_COMPANIES, 
-  MOCK_PROFILES, 
-  MOCK_TIME_ENTRIES 
+import {
+  MOCK_COMPANIES,
+  MOCK_PROFILES,
+  MOCK_TIME_ENTRIES
 } from '@/lib/mock-data';
 import { Company, Profile, TimeEntry, ClientType, UserRole } from '@/types/database';
-import { 
-  BarChart3, 
-  Building2, 
-  Users, 
+import {
+  BarChart3,
+  Building2,
+  Users,
   ShieldCheck,
   Sliders,
   Clock,
@@ -31,7 +30,7 @@ import { ParsedCompanyItem } from '@/lib/company-csv-service';
 export default function CoordinatorDashboardPage() {
   const router = useRouter();
   const { user, isLoading: authLoading, isSupabaseConnected } = useAuth();
-  
+
   const [activeTab, setActiveTab] = useState<'reports' | 'companies' | 'users' | 'permissions'>('reports');
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const [pillStyle, setPillStyle] = useState<{ left: number; top: number; width: number; height: number; opacity: number }>({ left: 0, top: 0, width: 0, height: 0, opacity: 0 });
@@ -97,34 +96,28 @@ export default function CoordinatorDashboardPage() {
     async function loadCoordinatorData() {
       if (isSupabaseConnected) {
         try {
-          const supabase = createClient();
-
-          // Ejecución ultra-rápida en PARALELO con Promise.all (sin efecto cascada)
+          // Ejecución en paralelo mediante endpoints autenticados de servidor
           const [compRes, profRes, entriesRes] = await Promise.all([
-            supabase.from('companies').select('*').order('name'),
-            supabase.from('profiles').select('*').order('full_name'),
-            supabase
-              .from('time_entries')
-              .select('*, company:companies(*), profile:profiles(*)')
-              .order('work_date', { ascending: false })
-              .limit(2500),
+            fetch('/api/data/companies?includeInactive=1', { cache: 'no-store' }).then((r) => r.json()),
+            fetch('/api/data/profiles', { cache: 'no-store' }).then((r) => r.json()),
+            fetch('/api/data/time-entries?scope=all&limit=2500', { cache: 'no-store' }).then((r) => r.json()),
           ]);
 
-          if (compRes.data && compRes.data.length > 0) {
-            setCompanies(compRes.data as Company[]);
-            safeSetLocalStorage('bug_clockify_cache_companies', compRes.data);
+          if (compRes?.success && Array.isArray(compRes.companies) && compRes.companies.length > 0) {
+            setCompanies(compRes.companies as Company[]);
+            safeSetLocalStorage('bug_clockify_cache_companies', compRes.companies);
           }
-          if (profRes.data && profRes.data.length > 0) {
-            setEmployees(profRes.data as Profile[]);
-            safeSetLocalStorage('bug_clockify_cache_profiles', profRes.data);
+          if (profRes?.success && Array.isArray(profRes.profiles) && profRes.profiles.length > 0) {
+            setEmployees(profRes.profiles as Profile[]);
+            safeSetLocalStorage('bug_clockify_cache_profiles', profRes.profiles);
           }
-          if (entriesRes.data && entriesRes.data.length > 0) {
-            setAllEntries(entriesRes.data as unknown as TimeEntry[]);
+          if (entriesRes?.success && Array.isArray(entriesRes.entries)) {
+            setAllEntries(entriesRes.entries as TimeEntry[]);
             // Guardar solo los 300 más recientes en caché para respetar los 5 MB de LocalStorage
-            safeSetLocalStorage('bug_clockify_cache_entries', entriesRes.data, 300);
+            safeSetLocalStorage('bug_clockify_cache_entries', entriesRes.entries, 300);
           }
         } catch (err) {
-          console.error('Error cargando datos de Supabase, usando fallback:', err);
+          console.error('Error cargando datos del servidor, usando fallback:', err);
           setCompanies(MOCK_COMPANIES);
           setEmployees(MOCK_PROFILES);
           setAllEntries(MOCK_TIME_ENTRIES);
@@ -167,32 +160,30 @@ export default function CoordinatorDashboardPage() {
   ) => {
     if (isSupabaseConnected) {
       try {
-        const supabase = createClient();
-        const { data, error } = await supabase
-          .from('companies')
-          .insert({
+        const res = await fetch('/api/data/companies', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
             name,
             client_type: clientType,
             monthly_hours_quota: clientType === 'cuota' ? quotaHours : null,
             cif: cif || null,
             contact_name: contactName || null,
             contact_email: contactEmail || null,
-            is_active: true,
-          })
-          .select()
-          .single();
+          }),
+        });
+        const json = await res.json();
 
-        if (!error && data) {
-          const newComp = data as Company;
+        if (res.ok && json?.company) {
+          const newComp = json.company as Company;
           setCompanies((prev) => {
             const next = [...prev, newComp];
             safeSetLocalStorage('bug_clockify_cache_companies', next);
             return next;
           });
           notify('Empresa creada correctamente.', { type: 'success' });
-        } else if (error) {
-          console.error(error);
-          notify('Error al crear la empresa: ' + error.message, { type: 'error' });
+        } else {
+          notify('Error al crear la empresa: ' + (json?.error || res.status), { type: 'error' });
         }
       } catch (err) {
         console.error(err);
@@ -224,13 +215,14 @@ export default function CoordinatorDashboardPage() {
   const handleApproveUser = async (id: string) => {
     if (isSupabaseConnected) {
       try {
-        const supabase = createClient();
-        const { error } = await supabase
-          .from('profiles')
-          .update({ status: 'active' })
-          .eq('id', id);
-        if (error) {
-          notify('No se pudo aprobar la cuenta en Supabase: ' + error.message, { type: 'error' });
+        const res = await fetch('/api/data/profiles', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, updates: { status: 'active' } }),
+        });
+        if (!res.ok) {
+          const json = await res.json().catch(() => ({}));
+          notify('No se pudo aprobar la cuenta en el servidor: ' + (json?.error || res.status), { type: 'error' });
           return;
         }
       } catch (err) {
@@ -264,8 +256,7 @@ export default function CoordinatorDashboardPage() {
   const handleRejectUser = async (id: string) => {
     if (isSupabaseConnected) {
       try {
-        const supabase = createClient();
-        await supabase.from('profiles').delete().eq('id', id);
+        await fetch(`/api/data/profiles?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
       } catch (err) {
         console.error(err);
       }
@@ -294,8 +285,7 @@ export default function CoordinatorDashboardPage() {
   const handleDeleteUser = async (id: string) => {
     if (isSupabaseConnected) {
       try {
-        const supabase = createClient();
-        await supabase.from('profiles').delete().eq('id', id);
+        await fetch(`/api/data/profiles?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
       } catch (err) {
         console.error(err);
       }
@@ -313,15 +303,15 @@ export default function CoordinatorDashboardPage() {
     const nextStatus = !currentStatus;
     if (isSupabaseConnected) {
       try {
-        const supabase = createClient();
-        const { error } = await supabase
-          .from('companies')
-          .update({ is_active: nextStatus })
-          .eq('id', id);
+        const res = await fetch('/api/data/companies', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, updates: { is_active: nextStatus } }),
+        });
 
-        if (error) {
-          console.error('Error al cambiar estado de empresa:', error);
-          notify('No se pudo actualizar el estado de la empresa: ' + error.message, { type: 'error' });
+        if (!res.ok) {
+          const json = await res.json().catch(() => ({}));
+          notify('No se pudo actualizar el estado de la empresa: ' + (json?.error || res.status), { type: 'error' });
           return;
         }
       } catch (err) {
@@ -375,65 +365,46 @@ export default function CoordinatorDashboardPage() {
           localStorage.setItem('bug_clockify_active_company_obj', JSON.stringify(updated));
         }
         window.dispatchEvent(new CustomEvent('bug-company-updated', { detail: updated }));
-      } catch {}
+      } catch { }
     };
 
     if (isSupabaseConnected) {
       try {
-        const supabase = createClient();
-        const basePayload = {
-          name: updates.name,
-          client_type: updates.client_type,
-          monthly_hours_quota: updates.client_type === 'cuota' ? updates.monthly_hours_quota : null,
-          cif: updates.cif || null,
-          contact_name: updates.contact_name || null,
-          contact_email: updates.contact_email || null,
-          ...(typeof updates.is_active === 'boolean' ? { is_active: updates.is_active } : {}),
-        };
-        const fullPayload =
-          updates.logo_url !== undefined
-            ? { ...basePayload, logo_url: updates.logo_url || null }
-            : basePayload;
+        const res = await fetch('/api/data/companies', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id,
+            updates: {
+              name: updates.name,
+              client_type: updates.client_type,
+              monthly_hours_quota: updates.client_type === 'cuota' ? updates.monthly_hours_quota : null,
+              cif: updates.cif || null,
+              contact_name: updates.contact_name || null,
+              contact_email: updates.contact_email || null,
+              ...(typeof updates.is_active === 'boolean' ? { is_active: updates.is_active } : {}),
+              ...(updates.logo_url !== undefined ? { logo_url: updates.logo_url || null } : {}),
+            },
+          }),
+        });
+        const json = await res.json();
 
-        let { data, error } = await supabase
-          .from('companies')
-          .update(fullPayload)
-          .eq('id', id)
-          .select()
-          .single();
-
-        // Fallback si la columna logo_url aún no se ha creado en Supabase
-        let missingLogoColumn = false;
-        if (error && updates.logo_url !== undefined && error.message?.toLowerCase().includes('logo_url')) {
-          missingLogoColumn = true;
-          const retry = await supabase
-            .from('companies')
-            .update(basePayload)
-            .eq('id', id)
-            .select()
-            .single();
-          data = retry.data;
-          error = retry.error;
-        }
-
-        if (error) {
-          console.error('Error al actualizar la empresa en Supabase:', error);
-          notify('Error al guardar cambios: ' + error.message, { type: 'error' });
+        if (!res.ok || !json?.company) {
+          notify('Error al guardar cambios: ' + (json?.error || res.status), { type: 'error' });
           return;
         }
 
-        if (data) {
-          const updated: Company = missingLogoColumn
-            ? ({ ...data, logo_url: updates.logo_url ?? undefined } as Company)
-            : (data as Company);
-          syncCompanyLocally(updated);
-          if (missingLogoColumn) {
-            notify('Cambios guardados. Ejecuta migration_company_logo.sql en Supabase para guardar el logo en la nube.', {
-              type: 'warning',
-            });
-          } else {
-            notify('Empresa actualizada correctamente.', { type: 'success' });
-          }
+        const missingLogoColumn = Boolean(json.missingLogoColumn);
+        const updated: Company = missingLogoColumn
+          ? ({ ...json.company, logo_url: updates.logo_url ?? undefined } as Company)
+          : (json.company as Company);
+        syncCompanyLocally(updated);
+        if (missingLogoColumn) {
+          notify('Cambios guardados. Ejecuta migration_company_logo.sql en Supabase para guardar el logo en la nube.', {
+            type: 'warning',
+          });
+        } else {
+          notify('Empresa actualizada correctamente.', { type: 'success' });
         }
       } catch (err) {
         console.error('Excepción al actualizar empresa:', err);
@@ -461,17 +432,12 @@ export default function CoordinatorDashboardPage() {
   const handleDeleteCompany = async (id: string) => {
     if (isSupabaseConnected) {
       try {
-        const supabase = createClient();
-        // Limpiar registros horarios asociados explícitamente además del ON DELETE CASCADE en BD
-        const { error: entriesError } = await supabase.from('time_entries').delete().eq('company_id', id);
-        if (entriesError) {
-          console.error('Error al eliminar horas de la empresa:', entriesError);
-        }
-
-        const { error: companyError } = await supabase.from('companies').delete().eq('id', id);
-        if (companyError) {
-          console.error('Error al eliminar empresa en Supabase:', companyError);
-          notify('Error al eliminar la empresa: ' + companyError.message, { type: 'error' });
+        const res = await fetch(`/api/data/companies?id=${encodeURIComponent(id)}`, {
+          method: 'DELETE',
+        });
+        if (!res.ok) {
+          const json = await res.json().catch(() => ({}));
+          notify('Error al eliminar la empresa: ' + (json?.error || res.status), { type: 'error' });
           return;
         }
       } catch (err) {
@@ -504,7 +470,7 @@ export default function CoordinatorDashboardPage() {
         localStorage.removeItem('bug_clockify_active_company_id');
         localStorage.removeItem('bug_clockify_active_company_obj');
       }
-    } catch {}
+    } catch { }
 
     notify('Empresa y todas sus horas asociadas eliminadas definitivamente.', { type: 'success' });
   };
@@ -518,66 +484,24 @@ export default function CoordinatorDashboardPage() {
 
     if (isSupabaseConnected) {
       try {
-        const supabase = createClient();
-
-        // 1. Si replaceAll es true, eliminar empresas que NO tengan horas imputadas
-        if (replaceAll) {
-          const companiesWithEntries = new Set(allEntries.map((e) => e.company_id));
-          const toDelete = companies.filter((c) => !companiesWithEntries.has(c.id));
-          if (toDelete.length > 0) {
-            const idsToDelete = toDelete.map((c) => c.id);
-            await supabase.from('companies').delete().in('id', idsToDelete);
-          }
-        }
-
-        // 2. Obtener lista actual para emparejar por nombre
-        const { data: currentDbCompanies } = await supabase.from('companies').select('*');
-        const currentList: Company[] = currentDbCompanies || [];
-        const currentByName = new Map<string, Company>();
-        currentList.forEach((c) => currentByName.set(c.name.trim().toLowerCase(), c));
-
-        const toInsert: any[] = [];
-        const toUpdate: { id: string; payload: any }[] = [];
-
-        importedCompanies.forEach((item) => {
-          const key = item.name.trim().toLowerCase();
-          const existing = currentByName.get(key);
-          const payload = {
-            name: item.name.trim(),
-            client_type: item.client_type,
-            monthly_hours_quota: item.client_type === 'cuota' ? item.monthly_hours_quota : null,
-            cif: item.cif || null,
-            contact_name: item.contact_name || null,
-            contact_email: item.contact_email || null,
-            account_manager: item.account_manager || 'Alejandro Ramos',
-            is_active: item.is_active,
-          };
-
-          if (existing && !replaceAll) {
-            toUpdate.push({ id: existing.id, payload });
-          } else {
-            toInsert.push(payload);
-          }
+        const res = await fetch('/api/data/companies', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'batch_import',
+            companies: importedCompanies,
+            replaceAll,
+          }),
         });
-
-        // Ejecutar inserciones
-        if (toInsert.length > 0) {
-          const { error: insErr } = await supabase.from('companies').insert(toInsert);
-          if (insErr) {
-            console.error('Error insertando empresas en lote:', insErr);
-          }
+        const json = await res.json();
+        if (!res.ok || !json?.success) {
+          notify('Error al sincronizar empresas: ' + (json?.error || res.status), { type: 'error' });
+          return;
         }
 
-        // Ejecutar actualizaciones
-        for (const u of toUpdate) {
-          await supabase.from('companies').update(u.payload).eq('id', u.id);
-        }
-
-        // Recargar listado fresco de Supabase
-        const { data: refreshed } = await supabase.from('companies').select('*').order('name');
-        if (refreshed) {
-          setCompanies(refreshed as Company[]);
-          safeSetLocalStorage('bug_clockify_cache_companies', refreshed);
+        if (Array.isArray(json.companies)) {
+          setCompanies(json.companies as Company[]);
+          safeSetLocalStorage('bug_clockify_cache_companies', json.companies);
         }
         notify(`Importación completada: ${importedCompanies.length} empresas procesadas con éxito.`, { type: 'success' });
       } catch (err) {
@@ -649,13 +573,13 @@ export default function CoordinatorDashboardPage() {
         <div className="w-full rounded-2xl bg-gradient-to-r from-white/95 via-[#F8F6FC]/90 to-white/80 border-2 border-[#D0C4EB] p-4 sm:p-5 shadow-sm flex flex-col 2xl:flex-row 2xl:items-center justify-between gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0 flex-1">
             <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#292929] flex items-center gap-2.5">
-              <BarChart3 className="h-6 w-6 text-[#8E0E75] shrink-0" />
-              <span>Panel de <span className="text-[#8E0E75]">Coordinación</span></span>
-            </h1>
-            <p className="text-xs sm:text-sm text-[#4A4A4A] mt-0.5">
-              Control de cuotas al milímetro, estadísticas profesionales, gestión de clientes y altas de usuarios
-            </p>
+              <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#292929] flex items-center gap-2.5">
+                <BarChart3 className="h-6 w-6 text-[#8E0E75] shrink-0" />
+                <span>Panel de <span className="text-[#8E0E75]">Coordinación</span></span>
+              </h1>
+              <p className="text-xs sm:text-sm text-[#4A4A4A] mt-0.5">
+                Control de cuotas al milímetro, estadísticas profesionales, gestión de clientes y altas de usuarios
+              </p>
             </div>
 
             {/* Acceso directo a Registro de Horas Clientes (DM-05 Rol Dual Perpetuo) */}
@@ -671,7 +595,7 @@ export default function CoordinatorDashboardPage() {
           </div>
 
           {/* Navegación por Pestañas con Pastilla Morada Deslizante Fluida */}
-          <div 
+          <div
             ref={tabsContainerRef}
             onMouseLeave={() => setHoveredTab(null)}
             className="relative flex items-center flex-wrap sm:flex-nowrap overflow-x-auto max-w-full rounded-2xl bg-[#F8F6FC] p-1.5 border-2 border-[#D8CFF0] text-xs font-bold gap-1 sm:gap-1.5 shadow-2xs select-none no-scrollbar shrink-0"
@@ -693,11 +617,10 @@ export default function CoordinatorDashboardPage() {
               data-tab-id="reports"
               onClick={() => setActiveTab('reports')}
               onMouseEnter={() => setHoveredTab('reports')}
-              className={`relative z-10 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl uppercase tracking-tight text-xs font-extrabold transition-colors duration-200 cursor-pointer whitespace-nowrap shrink-0 ${
-                targetTab === 'reports'
-                  ? 'text-white'
-                  : 'text-[#4A4A4A] hover:text-[#8E0E75]'
-              }`}
+              className={`relative z-10 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl uppercase tracking-tight text-xs font-extrabold transition-colors duration-200 cursor-pointer whitespace-nowrap shrink-0 ${targetTab === 'reports'
+                ? 'text-white'
+                : 'text-[#4A4A4A] hover:text-[#8E0E75]'
+                }`}
             >
               <BarChart3 className={`h-4 w-4 shrink-0 transition-transform ${targetTab === 'reports' ? 'scale-110 text-white' : 'text-[#8E0E75]'}`} />
               <span>Estadísticas e Informes</span>
@@ -708,11 +631,10 @@ export default function CoordinatorDashboardPage() {
               data-tab-id="companies"
               onClick={() => setActiveTab('companies')}
               onMouseEnter={() => setHoveredTab('companies')}
-              className={`relative z-10 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl uppercase tracking-tight text-xs font-extrabold transition-colors duration-200 cursor-pointer whitespace-nowrap shrink-0 ${
-                targetTab === 'companies'
-                  ? 'text-white'
-                  : 'text-[#4A4A4A] hover:text-[#8E0E75]'
-              }`}
+              className={`relative z-10 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl uppercase tracking-tight text-xs font-extrabold transition-colors duration-200 cursor-pointer whitespace-nowrap shrink-0 ${targetTab === 'companies'
+                ? 'text-white'
+                : 'text-[#4A4A4A] hover:text-[#8E0E75]'
+                }`}
             >
               <Building2 className={`h-4 w-4 shrink-0 transition-transform ${targetTab === 'companies' ? 'scale-110 text-white' : 'text-[#8E0E75]'}`} />
               <span>Gestión de Empresas</span>
@@ -723,11 +645,10 @@ export default function CoordinatorDashboardPage() {
               data-tab-id="users"
               onClick={() => setActiveTab('users')}
               onMouseEnter={() => setHoveredTab('users')}
-              className={`relative z-10 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl uppercase tracking-tight text-xs font-extrabold transition-colors duration-200 cursor-pointer whitespace-nowrap shrink-0 ${
-                targetTab === 'users'
-                  ? 'text-white'
-                  : 'text-[#4A4A4A] hover:text-[#8E0E75]'
-              }`}
+              className={`relative z-10 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl uppercase tracking-tight text-xs font-extrabold transition-colors duration-200 cursor-pointer whitespace-nowrap shrink-0 ${targetTab === 'users'
+                ? 'text-white'
+                : 'text-[#4A4A4A] hover:text-[#8E0E75]'
+                }`}
             >
               <Users className={`h-4 w-4 shrink-0 transition-transform ${targetTab === 'users' ? 'scale-110 text-white' : 'text-[#8E0E75]'}`} />
               <span>Gestión de Usuarios</span>
@@ -738,11 +659,10 @@ export default function CoordinatorDashboardPage() {
               data-tab-id="permissions"
               onClick={() => setActiveTab('permissions')}
               onMouseEnter={() => setHoveredTab('permissions')}
-              className={`relative z-10 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl uppercase tracking-tight text-xs font-extrabold transition-colors duration-200 cursor-pointer whitespace-nowrap shrink-0 ${
-                targetTab === 'permissions'
-                  ? 'text-white'
-                  : 'text-[#4A4A4A] hover:text-[#8E0E75]'
-              }`}
+              className={`relative z-10 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl uppercase tracking-tight text-xs font-extrabold transition-colors duration-200 cursor-pointer whitespace-nowrap shrink-0 ${targetTab === 'permissions'
+                ? 'text-white'
+                : 'text-[#4A4A4A] hover:text-[#8E0E75]'
+                }`}
             >
               <ShieldCheck className={`h-4 w-4 shrink-0 transition-transform ${targetTab === 'permissions' ? 'scale-110 text-white' : 'text-[#8E0E75]'}`} />
               <span>Permisos del HUB</span>

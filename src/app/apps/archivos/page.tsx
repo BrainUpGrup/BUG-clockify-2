@@ -32,7 +32,6 @@ import {
   FileText,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
-import { createClient } from '@/lib/supabase/client';
 import { Company } from '@/types/database';
 import {
   ClientBriefingFile,
@@ -111,23 +110,19 @@ export default function ArchivosHubPage() {
   // Modal visor de archivos
   const [previewTarget, setPreviewTarget] = useState<PreviewTarget | null>(null);
 
-  // Cargar empresas de Supabase o caché
+  // Cargar empresas vía endpoint autenticado de servidor o caché
   useEffect(() => {
     async function loadCompanies() {
       if (isSupabaseConnected) {
         try {
-          const supabase = createClient();
-          const { data } = await supabase
-            .from('companies')
-            .select('*')
-            .eq('is_active', true)
-            .order('name');
-          if (data && data.length > 0) {
-            setCompanies(data as Company[]);
+          const res = await fetch('/api/data/companies', { cache: 'no-store' });
+          const json = await res.json();
+          if (res.ok && json?.success && Array.isArray(json.companies) && json.companies.length > 0) {
+            setCompanies(json.companies as Company[]);
             return;
           }
         } catch (err) {
-          console.warn('Aviso cargando empresas de Supabase:', err);
+          console.warn('Aviso cargando empresas del servidor:', err);
         }
       }
       try {

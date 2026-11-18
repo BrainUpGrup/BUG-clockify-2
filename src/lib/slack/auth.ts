@@ -1,4 +1,4 @@
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createDataSupabaseClient, createServerSupabaseClient } from '@/lib/supabase/server';
 import { UserRole } from '@/types/database';
 
 /** Usuario del Hub autenticado por cookie de Supabase (Route Handlers). */
@@ -9,7 +9,8 @@ export async function getHubUser(): Promise<{ id: string; role: UserRole } | nul
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: profile } = await supabase
+  const dataSupabase = createDataSupabaseClient() || supabase;
+  const { data: profile } = await dataSupabase
     .from('profiles')
     .select('role, status')
     .eq('id', user.id)

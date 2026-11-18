@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireActiveUser } from '@/lib/api-auth';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createDataSupabaseClient } from '@/lib/supabase/server';
 import { simReviewWorkFile } from '@/lib/files-portal/simulator-store';
 import { generateFileCorrectionEmailHtml, sendDirectEmail } from '@/lib/email/gmail-service';
 
@@ -56,12 +56,14 @@ export async function POST(req: NextRequest) {
     if (action === 'request_changes' && reason) {
       let workerEmail = '';
       try {
-        const supabase = createServerSupabaseClient();
-        const { data } = await supabase
-          .from('profiles')
-          .select('email')
-          .eq('id', result.file.uploaded_by)
-          .single();
+        const supabase = createDataSupabaseClient();
+        const { data } = supabase
+          ? await supabase
+            .from('profiles')
+            .select('email')
+            .eq('id', result.file.uploaded_by)
+            .single()
+          : { data: null };
         if (data?.email) workerEmail = data.email;
       } catch {
         // Ignorar si es ID de demostración

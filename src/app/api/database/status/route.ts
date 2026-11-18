@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createDataSupabaseClient } from '@/lib/supabase/server';
 import { requireActiveUser } from '@/lib/api-auth';
 
 export async function GET(req: NextRequest) {
@@ -23,7 +23,10 @@ export async function GET(req: NextRequest) {
   let missingCount = 0;
 
   try {
-    const supabase = createServerSupabaseClient();
+    const supabase = createDataSupabaseClient();
+    if (!supabase) {
+      return NextResponse.json({ status: 'error', error: 'Supabase no configurado' }, { status: 503 });
+    }
 
     for (const table of tables) {
       const { error } = await supabase.from(table).select('id').limit(1);

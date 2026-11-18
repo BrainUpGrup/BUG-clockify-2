@@ -8,7 +8,6 @@ import { TimeTrackerBar } from '@/components/employee/time-tracker-bar';
 import { EmployeeStats } from '@/components/employee/employee-stats';
 import { TimeEntriesList } from '@/components/employee/time-entries-list';
 import { useAuth } from '@/context/auth-context';
-import { createClient } from '@/lib/supabase/client';
 import { MOCK_COMPANIES, MOCK_TIME_ENTRIES } from '@/lib/mock-data';
 import { Company, TimeEntry } from '@/types/database';
 import { Clock, ShieldCheck, BarChart3, ArrowRight, Cloud, CloudOff, RefreshCw } from 'lucide-react';
@@ -74,21 +73,14 @@ export default function EmployeeDashboardPage() {
     async function fetchData() {
       if (isSupabaseConnected) {
         try {
-          const supabase = createClient();
-
-          // Ejecución en paralelo ultra-rápida (empresas y registros del usuario a la vez)
+          // Ejecución en paralelo vía endpoints autenticados de servidor
           const [compRes, entriesRes] = await Promise.all([
-            supabase.from('companies').select('*').eq('is_active', true).order('name'),
-            supabase
-              .from('time_entries')
-              .select('*, company:companies(*), profile:profiles(*)')
-              .eq('user_id', currentUserId)
-              .order('work_date', { ascending: false })
-              .order('created_at', { ascending: false }),
+            fetch('/api/data/companies', { cache: 'no-store' }).then((r) => r.json()),
+            fetch('/api/data/time-entries?limit=500', { cache: 'no-store' }).then((r) => r.json()),
           ]);
 
-          if (compRes.data && compRes.data.length > 0) {
-            const loadedCompanies = compRes.data as Company[];
+          if (compRes?.success && Array.isArray(compRes.companies) && compRes.companies.length > 0) {
+            const loadedCompanies = compRes.companies as Company[];
             setCompanies(loadedCompanies);
             safeSetLocalStorage('bug_clockify_cache_companies', loadedCompanies);
             const activeId = safeGetLocalStorage<string>('bug_clockify_active_company_id', '');
@@ -97,8 +89,8 @@ export default function EmployeeDashboardPage() {
               window.dispatchEvent(new CustomEvent('bug-company-updated', { detail: currActive }));
             }
           }
-          if (entriesRes.data && entriesRes.data.length > 0) {
-            const cloudEntries = entriesRes.data as unknown as TimeEntry[];
+          if (entriesRes?.success && Array.isArray(entriesRes.entries)) {
+            const cloudEntries = entriesRes.entries as TimeEntry[];
             // Preservar cualquier registro local que aún esté en cola de sincronización
             const cachedLocal = safeGetLocalStorage<TimeEntry[]>(`bug_clockify_cache_entries_${currentUserId}`, []);
             const pendingLocals = cachedLocal.filter((e) => e.id.startsWith('local_') && !cloudEntries.some((c) => c.id === e.id));
@@ -107,7 +99,7 @@ export default function EmployeeDashboardPage() {
             safeSetLocalStorage(`bug_clockify_cache_entries_${currentUserId}`, merged, 200);
           }
         } catch (err) {
-          console.error('Error cargando datos de Supabase:', err);
+          console.error('Error cargando datos del servidor:', err);
           setCompanies(MOCK_COMPANIES);
           const userEntries = MOCK_TIME_ENTRIES.filter((e) => e.user_id === currentUserId);
           setEntries(userEntries);

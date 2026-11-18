@@ -125,23 +125,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const { data: { session } } = await supabase.auth.getSession();
 
           if (session?.user && isMounted) {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-
-            if (profile && isMounted) {
-              if (profile.status === 'pending') {
-                await supabase.auth.signOut();
-                setUser(null);
-                setMustResetPassword(false);
-                try {
-                  localStorage.removeItem('bug_clockify_current_user');
-                } catch (e) {
-                  console.error(e);
-                }
-              } else {
+            const profRes = await fetch('/api/data/profiles?self=1');
+            if (profRes.status === 403 && isMounted) {
+              await supabase.auth.signOut();
+              setUser(null);
+              setMustResetPassword(false);
+              try {
+                localStorage.removeItem('bug_clockify_current_user');
+              } catch (e) {
+                console.error(e);
+              }
+            } else if (profRes.ok && isMounted) {
+              const profJson = await profRes.json();
+              const profile = profJson?.profile;
+              if (profile) {
                 const safeProfile = {
                   ...profile,
                   role: isSuperAdminEmail(profile.email) ? 'admin' : profile.role,
@@ -230,22 +227,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (verifyRes.ok) {
         const vData = await verifyRes.json();
         if (vData.valid) {
-          let otpProfile: Profile | null = null;
-
-          // Buscar perfil en Supabase si está conectado
-          if (isSupabaseConnected) {
-            try {
-              const supabase = createClient();
-              const { data: dbProf } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('email', cleanEmail)
-                .single();
-              if (dbProf) otpProfile = dbProf as Profile;
-            } catch {
-              // fallback
-            }
-          }
+          let otpProfile: Profile | null = (vData.profile as Profile) || null;
 
           if (!otpProfile) {
             if (cleanEmail === 'montse@brainupgrup.com') {
@@ -315,13 +297,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
 
         if (!error && data?.user) {
-          const { data: profile, error: profError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', data.user.id)
-            .single();
+          const profRes = await fetch('/api/data/profiles?self=1');
+          const profJson = profRes.ok ? await profRes.json() : null;
+          const profile = profJson?.profile;
 
-          if (!profError && profile) {
+          if (profRes.status === 403) {
+            await supabase.auth.signOut();
+            const errJson = await profRes.json().catch(() => ({}));
+            return {
+              error:
+                errJson?.error ||
+                'Tu cuenta está pendiente de validación o ha sido desactivada por la dirección.',
+            };
+          }
+
+          if (profile) {
             // Verificación estricta de estado de cuenta
             if (profile.status === 'pending') {
               await supabase.auth.signOut();
@@ -615,17 +605,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(updatedProfile);
     persistUser(updatedProfile);
 
-    // Actualizar en Supabase si está conectado
+    // Actualizar mediante endpoint autenticado de servidor
     if (isSupabaseConnected) {
       try {
-        const supabase = createClient();
-        const { error } = await supabase
-          .from('profiles')
-          .update({ avatar_url: avatarUrl })
-          .eq('id', user.id);
+        const res = await fetch('/api/data/profiles', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: user.id, updates: { avatar_url: avatarUrl } }),
+        });
 
-        if (error) {
-          console.warn('Aviso: error al actualizar avatar en Supabase:', error.message);
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          console.warn('Aviso: error al actualizar avatar en servidor:', err?.error || res.status);
         }
       } catch (err) {
         console.warn('Aviso al sincronizar avatar:', err);

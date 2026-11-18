@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Clock, 
-  Play, 
-  Square, 
-  Building2, 
-  ExternalLink, 
-  ArrowUpRight, 
+import {
+  Clock,
+  Play,
+  Square,
+  Building2,
+  ExternalLink,
+  ArrowUpRight,
   RotateCcw,
   Check,
   Minimize2,
@@ -19,7 +19,6 @@ import {
 } from 'lucide-react';
 import { useTimer, useTimerSeconds } from '@/context/timer-context';
 import { useAuth } from '@/context/auth-context';
-import { createClient } from '@/lib/supabase/client';
 import { formatSecondsToTimer, safeGetLocalStorage, safeSetLocalStorage } from '@/lib/utils';
 import { MOCK_COMPANIES } from '@/lib/mock-data';
 import { Company } from '@/types/database';
@@ -27,13 +26,13 @@ import { CompanyLogo } from '@/components/ui/company-logo';
 
 export default function FloatingTimerPage() {
   const { user } = useAuth();
-  const { 
-    activeCompany, 
-    activeCompanyId, 
+  const {
+    activeCompany,
+    activeCompanyId,
     setActiveCompanyId,
     setActiveCompany,
-    isTimerRunning, 
-    startTimer, 
+    isTimerRunning,
+    startTimer,
     stopAndSaveTimer,
     activeDescription,
     setActiveDescription
@@ -57,18 +56,14 @@ export default function FloatingTimerPage() {
       setCompanies(MOCK_COMPANIES);
     }
 
-    // 2. Consulta en segundo plano a Supabase
+    // 2. Consulta en segundo plano vía API autenticada
     async function loadCompanies() {
       try {
-        const supabase = createClient();
-        const { data, error } = await supabase
-          .from('companies')
-          .select('*')
-          .eq('is_active', true)
-          .order('name');
+        const res = await fetch('/api/data/companies', { cache: 'no-store' });
+        const json = await res.json();
 
-        if (!error && data && data.length > 0) {
-          const fetched = data as Company[];
+        if (res.ok && json?.success && Array.isArray(json.companies) && json.companies.length > 0) {
+          const fetched = json.companies as Company[];
           setCompanies(fetched);
           safeSetLocalStorage('bug_clockify_cache_companies', fetched);
 
@@ -108,7 +103,7 @@ export default function FloatingTimerPage() {
       if (typeof window !== 'undefined' && window.resizeTo) {
         window.resizeTo(360, 92);
       }
-    } catch {}
+    } catch { }
   }, []);
 
   const handleToggleMode = (targetMode?: 'large' | 'compact') => {
@@ -196,7 +191,7 @@ export default function FloatingTimerPage() {
   if (viewMode === 'compact') {
     return (
       <div className="h-screen w-screen bg-white text-[#292929] flex items-center justify-between px-3 py-1.5 select-none overflow-hidden border border-[#D8CFF0]">
-        
+
         {/* Izquierda: Indicador de Estado y Empresa Activa o Badge de Guardado */}
         <div className="flex items-center gap-1.5 min-w-0 pr-1">
           {saveNotice ? (
@@ -220,8 +215,8 @@ export default function FloatingTimerPage() {
                 <span className="text-[10px] font-black uppercase text-[#8E0E75] leading-none tracking-wider">
                   Cliente
                 </span>
-                <span 
-                  className="text-[11px] font-black uppercase text-[#191654] truncate max-w-[95px] sm:max-w-[120px] leading-tight" 
+                <span
+                  className="text-[11px] font-black uppercase text-[#191654] truncate max-w-[95px] sm:max-w-[120px] leading-tight"
                   title={activeCompany?.name || 'Cliente'}
                 >
                   {activeCompany?.name || (companies[0]?.name ?? 'Sin Cliente')}
@@ -245,9 +240,8 @@ export default function FloatingTimerPage() {
               type="button"
               disabled={isSaving}
               onClick={handleStopAndSave}
-              className={`px-2.5 py-1.5 rounded-md bg-[#DC2626] hover:bg-[#B91C1C] text-white text-[11px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm shadow-red-500/20 transition-all hover:scale-105 active:scale-95 cursor-pointer ${
-                isSaving ? 'opacity-70 cursor-wait' : ''
-              }`}
+              className={`px-2.5 py-1.5 rounded-md bg-[#DC2626] hover:bg-[#B91C1C] text-white text-[11px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm shadow-red-500/20 transition-all hover:scale-105 active:scale-95 cursor-pointer ${isSaving ? 'opacity-70 cursor-wait' : ''
+                }`}
               title="Parar temporizador y guardar automáticamente en la base de datos"
             >
               {isSaving ? (
@@ -299,7 +293,7 @@ export default function FloatingTimerPage() {
   // ==========================================
   return (
     <div className="min-h-screen w-full bg-white text-[#292929] flex flex-col justify-between p-3 select-none">
-      
+
       {/* Cabecera Corporativa con Botón de Modo Súper Reducido */}
       <div className="flex items-center justify-between border-b border-[#EAE4F5] pb-2">
         <div className="flex items-center gap-1.5">
@@ -316,9 +310,8 @@ export default function FloatingTimerPage() {
         </div>
 
         <div className="flex items-center gap-1.5">
-          <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-xs text-[11px] font-extrabold uppercase ${
-            isTimerRunning ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-slate-50 text-slate-600 border border-slate-200'
-          }`}>
+          <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-xs text-[11px] font-extrabold uppercase ${isTimerRunning ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-slate-50 text-slate-600 border border-slate-200'
+            }`}>
             {isTimerRunning ? (
               <>
                 <span className="h-1.5 w-1.5 rounded-full bg-red-600 animate-pulse" />
@@ -417,9 +410,8 @@ export default function FloatingTimerPage() {
                 key={c.id}
                 type="button"
                 onClick={() => handleSelectCompany(c)}
-                className={`w-full px-2 py-1 text-left text-[11px] font-extrabold uppercase rounded-xs transition-colors flex items-center justify-between cursor-pointer ${
-                  (activeCompanyId === c.id || activeCompany?.id === c.id) ? 'bg-[#8E0E75] text-white' : 'hover:bg-[#F8F6FC] text-[#292929]'
-                }`}
+                className={`w-full px-2 py-1 text-left text-[11px] font-extrabold uppercase rounded-xs transition-colors flex items-center justify-between cursor-pointer ${(activeCompanyId === c.id || activeCompany?.id === c.id) ? 'bg-[#8E0E75] text-white' : 'hover:bg-[#F8F6FC] text-[#292929]'
+                  }`}
               >
                 <span className="truncate">{c.name}</span>
                 {(activeCompanyId === c.id || activeCompany?.id === c.id) && <Check className="h-3 w-3 shrink-0" />}
@@ -441,9 +433,8 @@ export default function FloatingTimerPage() {
             type="button"
             disabled={isSaving}
             onClick={handleStopAndSave}
-            className={`py-2.5 px-4 rounded-md bg-[#DC2626] hover:bg-[#B91C1C] text-white text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-md shadow-red-500/25 transition-all hover:scale-105 active:scale-95 cursor-pointer ${
-              isSaving ? 'opacity-70 cursor-wait' : ''
-            }`}
+            className={`py-2.5 px-4 rounded-md bg-[#DC2626] hover:bg-[#B91C1C] text-white text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-md shadow-red-500/25 transition-all hover:scale-105 active:scale-95 cursor-pointer ${isSaving ? 'opacity-70 cursor-wait' : ''
+              }`}
           >
             {isSaving ? (
               <Loader2 className="h-4 w-4 animate-spin" />

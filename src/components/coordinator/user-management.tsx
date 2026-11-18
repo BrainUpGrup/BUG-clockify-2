@@ -1,17 +1,17 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Users, 
-  Link2, 
-  Copy, 
-  Check, 
-  ExternalLink, 
-  ShieldCheck, 
-  UserCheck, 
-  UserX, 
-  Mail, 
-  Clock, 
+import {
+  Users,
+  Link2,
+  Copy,
+  Check,
+  ExternalLink,
+  ShieldCheck,
+  UserCheck,
+  UserX,
+  Mail,
+  Clock,
   Trash2,
   AlertCircle,
   Briefcase,
@@ -24,7 +24,6 @@ import { Profile, TimeEntry, UserRole } from '@/types/database';
 import { formatMinutes } from '@/lib/utils';
 import { confirmDialog, notify } from '@/lib/feedback';
 import { UserAvatar } from '@/components/ui/user-avatar';
-import { createClient } from '@/lib/supabase/client';
 
 interface UserManagementProps {
   employees: Profile[];
@@ -73,29 +72,23 @@ export function UserManagement({
     const cleanPwd = newPasswordInput.trim();
 
     try {
-      const supabase = createClient();
-
-      // 1. Actualizar la bóveda segura profile_passwords mediante RPC con SECURITY DEFINER
-      try {
-        await supabase.rpc('admin_set_user_password', {
-          p_email: passwordModalEmployee.email,
-          p_password: cleanPwd,
-          p_is_temp: false,
-        });
-      } catch (rpcErr) {
-        console.warn('Aviso RPC admin_set_user_password:', rpcErr);
+      // 1. Actualizar la bóveda segura profile_passwords y marcar password_configured vía API autenticada
+      const res = await fetch('/api/data/profiles', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: passwordModalEmployee.id,
+          updates: {
+            password: cleanPwd,
+          },
+        }),
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'No se pudo asignar la contraseña en el servidor');
       }
 
-      // 2. Guardar en Supabase profiles asegurando estado activo y configurado
-      await supabase
-        .from('profiles')
-        .update({
-          custom_password: cleanPwd,
-          password_configured: true,
-        })
-        .eq('id', passwordModalEmployee.id);
-
-      // 3. Notificar al endpoint de sincronización
+      // 2. Notificar al endpoint de sincronización
       try {
         await fetch('/api/auth/reset-password', {
           method: 'POST',
@@ -186,11 +179,10 @@ export function UserManagement({
             <button
               type="button"
               onClick={handleCopyLink}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all cursor-pointer shadow-xs ${
-                copied
-                  ? 'bg-[#3BB54A] text-white shadow-[#3BB54A]/25'
-                  : 'bg-[#8E0E75] text-white hover:bg-[#700B5C] shadow-[#8E0E75]/25 active:scale-95'
-              }`}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all cursor-pointer shadow-xs ${copied
+                ? 'bg-[#3BB54A] text-white shadow-[#3BB54A]/25'
+                : 'bg-[#8E0E75] text-white hover:bg-[#700B5C] shadow-[#8E0E75]/25 active:scale-95'
+                }`}
             >
               {copied ? (
                 <>
@@ -366,100 +358,99 @@ export function UserManagement({
                 </tr>
               ) : (
                 activeEmployees.map((emp) => {
-                const empEntries = entries.filter((e) => e.user_id === emp.id);
-                const totalMinutes = empEntries.reduce((sum, e) => sum + e.duration_minutes, 0);
+                  const empEntries = entries.filter((e) => e.user_id === emp.id);
+                  const totalMinutes = empEntries.reduce((sum, e) => sum + e.duration_minutes, 0);
 
-                return (
-                  <tr key={emp.id} className="hover:bg-[#F8F6FC]/60 transition-colors">
-                    <td className="px-6 py-3.5 font-bold text-[#292929]">
-                      <div className="flex items-center gap-2.5">
-                        <UserAvatar
-                          src={emp.avatar_url}
-                          name={emp.full_name}
-                          size="sm"
-                          className="ring-1 ring-[#D8CFF0]"
-                        />
-                        <div>
-                          <span className="text-sm block">{emp.full_name}</span>
-                          {emp.department && (
-                            <span className="text-[11px] text-[#4A4A4A] font-light block">
-                              {emp.department}
-                            </span>
-                          )}
+                  return (
+                    <tr key={emp.id} className="hover:bg-[#F8F6FC]/60 transition-colors">
+                      <td className="px-6 py-3.5 font-bold text-[#292929]">
+                        <div className="flex items-center gap-2.5">
+                          <UserAvatar
+                            src={emp.avatar_url}
+                            name={emp.full_name}
+                            size="sm"
+                            className="ring-1 ring-[#D8CFF0]"
+                          />
+                          <div>
+                            <span className="text-sm block">{emp.full_name}</span>
+                            {emp.department && (
+                              <span className="text-[11px] text-[#4A4A4A] font-light block">
+                                {emp.department}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-3.5 text-[#4A4A4A] font-mono">
-                      <div className="flex items-center gap-1.5">
-                        <Mail className="h-3.5 w-3.5 text-slate-400" />
-                        <span>{emp.email}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-3.5 text-center">
-                      <span
-                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-extrabold uppercase tracking-wider border ${
-                          emp.role === 'coordinator'
+                      </td>
+                      <td className="px-6 py-3.5 text-[#4A4A4A] font-mono">
+                        <div className="flex items-center gap-1.5">
+                          <Mail className="h-3.5 w-3.5 text-slate-400" />
+                          <span>{emp.email}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-3.5 text-center">
+                        <span
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-extrabold uppercase tracking-wider border ${emp.role === 'coordinator'
                             ? 'bg-[#8E0E75]/10 text-[#8E0E75] border-[#8E0E75]/30'
                             : 'bg-slate-100 text-[#4A4A4A] border-slate-200'
-                        }`}
-                      >
-                        {emp.role === 'coordinator' ? (
-                          <>
-                            <ShieldCheck className="h-3 w-3" />
-                            <span>Coordinador</span>
-                          </>
-                        ) : (
-                          <span>Trabajador</span>
-                        )}
-                      </span>
-                    </td>
-                    <td className="px-6 py-3.5 text-center font-mono tabular-nums font-extrabold text-sm text-[#8E0E75]">
-                      {formatMinutes(totalMinutes)}
-                      <span className="block text-[11px] text-[#4A4A4A] font-normal tabular-nums">
-                        {empEntries.length} tareas
-                      </span>
-                    </td>
-                    <td className="px-6 py-3.5 text-center">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-[#3BB54A]/10 text-[#3BB54A] border border-[#3BB54A]/30 text-[11px] font-extrabold uppercase tracking-wider">
-                        Activo
-                      </span>
-                    </td>
-                    <td className="px-6 py-3.5 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => handleOpenPasswordModal(emp)}
-                          className="p-1.5 rounded-lg border border-[#D8CFF0] bg-white text-[#8E0E75] hover:bg-[#F8F6FC] transition-colors cursor-pointer"
-                          title={`Asignar o cambiar contraseña de acceso para ${emp.full_name}`}
+                            }`}
                         >
-                          <KeyRound className="h-4 w-4" />
-                        </button>
-
-                        {onDeleteUser && emp.role !== 'coordinator' && (
+                          {emp.role === 'coordinator' ? (
+                            <>
+                              <ShieldCheck className="h-3 w-3" />
+                              <span>Coordinador</span>
+                            </>
+                          ) : (
+                            <span>Trabajador</span>
+                          )}
+                        </span>
+                      </td>
+                      <td className="px-6 py-3.5 text-center font-mono tabular-nums font-extrabold text-sm text-[#8E0E75]">
+                        {formatMinutes(totalMinutes)}
+                        <span className="block text-[11px] text-[#4A4A4A] font-normal tabular-nums">
+                          {empEntries.length} tareas
+                        </span>
+                      </td>
+                      <td className="px-6 py-3.5 text-center">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-[#3BB54A]/10 text-[#3BB54A] border border-[#3BB54A]/30 text-[11px] font-extrabold uppercase tracking-wider">
+                          Activo
+                        </span>
+                      </td>
+                      <td className="px-6 py-3.5 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
                           <button
                             type="button"
-                            onClick={async () => {
-                              const ok = await confirmDialog({
-                                title: `¿Dar de baja a ${emp.full_name}?`,
-                                message: 'Perderá el acceso a todas las herramientas del Hub.',
-                                confirmLabel: 'Dar de baja',
-                                danger: true,
-                              });
-                              if (!ok) return;
-                              onDeleteUser(emp.id);
-                            }}
-                            aria-label={`Dar de baja a ${emp.full_name}`}
-                            className="p-1.5 rounded-lg border border-rose-200 bg-white text-rose-500 hover:bg-rose-50 transition-colors cursor-pointer"
-                            title="Dar de baja usuario"
+                            onClick={() => handleOpenPasswordModal(emp)}
+                            className="p-1.5 rounded-lg border border-[#D8CFF0] bg-white text-[#8E0E75] hover:bg-[#F8F6FC] transition-colors cursor-pointer"
+                            title={`Asignar o cambiar contraseña de acceso para ${emp.full_name}`}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <KeyRound className="h-4 w-4" />
                           </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              }))}
+
+                          {onDeleteUser && emp.role !== 'coordinator' && (
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const ok = await confirmDialog({
+                                  title: `¿Dar de baja a ${emp.full_name}?`,
+                                  message: 'Perderá el acceso a todas las herramientas del Hub.',
+                                  confirmLabel: 'Dar de baja',
+                                  danger: true,
+                                });
+                                if (!ok) return;
+                                onDeleteUser(emp.id);
+                              }}
+                              aria-label={`Dar de baja a ${emp.full_name}`}
+                              className="p-1.5 rounded-lg border border-rose-200 bg-white text-rose-500 hover:bg-rose-50 transition-colors cursor-pointer"
+                              title="Dar de baja usuario"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                }))}
             </tbody>
           </table>
         </div>

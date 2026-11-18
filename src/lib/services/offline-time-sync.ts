@@ -1,6 +1,5 @@
 'use client';
 
-import { createClient } from '@/lib/supabase/client';
 import { TimeEntry, Company, Profile } from '@/types/database';
 import { safeGetLocalStorage, safeSetLocalStorage } from '@/lib/utils';
 
@@ -242,7 +241,6 @@ export async function syncPendingEntries(): Promise<{ synced: number; remaining:
   isSyncing = true;
   let syncedCount = 0;
   const remainingQueue: OfflineSyncItem[] = [];
-  const supabase = createClient();
 
   try {
     for (const item of queue) {
@@ -250,7 +248,6 @@ export async function syncPendingEntries(): Promise<{ synced: number; remaining:
         if (item.action === 'insert') {
           const entry = item.entry;
           const payload = {
-            user_id: entry.user_id,
             company_id: entry.company_id,
             work_date: entry.work_date,
             start_time: entry.start_time || null,
@@ -260,20 +257,22 @@ export async function syncPendingEntries(): Promise<{ synced: number; remaining:
             compute_type: entry.compute_type || 'cuota',
           };
 
-          const { data, error } = await supabase
-            .from('time_entries')
-            .insert(payload)
-            .select('*, company:companies(*), profile:profiles(*)')
-            .single();
+          const res = await fetch('/api/data/time-entries', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          const json = await res.json().catch(() => ({}));
 
-          if (error) {
-            console.warn('[OfflineTimeSync] Cloud insert failed for item:', item.id, error.message);
+          if (!res.ok || !json?.entry) {
+            const errMsg = json?.error || `HTTP ${res.status}`;
+            console.warn('[OfflineTimeSync] Cloud insert failed for item:', item.id, errMsg);
             item.attempts += 1;
-            item.lastError = error.message;
+            item.lastError = errMsg;
             remainingQueue.push(item);
-          } else if (data) {
+          } else {
             syncedCount += 1;
-            const newCloudEntry = data as unknown as TimeEntry;
+            const newCloudEntry = json.entry as TimeEntry;
             const oldTempId = item.id;
 
             // Reemplazar el ID temporal en localStorage por el UUID real de la nube
@@ -307,15 +306,18 @@ export async function syncPendingEntries(): Promise<{ synced: number; remaining:
             // Aún no tiene ID de nube, mantener en cola
             remainingQueue.push(item);
           } else {
-            const { error } = await supabase
-              .from('time_entries')
-              .update(item.entry)
-              .eq('id', item.id);
+            const res = await fetch('/api/data/time-entries', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: item.id, updates: item.entry }),
+            });
 
-            if (error) {
-              console.warn('[OfflineTimeSync] Cloud update failed for item:', item.id, error.message);
+            if (!res.ok) {
+              const json = await res.json().catch(() => ({}));
+              const errMsg = json?.error || `HTTP ${res.status}`;
+              console.warn('[OfflineTimeSync] Cloud update failed for item:', item.id, errMsg);
               item.attempts += 1;
-              item.lastError = error.message;
+              item.lastError = errMsg;
               remainingQueue.push(item);
             } else {
               syncedCount += 1;
@@ -326,15 +328,16 @@ export async function syncPendingEntries(): Promise<{ synced: number; remaining:
             // Ya eliminado localmente, no requiere acción en nube
             syncedCount += 1;
           } else {
-            const { error } = await supabase
-              .from('time_entries')
-              .delete()
-              .eq('id', item.id);
+            const res = await fetch(`/api/data/time-entries?id=${encodeURIComponent(item.id)}`, {
+              method: 'DELETE',
+            });
 
-            if (error) {
-              console.warn('[OfflineTimeSync] Cloud delete failed for item:', item.id, error.message);
+            if (!res.ok) {
+              const json = await res.json().catch(() => ({}));
+              const errMsg = json?.error || `HTTP ${res.status}`;
+              console.warn('[OfflineTimeSync] Cloud delete failed for item:', item.id, errMsg);
               item.attempts += 1;
-              item.lastError = error.message;
+              item.lastError = errMsg;
               remainingQueue.push(item);
             } else {
               syncedCount += 1;

@@ -1,21 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createDataSupabaseClient, createServerSupabaseClient } from '@/lib/supabase/server';
 import { verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth/session';
-import { 
-  getTempPasswordForEmail, 
-  setTempPasswordForUser, 
+import {
+  getTempPasswordForEmail,
+  setTempPasswordForUser,
   markPasswordConfigured,
   verifyTempPassword
 } from '@/lib/auth-passwords';
 
 function getSupabaseClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anonKey) return null;
-  return createClient(url, anonKey, {
-    auth: { persistSession: false },
-  });
+  return createDataSupabaseClient();
 }
 
 /**
@@ -83,8 +77,8 @@ export async function GET(req: NextRequest) {
 
   // Control de privacidad: solo el propio usuario o coordinación/administración pueden consultar el estado de reinicio
   const isAuthorized = caller && (
-    caller.email.toLowerCase() === cleanEmail || 
-    caller.role === 'admin' || 
+    caller.email.toLowerCase() === cleanEmail ||
+    caller.role === 'admin' ||
     caller.role === 'coordinator'
   );
 
@@ -197,7 +191,7 @@ export async function POST(req: NextRequest) {
               temp_password: tempPass,
             })
             .eq('email', cleanEmail);
-        } catch {}
+        } catch { }
       }
 
       return NextResponse.json({
@@ -230,6 +224,7 @@ export async function POST(req: NextRequest) {
               valid: true,
               email: cleanEmail,
               password_configured: rpcRes.user.password_configured ?? false,
+              profile: rpcRes.user,
             });
           }
         } catch {
@@ -241,10 +236,24 @@ export async function POST(req: NextRequest) {
       const isValid = verifyTempPassword(cleanEmail, candidatePass);
 
       if (isValid) {
+        let fetchedProfile = null;
+        if (supabase) {
+          try {
+            const { data } = await supabase
+              .from('profiles')
+              .select('id, full_name, email, role, status, department, avatar_url, password_configured, created_at')
+              .eq('email', cleanEmail)
+              .maybeSingle();
+            if (data) fetchedProfile = data;
+          } catch {
+            // fallback
+          }
+        }
         return NextResponse.json({
           valid: true,
           email: cleanEmail,
           password_configured: false,
+          profile: fetchedProfile,
         });
       }
 
@@ -309,7 +318,7 @@ export async function POST(req: NextRequest) {
                 custom_password: cleanNewPassword,
               })
               .eq('email', cleanEmail);
-          } catch {}
+          } catch { }
         }
       }
 

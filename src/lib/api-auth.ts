@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createDataSupabaseClient, createServerSupabaseClient } from '@/lib/supabase/server';
 import { verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth/session';
 
 export interface AuthenticatedUserResult {
@@ -62,7 +62,8 @@ export async function requireActiveUser(req?: NextRequest): Promise<Authenticate
       };
     }
 
-    const { data: profile, error: profError } = await supabase
+    const dataSupabase = createDataSupabaseClient() || supabase;
+    const { data: profile, error: profError } = await dataSupabase
       .from('profiles')
       .select('id, role, status, full_name')
       .eq('id', user.id)
@@ -105,5 +106,28 @@ export async function requireActiveUser(req?: NextRequest): Promise<Authenticate
       ),
     };
   }
+}
+
+export function isManagerRole(role?: string | null): boolean {
+  return role === 'coordinator' || role === 'admin';
+}
+
+export async function requireRole(
+  req: NextRequest,
+  allowedRoles: Array<'admin' | 'coordinator' | 'employee'>,
+  deniedMessage = 'Acceso restringido. No dispones de permisos suficientes.'
+): Promise<AuthenticatedUserResult> {
+  const auth = await requireActiveUser(req);
+  if (auth.errorResponse || !auth.profile) return auth;
+
+  if (!allowedRoles.includes(auth.profile.role as 'admin' | 'coordinator' | 'employee')) {
+    return {
+      user: auth.user,
+      profile: auth.profile,
+      errorResponse: NextResponse.json({ error: deniedMessage }, { status: 403 }),
+    };
+  }
+
+  return auth;
 }
 

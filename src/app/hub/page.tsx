@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/auth-context';
-import { createClient } from '@/lib/supabase/client';
 import { MOCK_PROFILES } from '@/lib/mock-data';
 import { isSuperAdminEmail } from '@/lib/admin-identity';
 import { Profile } from '@/types/database';
@@ -129,13 +128,10 @@ export default function BrainUpHubPage() {
     async function loadTeam() {
       if (isSupabaseConnected) {
         try {
-          const supabase = createClient();
-          const { data } = await supabase
-            .from('profiles')
-            .select('*')
-            .order('full_name');
-          if (data && data.length > 0) {
-            setAllProfiles(data as Profile[]);
+          const res = await fetch('/api/data/profiles', { cache: 'no-store' });
+          const json = await res.json();
+          if (res.ok && json?.success && Array.isArray(json.profiles) && json.profiles.length > 0) {
+            setAllProfiles(json.profiles as Profile[]);
             return;
           }
         } catch (e) {

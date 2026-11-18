@@ -1,10 +1,42 @@
-import { createClient } from '@/lib/supabase/client';
 import { TaskFlowItem, TaskList, DEFAULT_TASK_LISTS } from '@/lib/calendar-export';
 import { SEED_TASKFLOW_ITEMS, STORAGE_KEY_ITEMS_V2 } from '@/lib/taskflow-data';
 import { PostItItem } from '@/types/postit';
 
 export const STORAGE_KEY_LISTS_V1 = 'bug_taskflow_lists_v1';
 export const STORAGE_KEY_POSTITS_V1 = 'bug_taskflow_postits_v1';
+
+async function fetchTaskflowResource(resource: 'items' | 'lists' | 'postits'): Promise<any[] | null> {
+  const res = await fetch(`/api/data/taskflow?resource=${resource}`, { cache: 'no-store' });
+  const json = await res.json();
+  if (res.ok && json?.success && Array.isArray(json.rows)) {
+    return json.rows;
+  }
+  return null;
+}
+
+async function upsertTaskflowResource(resource: 'items' | 'lists' | 'postits', records: any[]): Promise<void> {
+  if (records.length === 0) return;
+  const res = await fetch('/api/data/taskflow', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ resource, records }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    console.warn(`Aviso guardando ${resource} en /api/data/taskflow:`, err?.error || res.status);
+  }
+}
+
+async function deleteTaskflowResource(resource: 'items' | 'lists' | 'postits', id: string): Promise<void> {
+  const res = await fetch(
+    `/api/data/taskflow?resource=${resource}&id=${encodeURIComponent(id)}`,
+    { method: 'DELETE' }
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    console.warn(`Aviso borrando ${resource} en /api/data/taskflow:`, err?.error || res.status);
+  }
+}
 
 // ==============================================================================
 // 1. TRANSFORMADORES: TAREAS (TaskFlowItem <-> Supabase taskflow_items)
@@ -76,13 +108,8 @@ function fromSupabaseItem(row: any): TaskFlowItem {
  */
 export async function getTaskFlowItemsFromDb(): Promise<TaskFlowItem[]> {
   try {
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from('taskflow_items')
-      .select('*')
-      .order('date', { ascending: true });
-
-    if (!error && data) {
+    const data = await fetchTaskflowResource('items');
+    if (data) {
       if (data.length > 0) {
         const parsed = data.map(fromSupabaseItem);
         if (typeof window !== 'undefined') {
@@ -90,13 +117,8 @@ export async function getTaskFlowItemsFromDb(): Promise<TaskFlowItem[]> {
         }
         return parsed;
       } else {
-        // La tabla existe en Supabase pero está vacía: sembrar elementos iniciales
-        console.info('Poblando tareas iniciales en tabla taskflow_items de Supabase...');
-        const payloads = SEED_TASKFLOW_ITEMS.map(toSupabaseItemPayload);
-        const chunkSize = 40;
-        for (let i = 0; i < payloads.length; i += chunkSize) {
-          await supabase.from('taskflow_items').upsert(payloads.slice(i, i + chunkSize));
-        }
+        console.info('Poblando tareas iniciales en tabla taskflow_items...');
+        await upsertTaskflowResource('items', SEED_TASKFLOW_ITEMS.map(toSupabaseItemPayload));
         if (typeof window !== 'undefined') {
           localStorage.setItem(STORAGE_KEY_ITEMS_V2, JSON.stringify(SEED_TASKFLOW_ITEMS));
         }
@@ -104,7 +126,7 @@ export async function getTaskFlowItemsFromDb(): Promise<TaskFlowItem[]> {
       }
     }
   } catch (err) {
-    console.warn('Aviso al cargar tareas de Supabase, usando local:', err);
+    console.warn('Aviso al cargar tareas de servidor, usando local:', err);
   }
 
   // Fallback a localStorage
@@ -117,7 +139,7 @@ export async function getTaskFlowItemsFromDb(): Promise<TaskFlowItem[]> {
           return parsed;
         }
       }
-    } catch {}
+    } catch { }
   }
 
   return SEED_TASKFLOW_ITEMS;
@@ -130,13 +152,9 @@ export async function saveTaskFlowItemToDb(item: TaskFlowItem, allItems?: TaskFl
   const payload = toSupabaseItemPayload(item);
 
   try {
-    const supabase = createClient();
-    const { error } = await supabase.from('taskflow_items').upsert(payload);
-    if (error) {
-      console.warn('Aviso guardando tarea en Supabase:', error.message);
-    }
+    await upsertTaskflowResource('items', [payload]);
   } catch (err) {
-    console.warn('Error conectando a Supabase para tarea:', err);
+    console.warn('Error conectando con servidor para tarea:', err);
   }
 
   if (typeof window !== 'undefined' && allItems) {
@@ -158,16 +176,7 @@ export async function batchSaveTaskFlowItemsToDb(items: TaskFlowItem[]): Promise
   if (!items || items.length === 0) return;
 
   try {
-    const supabase = createClient();
-    const payloads = items.map(toSupabaseItemPayload);
-    const chunkSize = 40;
-    for (let i = 0; i < payloads.length; i += chunkSize) {
-      const chunk = payloads.slice(i, i + chunkSize);
-      const { error } = await supabase.from('taskflow_items').upsert(chunk);
-      if (error) {
-        console.warn('Aviso guardando lote de tareas en Supabase:', error.message);
-      }
-    }
+    await upsertTaskflowResource('items', items.map(toSupabaseItemPayload));
   } catch (err) {
     console.warn('Error en batchSaveTaskFlowItemsToDb:', err);
   }
@@ -187,13 +196,9 @@ export async function batchSaveTaskFlowItemsToDb(items: TaskFlowItem[]): Promise
  */
 export async function deleteTaskFlowItemFromDb(id: string, remainingItems?: TaskFlowItem[]): Promise<void> {
   try {
-    const supabase = createClient();
-    const { error } = await supabase.from('taskflow_items').delete().eq('id', id);
-    if (error) {
-      console.warn('Aviso al eliminar tarea de Supabase:', error.message);
-    }
+    await deleteTaskflowResource('items', id);
   } catch (err) {
-    console.warn('Error al borrar tarea de Supabase:', err);
+    console.warn('Error al borrar tarea de servidor:', err);
   }
 
   if (typeof window !== 'undefined' && remainingItems) {
@@ -212,13 +217,8 @@ export async function deleteTaskFlowItemFromDb(id: string, remainingItems?: Task
 
 export async function getTaskListsFromDb(): Promise<TaskList[]> {
   try {
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from('taskflow_lists')
-      .select('*')
-      .order('created_at', { ascending: true });
-
-    if (!error && data) {
+    const data = await fetchTaskflowResource('lists');
+    if (data) {
       if (data.length > 0) {
         const parsed: TaskList[] = data.map((d) => ({
           id: d.id,
@@ -231,13 +231,12 @@ export async function getTaskListsFromDb(): Promise<TaskList[]> {
         }
         return parsed;
       } else {
-        // Sembrar listas por defecto en Supabase
         const payloads = DEFAULT_TASK_LISTS.map((l) => ({
           id: l.id,
           name: l.name,
           color: l.color,
         }));
-        await supabase.from('taskflow_lists').upsert(payloads);
+        await upsertTaskflowResource('lists', payloads);
         if (typeof window !== 'undefined') {
           localStorage.setItem(STORAGE_KEY_LISTS_V1, JSON.stringify(DEFAULT_TASK_LISTS));
         }
@@ -245,7 +244,7 @@ export async function getTaskListsFromDb(): Promise<TaskList[]> {
       }
     }
   } catch (err) {
-    console.warn('Aviso al cargar listas de Supabase:', err);
+    console.warn('Aviso al cargar listas de servidor:', err);
   }
 
   if (typeof window !== 'undefined') {
@@ -254,7 +253,7 @@ export async function getTaskListsFromDb(): Promise<TaskList[]> {
       if (stored) {
         return JSON.parse(stored);
       }
-    } catch {}
+    } catch { }
   }
 
   return DEFAULT_TASK_LISTS;
@@ -262,20 +261,19 @@ export async function getTaskListsFromDb(): Promise<TaskList[]> {
 
 export async function saveTaskListToDb(list: TaskList, allLists?: TaskList[]): Promise<void> {
   try {
-    const supabase = createClient();
-    await supabase.from('taskflow_lists').upsert({
+    await upsertTaskflowResource('lists', [{
       id: list.id,
       name: list.name,
       color: list.color,
-    });
+    }]);
   } catch (err) {
-    console.warn('Error guardando lista en Supabase:', err);
+    console.warn('Error guardando lista en servidor:', err);
   }
 
   if (typeof window !== 'undefined' && allLists) {
     try {
       localStorage.setItem(STORAGE_KEY_LISTS_V1, JSON.stringify(allLists));
-    } catch {}
+    } catch { }
   }
 }
 
@@ -331,13 +329,8 @@ function fromSupabasePostIt(row: any): PostItItem {
  */
 export async function getPostItsFromDb(seedFallback: PostItItem[]): Promise<PostItItem[]> {
   try {
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from('taskflow_postits')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (!error && data) {
+    const data = await fetchTaskflowResource('postits');
+    if (data) {
       if (data.length > 0) {
         const parsed = data.map(fromSupabasePostIt);
         if (typeof window !== 'undefined') {
@@ -345,9 +338,7 @@ export async function getPostItsFromDb(seedFallback: PostItItem[]): Promise<Post
         }
         return parsed;
       } else if (seedFallback.length > 0) {
-        // Sembrar post-its iniciales en Supabase
-        const payloads = seedFallback.map(toSupabasePostItPayload);
-        await supabase.from('taskflow_postits').upsert(payloads);
+        await upsertTaskflowResource('postits', seedFallback.map(toSupabasePostItPayload));
         if (typeof window !== 'undefined') {
           localStorage.setItem(STORAGE_KEY_POSTITS_V1, JSON.stringify(seedFallback));
         }
@@ -355,7 +346,7 @@ export async function getPostItsFromDb(seedFallback: PostItItem[]): Promise<Post
       }
     }
   } catch (err) {
-    console.warn('Aviso cargando post-its de Supabase:', err);
+    console.warn('Aviso cargando post-its de servidor:', err);
   }
 
   if (typeof window !== 'undefined') {
@@ -367,7 +358,7 @@ export async function getPostItsFromDb(seedFallback: PostItItem[]): Promise<Post
           return parsed;
         }
       }
-    } catch {}
+    } catch { }
   }
 
   return seedFallback;
@@ -380,13 +371,9 @@ export async function savePostItToDb(postIt: PostItItem, allPostIts?: PostItItem
   const payload = toSupabasePostItPayload(postIt);
 
   try {
-    const supabase = createClient();
-    const { error } = await supabase.from('taskflow_postits').upsert(payload);
-    if (error) {
-      console.warn('Aviso guardando post-it en Supabase:', error.message);
-    }
+    await upsertTaskflowResource('postits', [payload]);
   } catch (err) {
-    console.warn('Error al guardar post-it en Supabase:', err);
+    console.warn('Error al guardar post-it en servidor:', err);
   }
 
   if (typeof window !== 'undefined' && allPostIts) {
@@ -406,12 +393,7 @@ export async function batchSavePostItsToDb(postIts: PostItItem[]): Promise<void>
   if (!postIts || postIts.length === 0) return;
 
   try {
-    const supabase = createClient();
-    const payloads = postIts.map(toSupabasePostItPayload);
-    const { error } = await supabase.from('taskflow_postits').upsert(payloads);
-    if (error) {
-      console.warn('Aviso en batchSavePostItsToDb para Supabase:', error.message);
-    }
+    await upsertTaskflowResource('postits', postIts.map(toSupabasePostItPayload));
   } catch (err) {
     console.warn('Error en batchSavePostItsToDb:', err);
   }
@@ -431,13 +413,9 @@ export async function batchSavePostItsToDb(postIts: PostItItem[]): Promise<void>
  */
 export async function deletePostItFromDb(id: string, remainingPostIts?: PostItItem[]): Promise<void> {
   try {
-    const supabase = createClient();
-    const { error } = await supabase.from('taskflow_postits').delete().eq('id', id);
-    if (error) {
-      console.warn('Aviso al borrar post-it de Supabase:', error.message);
-    }
+    await deleteTaskflowResource('postits', id);
   } catch (err) {
-    console.warn('Error al borrar post-it en Supabase:', err);
+    console.warn('Error al borrar post-it en servidor:', err);
   }
 
   if (typeof window !== 'undefined' && remainingPostIts) {
