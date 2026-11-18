@@ -2737,3 +2737,13 @@
 - **Validación y Pruebas:**
   - Comprobación visual del encuadre de los 8 logotipos y verificación REST en Supabase (`35/38` con logo).
   - `npx tsc --noEmit`: **0 errores de compilación**.
+
+### [v4.4.11] - 2026-11-18 - Nueva Distribución de Registros Recientes (Empresa Arriba + Horario con Lápiz + Tarea Abajo)
+- **Solicitud del Usuario:**
+  *"donde pone el nombre de la acción ('sin descripción') ponemos el nombre de la empresa con el logo, bastante grandecito, al lado el cajón con la hora de inicio y la hora final, quitando 'Editar día / franja' por simplemente el lápiz de edición. Y abajo poner la tarea que se ha hecho."*
+- **Solución Implementada ([`src/components/employee/time-entries-list.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/components/employee/time-entries-list.tsx)):**
+  - **Cabecera del registro (arriba):** logotipo ampliado (`h-8 w-8 sm:h-10 sm:w-10`) + nombre de empresa destacado (`text-base sm:text-lg lg:text-xl font-black uppercase`), editable al hacer clic mediante `AppSelect`.
+  - **Franja horaria compacta (al lado):** muestra fecha (`HOY` / fecha) y rango horario (`inicio - fin`) manteniendo únicamente el icono de lápiz (`Edit2`) en lugar del texto `"Editar día / franja"`.
+  - **Tarea realizada (abajo):** descripción del trabajo imputado con edición rápida inline conservada debajo del encabezado de empresa y franja horaria.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.

@@ -453,9 +453,84 @@ export function TimeEntriesList({
                       key={entry.id}
                       className="flex flex-col lg:flex-row lg:items-center justify-between p-4 sm:px-7 sm:py-4 hover:bg-[#F8F6FC]/70 transition-colors gap-3 sm:gap-4 group"
                     >
-                      {/* Detalles principales con edición rápida de descripción y empresa */}
-                      <div className="flex-1 min-w-0 pr-2">
-                        <div className="flex items-center gap-2 mb-2">
+                      {/* Detalles principales: Arriba Empresa (Logo + Nombre grande) + Franja horaria (con solo lápiz); Abajo Tarea realizada */}
+                      <div className="flex-1 min-w-0 pr-2 space-y-2">
+                        {/* Fila Superior: Logo + Nombre Empresa + Horario (Inicio - Fin) + Lápiz */}
+                        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+                          {isEditingComp ? (
+                            <div className="w-72">
+                              <AppSelect
+                                value={entry.company_id}
+                                onChange={(val) => {
+                                  handleSaveCompany(entry.id, val);
+                                  setEditingCompanyId(null);
+                                }}
+                                options={companies.filter((c) => c.is_active).map((c) => ({
+                                  value: c.id,
+                                  label: c.name,
+                                  icon: <CompanyLogo company={c} size="sm" />,
+                                }))}
+                              />
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setEditingCompanyId(entry.id)}
+                              className="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-[#F8F6FC] hover:bg-[#EAE4F5] border-2 border-[#D8CFF0] hover:border-[#8E0E75] transition-colors cursor-pointer shadow-2xs group/comp max-w-full"
+                              title="Haz clic para cambiar el cliente"
+                            >
+                              <span className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg bg-white border border-[#D8CFF0] flex items-center justify-center shrink-0 overflow-hidden p-1 shadow-2xs">
+                                <CompanyLogo company={companyObj} size="md" className="h-full w-full" />
+                              </span>
+                              <span className="text-base sm:text-lg lg:text-xl font-black uppercase tracking-tight text-[#191654] group-hover/comp:text-[#8E0E75] truncate transition-colors">
+                                {companyName}
+                              </span>
+                            </button>
+                          )}
+
+                          {/* Cajón con Día + Hora inicio - Hora final + Solo Lápiz de Edición */}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenScheduleModal(entry)}
+                            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-[#F8F6FC] hover:bg-white text-[#191654] hover:text-[#8E0E75] border-2 border-[#D8CFF0] hover:border-[#8E0E75] transition-all shadow-2xs cursor-pointer group/time shrink-0"
+                            title="Editar el día y la franja horaria de esta actividad"
+                            aria-label="Editar día y franja horaria"
+                          >
+                            <Calendar className="h-3.5 w-3.5 text-[#8E0E75]" />
+                            <span className="font-bold text-[#8E0E75] uppercase text-[11px] tracking-wide">
+                              {formatEntryDayBadge(entry.work_date)}
+                            </span>
+                            <span className="text-slate-300">•</span>
+                            <Clock className="h-3.5 w-3.5 text-slate-400 group-hover/time:text-[#8E0E75]" />
+                            <span className="font-mono tabular-nums font-bold">
+                              {formatEntryTimeRange(entry.start_time, entry.end_time)}
+                            </span>
+                            <span className="inline-flex items-center justify-center p-1 ml-0.5 rounded-md bg-white group-hover/time:bg-[#F8F6FC] text-slate-400 group-hover/time:text-[#8E0E75] border border-slate-200 group-hover/time:border-[#D8CFF0] transition-colors">
+                              <Edit2 className="h-3.5 w-3.5" />
+                            </span>
+                          </button>
+
+                          {(companyObj?.client_type || entry.company?.client_type) === 'cuota' && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const nextType = entry.compute_type === 'cuota' ? 'puntual' : 'cuota';
+                                onUpdateEntry(entry.id, { compute_type: nextType });
+                              }}
+                              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-tight border-2 cursor-pointer shadow-2xs transition-all shrink-0 ${
+                                entry.compute_type === 'cuota'
+                                  ? 'bg-[#8E0E75]/10 text-[#8E0E75] border-[#8E0E75]/30 hover:bg-[#8E0E75]/20'
+                                  : 'bg-[#191654]/10 text-[#191654] border-[#191654]/30 hover:bg-[#191654]/20'
+                              }`}
+                              title="Alternar Cuota vs Puntual"
+                            >
+                              <span>{entry.compute_type === 'cuota' ? 'Cuota' : 'Puntual'}</span>
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Fila Inferior: Tarea / Acción Realizada */}
+                        <div className="flex items-center gap-2 pl-0.5">
                           {isEditingDesc ? (
                             <div className="flex items-center gap-2 w-full max-w-2xl">
                               <input
@@ -485,86 +560,16 @@ export function TimeEntriesList({
                                 setEditingDescId(entry.id);
                                 setDescInputValue(entry.description || '');
                               }}
-                              className="cursor-pointer group/desc flex items-center gap-2 text-sm sm:text-base lg:text-lg font-bold text-[#292929] truncate hover:text-[#8E0E75] transition-colors"
-                              title="Haz clic para editar la descripción"
+                              className="cursor-pointer group/desc flex items-center gap-2 text-sm sm:text-base font-bold text-[#4A4A4A] truncate hover:text-[#8E0E75] transition-colors"
+                              title="Haz clic para editar la tarea realizada"
                             >
-                              <span>{entry.description || 'Sin descripción'}</span>
+                              <span className="truncate">{entry.description || 'Sin descripción'}</span>
                               <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-400 group-hover/desc:text-[#8E0E75] bg-slate-50 group-hover/desc:bg-[#F8F6FC] px-2 py-0.5 rounded-md border border-slate-200 group-hover/desc:border-[#D8CFF0] transition-colors shrink-0">
                                 <Edit2 className="h-3 w-3" />
                                 <span className="hidden sm:inline">Editar</span>
                               </span>
                             </div>
                           )}
-                        </div>
-
-                        {/* Etiqueta de Empresa / Cliente (SIN CIF NI RESPONSABLE) */}
-                        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 text-xs sm:text-sm">
-                          {isEditingComp ? (
-                            <div className="w-64">
-                              <AppSelect
-                                value={entry.company_id}
-                                onChange={(val) => {
-                                  handleSaveCompany(entry.id, val);
-                                  setEditingCompanyId(null);
-                                }}
-                                options={companies.filter((c) => c.is_active).map((c) => ({
-                                  value: c.id,
-                                  label: c.name,
-                                  icon: <CompanyLogo company={c} size="sm" />,
-                                }))}
-                              />
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => setEditingCompanyId(entry.id)}
-                              className="inline-flex items-center gap-2 font-bold text-[#8E0E75] bg-[#F8F6FC] hover:bg-[#D8CFF0]/40 px-3.5 py-1.5 rounded-xl border-2 border-[#D8CFF0] uppercase tracking-tight text-xs sm:text-sm transition-colors cursor-pointer shadow-2xs"
-                              title="Haz clic para cambiar el cliente"
-                            >
-                              <CompanyLogo company={companyObj} size="sm" />
-                              <span>{companyName}</span>
-                            </button>
-                          )}
-
-                          {entry.company?.client_type === 'cuota' && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const nextType = entry.compute_type === 'cuota' ? 'puntual' : 'cuota';
-                                onUpdateEntry(entry.id, { compute_type: nextType });
-                              }}
-                              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-tight border-2 cursor-pointer shadow-2xs transition-all ${
-                                entry.compute_type === 'cuota'
-                                  ? 'bg-[#8E0E75]/10 text-[#8E0E75] border-[#8E0E75]/30 hover:bg-[#8E0E75]/20'
-                                  : 'bg-[#191654]/10 text-[#191654] border-[#191654]/30 hover:bg-[#191654]/20'
-                              }`}
-                              title="Alternar Cuota vs Puntual"
-                            >
-                              <span>{entry.compute_type === 'cuota' ? 'Cuota' : 'Puntual'}</span>
-                            </button>
-                          )}
-
-                          {/* BOTÓN PARA EDITAR DÍA Y FRANJA HORARIA */}
-                          <button
-                            type="button"
-                            onClick={() => handleOpenScheduleModal(entry)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold bg-[#F8F6FC] hover:bg-white text-[#191654] hover:text-[#8E0E75] border-2 border-[#D8CFF0] hover:border-[#8E0E75] transition-all shadow-2xs cursor-pointer group/time"
-                            title="Editar el día y la franja horaria de esta actividad"
-                          >
-                            <Calendar className="h-3.5 w-3.5 text-[#8E0E75]" />
-                            <span className="font-bold text-[#8E0E75] uppercase text-[11px] tracking-wide">
-                              {formatEntryDayBadge(entry.work_date)}
-                            </span>
-                            <span className="text-slate-300">•</span>
-                            <Clock className="h-3.5 w-3.5 text-slate-400 group-hover/time:text-[#8E0E75]" />
-                            <span className="font-mono tabular-nums font-bold">
-                              {formatEntryTimeRange(entry.start_time, entry.end_time)}
-                            </span>
-                            <span className="inline-flex items-center gap-1 text-[11px] font-sans font-bold text-slate-400 group-hover/time:text-[#8E0E75] ml-1 bg-white group-hover/time:bg-[#F8F6FC] px-1.5 py-0.5 rounded border border-slate-200 group-hover/time:border-[#D8CFF0] transition-colors">
-                              <Edit2 className="h-3 w-3" />
-                              <span className="hidden sm:inline">Editar día / franja</span>
-                            </span>
-                          </button>
                         </div>
                       </div>
 
