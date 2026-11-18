@@ -70,6 +70,36 @@ export async function middleware(request: NextRequest) {
     userStatus = verifiedSession.status;
   } else if (sessionUser) {
     userRole = isSuperAdminEmail(sessionUser.email) ? 'admin' : (sessionUser.user_metadata?.role || 'employee');
+    const metaStatus = sessionUser.user_metadata?.status;
+    if (metaStatus === 'pending' || metaStatus === 'rejected') {
+      userStatus = metaStatus;
+    } else if (supabaseUrl && supabaseAnonKey) {
+      try {
+        const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+          cookies: {
+            getAll() {
+              return request.cookies.getAll();
+            },
+            setAll() {},
+          },
+        });
+        const { data: prof } = await supabase
+          .from('profiles')
+          .select('role, status')
+          .eq('id', sessionUser.id)
+          .maybeSingle();
+        if (prof) {
+          if (prof.status === 'pending' || prof.status === 'rejected') {
+            userStatus = prof.status;
+          }
+          if (!isSuperAdminEmail(sessionUser.email) && prof.role) {
+            userRole = prof.role;
+          }
+        }
+      } catch {
+        // fallback al metadata de sesión
+      }
+    }
   }
 
   const isAuthenticated = !!verifiedSession || !!sessionUser;

@@ -13,7 +13,7 @@ interface AuthContextType {
   isSupabaseConnected: boolean;
   mustResetPassword: boolean;
   login: (email: string, pass: string) => Promise<{ error?: string; user?: Profile }>;
-  signUp: (fullName: string, email: string, pass: string, department?: string) => Promise<{ error?: string }>;
+  signUp: (fullName: string, email: string, pass: string, department?: string, inviteToken?: string) => Promise<{ error?: string }>;
   logout: () => Promise<void>;
   completePasswordReset: (newPassword: string) => Promise<{ success: boolean; error?: string }>;
   switchDemoUser: (targetProfile: Profile) => void;
@@ -519,12 +519,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Registro de nuevo empleado (siempre en estado 'pending')
+  // Registro de nuevo empleado (siempre en estado 'pending' hasta validación de coordinación)
   const signUp = async (
     fullName: string,
     email: string,
     pass: string,
-    department: string = 'Creatividad & Operaciones'
+    department: string = 'Creatividad & Operaciones',
+    inviteToken: string = 'brainup'
   ): Promise<{ error?: string }> => {
     const cleanEmail = email.trim().toLowerCase();
     const cleanPass = pass.trim();
@@ -532,101 +533,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (isSupabaseConnected) {
       try {
-        const supabase = createClient();
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fullName: fullName.trim(),
+            email: cleanEmail,
+            password: cleanPass,
+            department,
+            inviteToken,
+          }),
+        });
 
-        // 1. Verificar si el correo ya existe en la base de datos
-        const { data: existingProf } = await supabase
-          .from('profiles')
-          .select('id, email, status')
-          .eq('email', cleanEmail)
-          .maybeSingle();
-
-        if (existingProf) {
-          if (existingProf.status === 'pending') {
-            return {
-              error: 'Ya existe una solicitud pendiente con este correo. La coordinadora la validará en breve.',
-            };
-          }
+        const data = await res.json();
+        if (!res.ok || !data?.success) {
           return {
-            error: 'Este correo ya está registrado en la plataforma. Puedes iniciar sesión directamente.',
+            error: data?.error || 'No se pudo completar el registro. Inténtalo de nuevo.',
           };
         }
 
-        // 2. Insertar perfil pendiente directamente en public.profiles
-        // Esto es inmune a límites de envío de emails ('email rate limit') de Supabase
-        const { data: insertedProfile, error: insertErr } = await supabase
-          .from('profiles')
-          .insert({
-            full_name: fullName.trim(),
-            email: cleanEmail,
-            role: 'employee',
-            status: 'pending',
-            department,
-            password_configured: true,
-            custom_password: cleanPass,
-          })
-          .select('id')
-          .maybeSingle();
-
-        if (insertErr) {
-          console.warn('[SignUp] Aviso al registrar perfil en profiles:', insertErr);
-          if (insertErr.code === '23505') {
-            return { error: 'Este correo ya tiene un registro en la base de datos.' };
-          }
-        } else if (insertedProfile?.id) {
-          createdProfileId = insertedProfile.id;
-        }
-
-        // 3. Intento secundario en Supabase Auth (en segundo plano y sin bloquear el registro)
-        // Si Supabase devuelve "email rate limit exceeded" o falla el envío de correo, no interrumpe el registro
-        try {
-          const authRes = await supabase.auth.signUp({
-            email: cleanEmail,
-            password: cleanPass,
-            options: {
-              data: {
-                full_name: fullName.trim(),
-                role: 'employee',
-                status: 'pending',
-                department,
-              },
-            },
-          });
-
-          if (authRes.error) {
-            console.warn('[SignUp] Supabase Auth aviso (ignorado para garantizar registro):', authRes.error.message);
-          } else if (authRes.data?.user?.id && createdProfileId && createdProfileId !== authRes.data.user.id) {
-            try {
-              await supabase
-                .from('profiles')
-                .update({ id: authRes.data.user.id })
-                .eq('email', cleanEmail);
-              createdProfileId = authRes.data.user.id;
-            } catch {
-              // Si no permite actualizar id por constraints, se mantiene el ID ya asignado
-            }
-          }
-
-          // Asegurar que custom_password esté actualizado en profiles
-          try {
-            await supabase
-              .from('profiles')
-              .update({
-                custom_password: cleanPass,
-                password_configured: true,
-              })
-              .eq('email', cleanEmail);
-          } catch {
-            // ignore
-          }
-
-          // Cerrar cualquier sesión automática para forzar la aprobación previa de la coordinadora
-          await supabase.auth.signOut();
-        } catch (authErr) {
-          console.warn('[SignUp] Excepción secundaria en Supabase Auth:', authErr);
-        }
+        createdProfileId = data.profileId;
       } catch (err: unknown) {
         console.error('[SignUp] Error en registro:', err);
+        return { error: 'Error de conexión al enviar tu solicitud de registro.' };
       }
     }
 

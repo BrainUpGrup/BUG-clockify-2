@@ -2747,3 +2747,22 @@
   - **Tarea realizada (abajo):** descripción del trabajo imputado con edición rápida inline conservada debajo del encabezado de empresa y franja horaria.
 - **Validación y Pruebas:**
   - `npx tsc --noEmit`: **0 errores de compilación**.
+
+### [v4.4.12] - 2026-11-18 - Blindaje de Registro por Enlace en Estado `pending` hasta Validación de Coordinación
+- **Solicitud del Usuario:**
+  *"cuando alguien se intenta registrar desde el link de coordinadora pasa directamente a usuario activo y tendría que pasar primero por la validación de la coordinadora"*
+- **Causa Detectada:**
+  - `signUp()` en [`src/context/auth-context.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/context/auth-context.tsx) continuaba llamando en segundo plano a `supabase.auth.signUp()` aunque el insert inicial en `profiles` fallara, disparando el trigger `on_auth_user_created` (`handle_new_user()`) sobre una columna `status` con `default 'active'`.
+  - Adicionalmente, [`src/middleware.ts`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/middleware.ts) inicializaba `userStatus = 'active'` para sesiones Supabase sin cookie HMAC.
+- **Solución Implementada:**
+  1. **Nuevo Endpoint Servidor [`POST /api/auth/register`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/app/api/auth/register/route.ts):**
+     - Valida código de invitación (`brainup` / `brainupgrup`), inserta en `public.profiles` con `role = 'employee'` y `status = 'pending'`, y almacena la contraseña de forma segura vía `admin_set_user_password` sin llamar a `supabase.auth.signUp()` desde el navegador ni iniciar sesión automática.
+  2. **Flujo Cliente y Aprobación ([`src/context/auth-context.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/context/auth-context.tsx), [`src/app/register/page.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/app/register/page.tsx), [`src/app/dashboard/coordinator/page.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/app/dashboard/coordinator/page.tsx)):**
+     - `signUp` delega en `/api/auth/register` y propaga cualquier error en lugar de silenciarlo.
+     - `handleApproveUser` y `handleRejectUser` sincronizan la caché `bug_clockify_cache_profiles` con feedback claro.
+  3. **Middleware Edge ([`src/middleware.ts`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/middleware.ts)):**
+     - Comprueba `user_metadata.status` y contrasta `profiles.status` cuando no existe cookie HMAC, impidiendo cualquier acceso con cuenta `pending` o `rejected`.
+  4. **Esquema y Migración SQL ([`schema.sql`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/schema.sql), [`migration_fix_pending_registration.sql`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/migration_fix_pending_registration.sql)):**
+     - Cambiado el default de `public.profiles.status` a `'pending'`, blindado `handle_new_user()` y pasada la cuenta de prueba `malgarilgbis@hotmail.com` a `'pending'`.
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.

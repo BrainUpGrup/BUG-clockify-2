@@ -13,7 +13,7 @@ create table if not exists public.profiles (
   full_name text not null,
   email text not null unique,
   role text not null check (role in ('admin', 'coordinator', 'employee')) default 'employee',
-  status text not null check (status in ('active', 'pending', 'rejected')) default 'active',
+  status text not null check (status in ('active', 'pending', 'rejected')) default 'pending',
   department text null default 'Creatividad & Operaciones',
   avatar_url text null default null,
   password_configured boolean not null default true,

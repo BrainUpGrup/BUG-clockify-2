@@ -95,7 +95,7 @@ function RegisterFormContent() {
     setIsSubmitting(true);
 
     try {
-      const res = await signUp(fullName, email, password);
+      const res = await signUp(fullName, email, password, undefined, inviteParam || undefined);
       if (res?.error) {
         setErrorMsg(res.error);
         return;

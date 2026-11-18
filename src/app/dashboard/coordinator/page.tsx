@@ -225,12 +225,18 @@ export default function CoordinatorDashboardPage() {
     if (isSupabaseConnected) {
       try {
         const supabase = createClient();
-        await supabase
+        const { error } = await supabase
           .from('profiles')
           .update({ status: 'active' })
           .eq('id', id);
+        if (error) {
+          notify('No se pudo aprobar la cuenta en Supabase: ' + error.message, { type: 'error' });
+          return;
+        }
       } catch (err) {
         console.error(err);
+        notify('Error inesperado al aprobar la cuenta.', { type: 'error' });
+        return;
       }
     }
 
@@ -246,9 +252,12 @@ export default function CoordinatorDashboardPage() {
       console.error(e);
     }
 
-    setEmployees((prev) =>
-      prev.map((u) => (u.id === id ? { ...u, status: 'active' as const } : u))
-    );
+    setEmployees((prev) => {
+      const next = prev.map((u) => (u.id === id ? { ...u, status: 'active' as const } : u));
+      safeSetLocalStorage('bug_clockify_cache_profiles', next);
+      return next;
+    });
+    notify('Empleado aprobado y activado con éxito. Ya puede iniciar sesión.', { type: 'success' });
   };
 
   // Manejar rechazo de solicitud de empleado
@@ -273,7 +282,12 @@ export default function CoordinatorDashboardPage() {
       console.error(e);
     }
 
-    setEmployees((prev) => prev.filter((u) => u.id !== id));
+    setEmployees((prev) => {
+      const next = prev.filter((u) => u.id !== id);
+      safeSetLocalStorage('bug_clockify_cache_profiles', next);
+      return next;
+    });
+    notify('Solicitud rechazada y eliminada.', { type: 'info' });
   };
 
   // Manejar eliminación de usuario
@@ -286,7 +300,12 @@ export default function CoordinatorDashboardPage() {
         console.error(err);
       }
     }
-    setEmployees((prev) => prev.filter((u) => u.id !== id));
+    setEmployees((prev) => {
+      const next = prev.filter((u) => u.id !== id);
+      safeSetLocalStorage('bug_clockify_cache_profiles', next);
+      return next;
+    });
+    notify('Solicitud rechazada y eliminada.', { type: 'info' });
   };
 
   // Manejar toggle de estado de empresa (activar/archivar)
