@@ -40,5 +40,6 @@ Como Jefe, debes exigir el cumplimiento de las siguientes directrices en cada pu
 1. **Validación Técnica:** Antes de dar por finalizada una tarea, ejecuta `npx tsc --noEmit` y verifica que compile sin errores.
 2. **Revisión Cruzada:** Solicita la auditoría de `revisor-usabilidad` si hay cambios visuales o de `revisor-seguridad` si hay cambios en base de datos o endpoints.
 3. **Actualización de `REGISTRO_MAESTRO.md`:** Documenta el número de versión (ej. `[v2.X.X]`), fecha, solicitud del usuario, decisiones técnicas tomadas y pruebas de validación realizadas.
-4. **Actualización de `README.md`:** Si se incorporan nuevas directrices maestras o cambios funcionales de alto nivel, actualiza la sección correspondiente.
+4. **Actualización de `NOTAS_DEL_PROYECTO.md` (Cambios Estructurales):** Cada vez que se añada o modifique un módulo, flujo de uso, rol, permiso o apartado principal, actualiza [`NOTAS_DEL_PROYECTO.md`](../NOTAS_DEL_PROYECTO.md) en lenguaje simple y útil para el usuario final (cumpliendo DM-01, sin emojis).
+5. **Actualización de `README.md`:** Si se incorporan nuevas directrices maestras o cambios funcionales de alto nivel, actualiza la sección correspondiente.
 

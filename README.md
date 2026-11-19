@@ -5,6 +5,8 @@ Aplicación web interna de alto rendimiento para Brain Up Grup, desarrollada con
 
 ![Brain Up Clockify Logo](./public/logo.png)
 
+> **Guía clara para el usuario final:** Consulta [`NOTAS_DEL_PROYECTO.md`](./NOTAS_DEL_PROYECTO.md) para ver un resumen detallado por apartados en lenguaje sencillo (actualizado con cada cambio estructural).
+
 ---
 
 ## Directrices Matriz de la Aplicación

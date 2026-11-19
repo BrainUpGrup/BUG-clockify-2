@@ -2788,3 +2788,14 @@
 - **Validación y Pruebas:**
   - Verificación `git grep` sin consultas `.from(...)` directas en navegador sobre las 5 áreas migradas.
   - `npx tsc --noEmit`: **0 errores de compilación**.
+
+### [v4.4.14] - 2026-11-19 - Nuevo Apartado Documental `NOTAS_DEL_PROYECTO.md` (Guía para Usuario Final y Regla de Mantenimiento Estructural)
+- **Solicitud del Usuario:**
+  *"hacer un nuevo apartado que será Notas del proyecto, donde tendras que ir editandolo cuando se hagan cambios estructurales"* (solo archivo Markdown en el proyecto + regla en `AGENTS.md` para actualizarlo en cambios estructurales).
+- **Solución Implementada:**
+  1. **Nuevo Documento [`NOTAS_DEL_PROYECTO.md`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/NOTAS_DEL_PROYECTO.md):**
+     - Redactado por apartados con detalle y lenguaje simple orientado al usuario final (sin tecnicismos ni emojis, cumpliendo DM-01): visión general, roles y entrada al Hub, Brain Time, Panel de Coordinación, Brain Schedule (`TaskFlow`), Brain Chat, Hosting Control, Brain Storage / Portal Cliente, Brain Subtitles, diseño visual y privacidad/seguridad.
+  2. **Regla Permanente para Cambios Estructurales ([`AGENTS.md`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/AGENTS.md), [`.agents/jefe.md`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/.agents/jefe.md), [`README.md`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/README.md)):**
+     - Incorporada la obligación de actualizar [`NOTAS_DEL_PROYECTO.md`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/NOTAS_DEL_PROYECTO.md) ante cualquier cambio estructural y añadido enlace directo desde [`README.md`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/README.md).
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.

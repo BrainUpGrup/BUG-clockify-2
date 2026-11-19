@@ -68,8 +68,8 @@ El **Jefe** analiza la petición del usuario, consulta el [`README.md`](./README
 - **Revisor de Usabilidad** audita que se respete la política Zero-Scroll (DM-15), la ausencia total de emojis (DM-01), los controles in-app (DM-02) y la coherencia con los estudios de `docs/usability/`.
 - **Revisor de Seguridad** audita que no se hayan abierto brechas de seguridad, que las políticas RLS aíslen los datos y que no se expongan credenciales maestras.
 
-### Paso 4: Validación y Registro Maestro
-El **Jefe** ejecuta `npx tsc --noEmit`, confirma la compilación exitosa y redacta el registro formal de la versión en [`REGISTRO_MAESTRO.md`](./REGISTRO_MAESTRO.md).
+### Paso 4: Validación, Registro Maestro y Notas del Proyecto
+El **Jefe** ejecuta `npx tsc --noEmit`, confirma la compilación exitosa y redacta el registro formal de la versión en [`REGISTRO_MAESTRO.md`](./REGISTRO_MAESTRO.md). Cuando la intervención implique un **cambio estructural** (nuevos módulos, cambios de flujo entre pantallas, nuevos roles/permisos o reorganización de apartados), actualiza obligatoriamente [`NOTAS_DEL_PROYECTO.md`](./NOTAS_DEL_PROYECTO.md) manteniéndolo en lenguaje claro y sencillo para el usuario final (sin emojis).
 
 ### Paso 5: Pregunta Obligatoria de Publicación (`git push`)
 Al finalizar cualquier modificación de código, documentación o migración, se debe **preguntar siempre explícitamente al usuario** al final de la respuesta si desea ejecutar `git add`, `git commit` y `git push` (nunca hacer `git push` por cuenta propia sin su "sí" explícito; cuando confirme que sí, ejecutarlo automáticamente).
