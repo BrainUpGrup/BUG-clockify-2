@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireActiveUser } from '@/lib/api-auth';
+import { requireHubAppAccess } from '@/lib/server-hub-permissions';
 import { createDataSupabaseClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
  * Devuelve servicios de hosting/dominios ordenados por fecha de expiración.
  */
 export async function GET(req: NextRequest) {
-  const { errorResponse } = await requireActiveUser(req);
+  const { errorResponse } = await requireHubAppAccess(req, 'hosting');
   if (errorResponse) return errorResponse;
 
   const supabase = createDataSupabaseClient();
@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
  * Upsert individual o por lotes en hosting_services.
  */
 export async function POST(req: NextRequest) {
-  const { errorResponse } = await requireActiveUser(req);
+  const { errorResponse } = await requireHubAppAccess(req, 'hosting');
   if (errorResponse) return errorResponse;
 
   const supabase = createDataSupabaseClient();
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
  * DELETE /api/data/hosting?id=...
  */
 export async function DELETE(req: NextRequest) {
-  const { errorResponse } = await requireActiveUser(req);
+  const { errorResponse } = await requireHubAppAccess(req, 'hosting');
   if (errorResponse) return errorResponse;
 
   const supabase = createDataSupabaseClient();

@@ -5,31 +5,34 @@ import { signSessionToken, verifySessionToken, SESSION_COOKIE_NAME } from '@/lib
 import { UserRole, ProfileStatus, Profile } from '@/types/database';
 import { SUPER_ADMIN_EMAIL, isSuperAdminEmail } from '@/lib/admin-identity';
 
-// Rate Limiter en memoria: IP/email -> intentos fallidos y timestamp
+// Rate Limiter híbrido: persistente en Supabase (`public.login_rate_limits`) para Vercel serverless
+// con fallback en memoria RAM si la tabla aún no existe o en modo desarrollo sin Supabase.
 const loginRateLimitMap = new Map<string, { count: number; firstAttempt: number }>();
 const MAX_FAILED_ATTEMPTS = 5;
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minuto
 
-function checkRateLimit(key: string): { blocked: boolean; remainingSeconds: number } {
+function isMissingRateLimitTableError(error: any): boolean {
+  const code = String(error?.code || '');
+  const msg = String(error?.message || '').toLowerCase();
+  return code === 'PGRST205' || code === '42P01' || msg.includes('login_rate_limits');
+}
+
+function checkMemoryRateLimit(key: string): { blocked: boolean; remainingSeconds: number } {
   const now = Date.now();
   const entry = loginRateLimitMap.get(key);
-
   if (!entry) return { blocked: false, remainingSeconds: 0 };
-
   if (now - entry.firstAttempt > RATE_LIMIT_WINDOW_MS) {
     loginRateLimitMap.delete(key);
     return { blocked: false, remainingSeconds: 0 };
   }
-
   if (entry.count >= MAX_FAILED_ATTEMPTS) {
     const remaining = Math.ceil((RATE_LIMIT_WINDOW_MS - (now - entry.firstAttempt)) / 1000);
-    return { blocked: true, remainingSeconds: remaining };
+    return { blocked: true, remainingSeconds: Math.max(1, remaining) };
   }
-
   return { blocked: false, remainingSeconds: 0 };
 }
 
-function recordFailedAttempt(key: string) {
+function recordMemoryFailedAttempt(key: string) {
   const now = Date.now();
   const entry = loginRateLimitMap.get(key);
   if (!entry || now - entry.firstAttempt > RATE_LIMIT_WINDOW_MS) {
@@ -39,8 +42,82 @@ function recordFailedAttempt(key: string) {
   }
 }
 
-function resetFailedAttempts(key: string) {
+async function checkRateLimit(key: string): Promise<{ blocked: boolean; remainingSeconds: number }> {
+  const dataSupabase = createDataSupabaseClient();
+  if (dataSupabase) {
+    try {
+      const { data, error } = await dataSupabase
+        .from('login_rate_limits')
+        .select('attempts, window_started_at')
+        .eq('rate_key', key)
+        .maybeSingle();
+
+      if (!error) {
+        if (!data) return { blocked: false, remainingSeconds: 0 };
+        const startedMs = new Date(data.window_started_at).getTime();
+        const now = Date.now();
+        if (Number.isNaN(startedMs) || now - startedMs > RATE_LIMIT_WINDOW_MS) {
+          return { blocked: false, remainingSeconds: 0 };
+        }
+        if ((data.attempts || 0) >= MAX_FAILED_ATTEMPTS) {
+          const remaining = Math.ceil((RATE_LIMIT_WINDOW_MS - (now - startedMs)) / 1000);
+          return { blocked: true, remainingSeconds: Math.max(1, remaining) };
+        }
+        return { blocked: false, remainingSeconds: 0 };
+      }
+
+      if (!isMissingRateLimitTableError(error)) {
+        console.warn('Aviso lectura login_rate_limits:', error.message);
+      }
+    } catch {
+      // fallback a memoria
+    }
+  }
+  return checkMemoryRateLimit(key);
+}
+
+async function recordFailedAttempt(key: string): Promise<void> {
+  recordMemoryFailedAttempt(key);
+  const dataSupabase = createDataSupabaseClient();
+  if (!dataSupabase) return;
+
+  try {
+    const nowIso = new Date().toISOString();
+    const { data, error } = await dataSupabase
+      .from('login_rate_limits')
+      .select('attempts, window_started_at')
+      .eq('rate_key', key)
+      .maybeSingle();
+
+    if (error && isMissingRateLimitTableError(error)) return;
+
+    const startedMs = data?.window_started_at ? new Date(data.window_started_at).getTime() : 0;
+    const isExpired = !data || Number.isNaN(startedMs) || Date.now() - startedMs > RATE_LIMIT_WINDOW_MS;
+
+    await dataSupabase.from('login_rate_limits').upsert(
+      {
+        rate_key: key,
+        attempts: isExpired ? 1 : (data.attempts || 0) + 1,
+        window_started_at: isExpired ? nowIso : data.window_started_at,
+        updated_at: nowIso,
+      },
+      { onConflict: 'rate_key' }
+    );
+  } catch {
+    // mantener resiliencia
+  }
+}
+
+async function resetFailedAttempts(key: string): Promise<void> {
   loginRateLimitMap.delete(key);
+  const dataSupabase = createDataSupabaseClient();
+  if (!dataSupabase) return;
+
+  try {
+    await dataSupabase.from('login_rate_limits').delete().eq('rate_key', key);
+  } catch {
+    // ignorar si la tabla no existe aún
+  }
 }
 
 export async function GET(req: NextRequest) {
@@ -142,13 +219,18 @@ export async function POST(req: NextRequest) {
 
     const cleanEmail = String(email).trim().toLowerCase();
     const cleanPass = String(password).trim();
-    const rateLimitKey = `${cleanEmail}`;
+    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'local';
+    const rateLimitKey = `${cleanEmail}|${clientIp}`;
 
-    // Comprobación de Rate Limiting
-    const rateStatus = checkRateLimit(rateLimitKey);
-    if (rateStatus.blocked) {
+    // Comprobación de Rate Limiting persistente (por correo+IP y global por correo)
+    const [rateStatus, emailRateStatus] = await Promise.all([
+      checkRateLimit(rateLimitKey),
+      checkRateLimit(`email:${cleanEmail}`),
+    ]);
+    const activeBlock = rateStatus.blocked ? rateStatus : emailRateStatus;
+    if (activeBlock.blocked) {
       return NextResponse.json(
-        { error: `Demasiados intentos fallidos. Por seguridad, espera ${rateStatus.remainingSeconds} segundos.` },
+        { error: `Demasiados intentos fallidos. Por seguridad, espera ${activeBlock.remainingSeconds} segundos.` },
         { status: 429 }
       );
     }
@@ -232,7 +314,10 @@ export async function POST(req: NextRequest) {
 
     // Si fallaron todas las validaciones de credenciales
     if (!authenticatedProfile) {
-      recordFailedAttempt(rateLimitKey);
+      await Promise.all([
+        recordFailedAttempt(rateLimitKey),
+        recordFailedAttempt(`email:${cleanEmail}`),
+      ]);
 
       // Registrar auditoría forense de intento fallido
       try {
@@ -271,7 +356,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Éxito: Limpiar intentos fallidos
-    resetFailedAttempts(rateLimitKey);
+    await Promise.all([
+      resetFailedAttempts(rateLimitKey),
+      resetFailedAttempts(`email:${cleanEmail}`),
+    ]);
 
     const safeRole: UserRole =
       isSuperAdminEmail(cleanEmail) ? 'admin' : (authenticatedProfile.role || 'employee');

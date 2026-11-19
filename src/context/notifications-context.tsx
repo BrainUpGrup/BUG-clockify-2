@@ -1,7 +1,8 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { PostItItem } from '@/types/postit';
+import { useAuth } from '@/context/auth-context';
 
 export type NotificationSource = 'postit' | 'taskflow' | 'clockify' | 'system';
 export type NotificationUrgency = 'normal' | 'alta' | 'info';
@@ -33,187 +34,253 @@ interface NotificationContextType {
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'brainup_suite_notifications_v1';
+const STORAGE_KEY_PREFIX = 'brainup_suite_notifications_v1';
+
+function buildSeedNotifications(): AppNotification[] {
+  return [
+    {
+      id: 'notif-welcome',
+      title: 'Bienvenido al Centro de Notificaciones',
+      message: 'Aquí recibirás las alertas automáticas de tus Post-its, recordatorios con antelación y tareas pendientes.',
+      source: 'system',
+      date: new Date().toISOString(),
+      read: false,
+      urgency: 'info',
+    },
+  ];
+}
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const notificationsRef = useRef<AppNotification[]>([]);
+  notificationsRef.current = notifications;
+  const storageKey = user?.id ? `${STORAGE_KEY_PREFIX}_${user.id}` : STORAGE_KEY_PREFIX;
+  const storageKeyRef = useRef(storageKey);
+  storageKeyRef.current = storageKey;
 
-  // Cargar notificaciones persistidas en el inicio
-  useEffect(() => {
+  const persistLocalCache = useCallback((list: AppNotification[]) => {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      localStorage.setItem(storageKeyRef.current, JSON.stringify(list));
+    } catch (e) {
+      console.warn('Error guardando caché local de notificaciones:', e);
+    }
+  }, []);
+
+  // Cargar notificaciones desde caché local e hidratar desde Supabase (/api/data/notifications)
+  useEffect(() => {
+    let mounted = true;
+    let localSeed: AppNotification[] = [];
+
+    try {
+      const raw = localStorage.getItem(storageKey) || localStorage.getItem(STORAGE_KEY_PREFIX);
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
-          setNotifications(parsed);
+          localSeed = parsed;
         }
-      } else {
-        // Notificaciones iniciales de bienvenida / sistema
-        const seedNotifications: AppNotification[] = [
-          {
-            id: 'notif-welcome',
-            title: 'Bienvenido al Centro de Notificaciones',
-            message: 'Aquí recibirás las alertas automáticas de tus Post-its, recordatorios con antelación y tareas pendientes.',
-            source: 'system',
-            date: new Date().toISOString(),
-            read: false,
-            urgency: 'info',
-          },
-          {
-            id: 'notif-sample-postit',
-            title: 'Recordatorio Post-it: Revisión trimestral',
-            message: 'Alerta programada (20 días antes): entrega de informe Q4 fijada.',
-            source: 'postit',
-            date: new Date(Date.now() - 3600000).toISOString(),
-            read: false,
-            urgency: 'normal',
-            reminderLabel: '20 días antes',
-          },
-        ];
-        setNotifications(seedNotifications);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(seedNotifications));
       }
     } catch (e) {
-      console.warn('Error cargando notificaciones de localStorage', e);
-    } finally {
-      setIsLoaded(true);
+      console.warn('Error cargando notificaciones locales:', e);
     }
-  }, []);
 
-  // Guardar en localStorage ante cualquier cambio
-  const saveNotifications = useCallback((updated: AppNotification[]) => {
-    setNotifications(updated);
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    } catch (e) {
-      console.warn('Error guardando notificaciones en localStorage', e);
+    if (localSeed.length === 0) {
+      localSeed = buildSeedNotifications();
+      persistLocalCache(localSeed);
     }
-  }, []);
+    setNotifications(localSeed);
 
-  const addNotification = useCallback((
-    notif: Omit<AppNotification, 'id' | 'date' | 'read'> & { id?: string }
-  ) => {
-    setNotifications((prev) => {
+    if (!user?.id) return;
+
+    fetch('/api/data/notifications', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (!mounted || !json?.success) return;
+        if (json.tableReady) {
+          const remoteList = Array.isArray(json.notifications) ? (json.notifications as AppNotification[]) : [];
+          if (remoteList.length > 0) {
+            setNotifications(remoteList);
+            persistLocalCache(remoteList);
+          } else if (localSeed.length > 0) {
+            // Sembrar la primera vez en Supabase sin duplicar
+            fetch('/api/data/notifications', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ notifications: localSeed.slice(0, 30) }),
+            }).catch(() => {});
+          }
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      mounted = false;
+    };
+  }, [user?.id, storageKey, persistLocalCache]);
+
+  const addNotification = useCallback(
+    (notif: Omit<AppNotification, 'id' | 'date' | 'read'> & { id?: string }) => {
       const id = notif.id || `notif-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-      // Evitar duplicados por id
-      if (prev.some((n) => n.id === id)) {
-        return prev;
+      if (notificationsRef.current.some((n) => n.id === id)) {
+        return;
       }
-      const newEntry: AppNotification = {
+
+      const created: AppNotification = {
         ...notif,
         id,
         date: new Date().toISOString(),
         read: false,
       };
-      const updated = [newEntry, ...prev];
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      } catch (e) {
-        console.warn(e);
-      }
-      return updated;
-    });
-  }, []);
 
-  const markAsRead = useCallback((id: string) => {
-    setNotifications((prev) => {
-      const updated = prev.map((n) => (n.id === id ? { ...n, read: true } : n));
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      } catch (e) {
-        console.warn(e);
+      setNotifications((prev) => {
+        if (prev.some((n) => n.id === id)) return prev;
+        const updated = [created, ...prev];
+        notificationsRef.current = updated;
+        persistLocalCache(updated);
+        return updated;
+      });
+
+      if (user?.id) {
+        fetch('/api/data/notifications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ notification: created }),
+        }).catch(() => {});
       }
-      return updated;
-    });
-  }, []);
+    },
+    [persistLocalCache, user?.id]
+  );
+
+  const markAsRead = useCallback(
+    (id: string) => {
+      setNotifications((prev) => {
+        const updated = prev.map((n) => (n.id === id ? { ...n, read: true } : n));
+        persistLocalCache(updated);
+        return updated;
+      });
+
+      if (user?.id) {
+        fetch('/api/data/notifications', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id }),
+        }).catch(() => {});
+      }
+    },
+    [persistLocalCache, user?.id]
+  );
 
   const markAllAsRead = useCallback(() => {
     setNotifications((prev) => {
       const updated = prev.map((n) => ({ ...n, read: true }));
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      } catch (e) {
-        console.warn(e);
-      }
+      persistLocalCache(updated);
       return updated;
     });
-  }, []);
 
-  const deleteNotification = useCallback((id: string) => {
-    setNotifications((prev) => {
-      const updated = prev.filter((n) => n.id !== id);
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      } catch (e) {
-        console.warn(e);
+    if (user?.id) {
+      fetch('/api/data/notifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ markAllRead: true }),
+      }).catch(() => {});
+    }
+  }, [persistLocalCache, user?.id]);
+
+  const deleteNotification = useCallback(
+    (id: string) => {
+      setNotifications((prev) => {
+        const updated = prev.filter((n) => n.id !== id);
+        persistLocalCache(updated);
+        return updated;
+      });
+
+      if (user?.id) {
+        fetch(`/api/data/notifications?id=${encodeURIComponent(id)}`, {
+          method: 'DELETE',
+        }).catch(() => {});
       }
-      return updated;
-    });
-  }, []);
+    },
+    [persistLocalCache, user?.id]
+  );
 
   const clearAll = useCallback(() => {
     setNotifications([]);
     try {
-      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(storageKeyRef.current);
     } catch (e) {
       console.warn(e);
     }
-  }, []);
+
+    if (user?.id) {
+      fetch('/api/data/notifications?all=1', {
+        method: 'DELETE',
+      }).catch(() => {});
+    }
+  }, [user?.id]);
 
   // Sincronizar y generar notificaciones automáticas para los Post-its
-  const syncPostItReminders = useCallback((postIts: PostItItem[]) => {
-    const now = Date.now();
-    const newAlerts: AppNotification[] = [];
+  const syncPostItReminders = useCallback(
+    (postIts: PostItItem[]) => {
+      const now = Date.now();
+      const newAlerts: AppNotification[] = [];
 
-    postIts.forEach((postIt) => {
-      if (postIt.isCompleted) return;
+      postIts.forEach((postIt) => {
+        if (postIt.isCompleted) return;
 
-      const targetDateStr = postIt.targetDate;
-      const targetTimeStr = postIt.targetTime || '09:00';
-      const targetTimestamp = new Date(`${targetDateStr}T${targetTimeStr}:00`).getTime();
+        const targetDateStr = postIt.targetDate;
+        const targetTimeStr = postIt.targetTime || '09:00';
+        const targetTimestamp = new Date(`${targetDateStr}T${targetTimeStr}:00`).getTime();
 
-      if (isNaN(targetTimestamp)) return;
+        if (isNaN(targetTimestamp)) return;
 
-      postIt.reminders.forEach((rem) => {
-        const triggerTime = targetTimestamp - rem.offsetMinutes * 60 * 1000;
-        const uniqueId = `notif-postit-${postIt.id}-${rem.id}`;
+        postIt.reminders.forEach((rem) => {
+          const triggerTime = targetTimestamp - rem.offsetMinutes * 60 * 1000;
+          const uniqueId = `notif-postit-${postIt.id}-${rem.id}`;
 
-        // Si ya llegó el momento de disparo
-        if (now >= triggerTime) {
-          newAlerts.push({
-            id: uniqueId,
-            title: `Recordatorio Post-it: ${postIt.title}`,
-            message: `${rem.label}: Fecha límite ${postIt.targetDate} a las ${targetTimeStr}. Nota: "${postIt.content.slice(0, 70)}${postIt.content.length > 70 ? '...' : ''}"`,
-            source: 'postit',
-            date: new Date(Math.max(triggerTime, now - 86400000)).toISOString(),
-            read: false,
-            urgency: rem.offsetMinutes <= 60 ? 'alta' : 'normal',
-            relatedId: postIt.id,
-            reminderLabel: rem.label,
-            targetDate: postIt.targetDate,
-            link: '/apps/taskflow?tab=postits',
-          });
-        }
+          if (now >= triggerTime) {
+            newAlerts.push({
+              id: uniqueId,
+              title: `Recordatorio Post-it: ${postIt.title}`,
+              message: `${rem.label}: Fecha límite ${postIt.targetDate} a las ${targetTimeStr}. Nota: "${postIt.content.slice(0, 70)}${postIt.content.length > 70 ? '...' : ''}"`,
+              source: 'postit',
+              date: new Date(Math.max(triggerTime, now - 86400000)).toISOString(),
+              read: false,
+              urgency: rem.offsetMinutes <= 60 ? 'alta' : 'normal',
+              relatedId: postIt.id,
+              reminderLabel: rem.label,
+              targetDate: postIt.targetDate,
+              link: '/apps/taskflow?tab=postits',
+            });
+          }
+        });
       });
-    });
 
-    if (newAlerts.length > 0) {
-      setNotifications((prev) => {
-        const existingIds = new Set(prev.map((n) => n.id));
-        const toAdd = newAlerts.filter((a) => !existingIds.has(a.id));
-        if (toAdd.length === 0) return prev;
+      if (newAlerts.length > 0) {
+        const currentExistingIds = new Set(notificationsRef.current.map((n) => n.id));
+        const toAddSync = newAlerts.filter((a) => !currentExistingIds.has(a.id));
+        if (toAddSync.length === 0) return;
 
-        const updated = [...toAdd, ...prev];
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-        } catch (e) {
-          console.warn(e);
+        setNotifications((prev) => {
+          const existingIds = new Set(prev.map((n) => n.id));
+          const toAdd = newAlerts.filter((a) => !existingIds.has(a.id));
+          if (toAdd.length === 0) return prev;
+          const updated = [...toAdd, ...prev];
+          notificationsRef.current = updated;
+          persistLocalCache(updated);
+          return updated;
+        });
+
+        if (user?.id) {
+          fetch('/api/data/notifications', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ notifications: toAddSync }),
+          }).catch(() => {});
         }
-        return updated;
-      });
-    }
-  }, []);
+      }
+    },
+    [persistLocalCache, user?.id]
+  );
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 

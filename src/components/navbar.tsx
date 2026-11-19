@@ -39,7 +39,13 @@ import {
 import { FileNotification } from '@/types/files-portal';
 import { useTimer, useTimerSeconds } from '@/context/timer-context';
 import { formatSecondsToTimer } from '@/lib/utils';
-import { canUserAccessHubApp, BRAIN_UP_HUB_APPS, HubApp } from '@/lib/hub-apps';
+import {
+  canUserAccessHubApp,
+  BRAIN_UP_HUB_APPS,
+  HubApp,
+  getStoredFavoriteApps,
+  syncHubPreferencesFromServer,
+} from '@/lib/hub-apps';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { notify } from '@/lib/feedback';
 
@@ -120,39 +126,35 @@ export function Navbar() {
   const logoHref = '/hub';
 
 
-  // Gestión de Favoritas para el layout modular de la barra superior (por defecto: Tiempo, Agenda y Chat)
+  // Gestión de Favoritas y permisos sincronizados desde Supabase para toda la suite
   const [favoriteAppIds, setFavoriteAppIds] = React.useState<string[]>([]);
+  const [, setPermissionsVersion] = React.useState(0);
 
   React.useEffect(() => {
     const updateFavorites = () => {
-      try {
-        const stored = localStorage.getItem('bug_hub_favorite_apps');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed)) {
-            setFavoriteAppIds(parsed);
-            return;
-          }
-        }
-        if (stored === null) {
-          setFavoriteAppIds(['clockify', 'taskflow', 'chat']);
-          return;
-        }
-        setFavoriteAppIds([]);
-      } catch (e) {
-        console.warn('Error loading favorite apps in navbar:', e);
-        setFavoriteAppIds(['clockify', 'taskflow', 'chat']);
-      }
+      setFavoriteAppIds(getStoredFavoriteApps());
+    };
+    const updatePermissions = () => {
+      setPermissionsVersion((v) => v + 1);
     };
 
     updateFavorites();
     window.addEventListener('bug_hub_favorites_updated', updateFavorites);
+    window.addEventListener('bug_permissions_updated', updatePermissions);
     window.addEventListener('storage', updateFavorites);
+    window.addEventListener('storage', updatePermissions);
     return () => {
       window.removeEventListener('bug_hub_favorites_updated', updateFavorites);
+      window.removeEventListener('bug_permissions_updated', updatePermissions);
       window.removeEventListener('storage', updateFavorites);
+      window.removeEventListener('storage', updatePermissions);
     };
   }, []);
+
+  React.useEffect(() => {
+    if (!user?.id) return;
+    void syncHubPreferencesFromServer(user.id);
+  }, [user?.id]);
 
   const getAppNavIcon = (iconName: HubApp['iconName']) => {
     switch (iconName) {

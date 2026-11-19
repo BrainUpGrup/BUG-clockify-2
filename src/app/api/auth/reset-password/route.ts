@@ -5,7 +5,8 @@ import {
   getTempPasswordForEmail,
   setTempPasswordForUser,
   markPasswordConfigured,
-  verifyTempPassword
+  verifyTempPassword,
+  isLocalTempPasswordFallbackAllowed
 } from '@/lib/auth-passwords';
 
 function getSupabaseClient() {
@@ -158,17 +159,28 @@ export async function POST(req: NextRequest) {
       const tempPass = generateReadableOTP();
       const targetUserId = userId || '';
 
-      // Guardar en almacenamiento persistente local
-      setTempPasswordForUser(targetUserId, cleanEmail, tempPass);
+      // Solo usar disco local en desarrollo sin Supabase configurado
+      if (isLocalTempPasswordFallbackAllowed()) {
+        setTempPasswordForUser(targetUserId, cleanEmail, tempPass);
+      }
 
-      // Actualizar en la base de datos Supabase de forma garantizada
+      if (!supabase && !isLocalTempPasswordFallbackAllowed()) {
+        return NextResponse.json(
+          { error: 'Base de datos Supabase no configurada para generar claves temporales en producción.' },
+          { status: 503 }
+        );
+      }
+
+      // Actualizar en la base de datos Supabase de forma garantizada (100% Supabase en producción)
       if (supabase) {
+        let savedInSupabase = false;
         try {
-          await supabase.rpc('admin_set_user_password', {
+          const { error: rpcErr } = await supabase.rpc('admin_set_user_password', {
             p_email: cleanEmail,
             p_password: tempPass,
             p_is_temp: true,
           });
+          if (!rpcErr) savedInSupabase = true;
           await supabase.rpc('log_audit_event', {
             p_user_id: caller.id,
             p_user_email: caller.email,
@@ -184,14 +196,22 @@ export async function POST(req: NextRequest) {
         }
 
         try {
-          await supabase
+          const { error: profErr } = await supabase
             .from('profiles')
             .update({
               password_configured: false,
               temp_password: tempPass,
             })
             .eq('email', cleanEmail);
+          if (!profErr) savedInSupabase = true;
         } catch { }
+
+        if (!savedInSupabase) {
+          return NextResponse.json(
+            { error: 'No se pudo persistir la contraseña temporal en Supabase. Verifica SUPABASE_SERVICE_ROLE_KEY y la bóveda.' },
+            { status: 500 }
+          );
+        }
       }
 
       return NextResponse.json({
@@ -232,8 +252,10 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Fallback a almacenamiento temporal
-      const isValid = verifyTempPassword(cleanEmail, candidatePass);
+      // Fallback local solo permitido en desarrollo sin Supabase
+      const isValid = isLocalTempPasswordFallbackAllowed()
+        ? verifyTempPassword(cleanEmail, candidatePass)
+        : false;
 
       if (isValid) {
         let fetchedProfile = null;
@@ -286,8 +308,9 @@ export async function POST(req: NextRequest) {
 
       const cleanNewPassword = newPassword.trim();
 
-      // Marcar como configurada en almacenamiento persistente local
-      markPasswordConfigured(cleanEmail);
+      if (isLocalTempPasswordFallbackAllowed()) {
+        markPasswordConfigured(cleanEmail);
+      }
 
       // Actualizar en Supabase de forma segura mediante la RPC admin_set_user_password (SECURITY DEFINER)
       if (supabase) {

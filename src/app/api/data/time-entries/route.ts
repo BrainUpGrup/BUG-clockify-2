@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireActiveUser, isManagerRole } from '@/lib/api-auth';
+import { isManagerRole } from '@/lib/api-auth';
+import { requireHubAppAccess } from '@/lib/server-hub-permissions';
 import { createDataSupabaseClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
@@ -13,7 +14,7 @@ const ENTRY_SELECT = '*, company:companies(*), profile:profiles(id, full_name, e
  * Coordinación y Admin pueden consultar el histórico global (`?scope=all`).
  */
 export async function GET(req: NextRequest) {
-  const { profile, errorResponse } = await requireActiveUser(req);
+  const { profile, errorResponse } = await requireHubAppAccess(req, 'clockify');
   if (errorResponse || !profile) return errorResponse!;
 
   const supabase = createDataSupabaseClient();
@@ -50,7 +51,7 @@ export async function GET(req: NextRequest) {
  * Crea un registro horario forzando `user_id = profile.id` para evitar suplantación.
  */
 export async function POST(req: NextRequest) {
-  const { profile, errorResponse } = await requireActiveUser(req);
+  const { profile, errorResponse } = await requireHubAppAccess(req, 'clockify');
   if (errorResponse || !profile) return errorResponse!;
 
   const supabase = createDataSupabaseClient();
@@ -103,7 +104,7 @@ export async function POST(req: NextRequest) {
  * Solo permite editar al propietario del registro o a un coordinador/admin.
  */
 export async function PATCH(req: NextRequest) {
-  const { profile, errorResponse } = await requireActiveUser(req);
+  const { profile, errorResponse } = await requireHubAppAccess(req, 'clockify');
   if (errorResponse || !profile) return errorResponse!;
 
   const supabase = createDataSupabaseClient();
@@ -174,7 +175,7 @@ export async function PATCH(req: NextRequest) {
  * Solo permite borrar al propietario del registro o a un coordinador/admin.
  */
 export async function DELETE(req: NextRequest) {
-  const { profile, errorResponse } = await requireActiveUser(req);
+  const { profile, errorResponse } = await requireHubAppAccess(req, 'clockify');
   if (errorResponse || !profile) return errorResponse!;
 
   const supabase = createDataSupabaseClient();

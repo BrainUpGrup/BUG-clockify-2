@@ -1,18 +1,20 @@
 -- ==============================================================================
 -- MIGRACIÓN ZERO-TRUST RLS PARA DATOS SENSIBLES • BRAIN UP CLOCKIFY
 -- Suite Corporativa: Brain Up Grup
--- Versión asociada: v4.4.13
+-- Versión asociada: v4.5.0
 --
 -- IMPORTANTE — PRERREQUISITO ANTES DE EJECUTAR ESTE SCRIPT:
 --   1. Añade `SUPABASE_SERVICE_ROLE_KEY` en `.env.local` (desarrollo) y en
 --      Vercel -> Settings -> Environment Variables (producción).
---   2. Despliega/reinicia la aplicación Next.js con las rutas `/api/data/*`.
---   3. SOLO ENTONCES ejecuta este SQL en el SQL Editor de Supabase.
+--   2. Ejecuta primero `migration_v4_5_persistence_hardening.sql` en Supabase.
+--   3. Despliega/reinicia la aplicación Next.js con las rutas `/api/data/*`.
+--   4. SOLO ENTONCES ejecuta este SQL en el SQL Editor de Supabase.
 --
 -- POR QUÉ:
---   Todas las lecturas y escrituras de `profiles`, `companies`, `time_entries`,
---   `hosting_services`, `taskflow_items`, `taskflow_lists` y `taskflow_postits`
---   ya pasan por API Routes del servidor autenticadas con HMAC (`requireActiveUser`).
+--   Todas las lecturas y escrituras de perfiles, empresas, horas, hosting,
+--   TaskFlow, Brain Chat, auditoría, preferencias del Hub, notificaciones y
+--   rate limits ya pasan por API Routes del servidor autenticadas con HMAC
+--   (`requireActiveUser` + `requireHubAppAccess`).
 --   Al cerrar el acceso directo `anon` / `authenticated` mediante RLS, nadie podrá
 --   leer ni modificar datos desde la consola del navegador con la `anon key`.
 --   Las funciones RPC con `SECURITY DEFINER` (`authenticate_employee`,
@@ -30,7 +32,14 @@ declare
     'taskflow_items',
     'taskflow_lists',
     'taskflow_postits',
-    'profile_passwords'
+    'profile_passwords',
+    'channels',
+    'channel_members',
+    'messages',
+    'audit_logs',
+    'user_hub_preferences',
+    'user_notifications',
+    'login_rate_limits'
   ];
   tbl text;
   pol record;
@@ -63,8 +72,14 @@ begin
   end loop;
 end $$;
 
--- Verificación rápida tras ejecutar (todas deben mostrar rowsecurity = true y 1 política deny-all):
+-- Verificación rápida tras ejecutar (todas las tablas existentes deben mostrar rowsecurity = true):
 -- select tablename, rowsecurity
 -- from pg_tables
 -- where schemaname = 'public'
---   and tablename in ('profiles', 'companies', 'time_entries', 'hosting_services', 'taskflow_items', 'taskflow_lists', 'taskflow_postits', 'profile_passwords');
+--   and tablename in (
+--     'profiles', 'companies', 'time_entries', 'hosting_services',
+--     'taskflow_items', 'taskflow_lists', 'taskflow_postits', 'profile_passwords',
+--     'channels', 'channel_members', 'messages', 'audit_logs',
+--     'user_hub_preferences', 'user_notifications', 'login_rate_limits'
+--   )
+-- order by tablename;

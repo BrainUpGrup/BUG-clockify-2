@@ -19,10 +19,11 @@ import {
   Download,
   RotateCcw
 } from 'lucide-react';
-import { Company, TimeEntry, ClientType } from '@/types/database';
+import { Company, TimeEntry, ClientType, CompanyQuotaActivity } from '@/types/database';
 import { EditCompanyModal } from '@/components/coordinator/edit-company-modal';
 import { DeleteCompanyModal } from '@/components/coordinator/delete-company-modal';
 import { CompanyImportModal } from '@/components/coordinator/company-import-modal';
+import { QuotaActivitiesTooltipCell } from '@/components/coordinator/quota-activities-tooltip';
 import { CompanyLogo } from '@/components/ui/company-logo';
 import { 
   downloadCompanyCSVTemplate, 
@@ -52,6 +53,7 @@ interface CompanyCrudProps {
       contact_email?: string | null;
       is_active?: boolean;
       logo_url?: string | null;
+      quota_activities?: CompanyQuotaActivity[];
     }
   ) => Promise<void>;
   onBatchImportCompanies: (companies: ParsedCompanyItem[], replaceAll: boolean) => Promise<void>;
@@ -347,7 +349,7 @@ export function CompanyCrud({
               EMPRESAS Y CLIENTES <span className="text-[#8E0E75]">REGISTRADOS</span> ({companies.length})
             </h4>
             <p className="text-xs text-[#4A4A4A] font-light">
-              Haz clic sobre el nombre o en el botón de edición para modificar cualquier empresa o cuota
+              Pasa el ratón por las horas pactadas para ver en qué actividades se dedican o haz clic para editar la empresa
             </p>
           </div>
 
@@ -512,9 +514,10 @@ export function CompanyCrud({
                         </span>
                       </td>
                       <td className="px-6 py-3.5 text-center font-mono tabular-nums font-extrabold text-xs">
-                        {company.client_type === 'cuota' && company.monthly_hours_quota
-                          ? `${company.monthly_hours_quota}h / mes`
-                          : '-'}
+                        <QuotaActivitiesTooltipCell
+                          company={company}
+                          onEdit={() => setEditingCompany(company)}
+                        />
                       </td>
                       <td className="px-6 py-3.5 text-center text-[11px] text-[#4A4A4A]">
                         {company.contact_name ? (

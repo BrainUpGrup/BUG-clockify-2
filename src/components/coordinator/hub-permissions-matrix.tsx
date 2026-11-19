@@ -28,7 +28,8 @@ import {
   BRAIN_UP_HUB_APPS, 
   HubApp, 
   getStoredPermissionsMap, 
-  saveUserAppPermissions,
+  fetchAllHubPermissionsMap,
+  saveUserAppPermissionsRemote,
   DEFAULT_EMPLOYEE_APPS
 } from '@/lib/hub-apps';
 
@@ -41,10 +42,18 @@ export function HubPermissionsMatrix({ employees }: HubPermissionsMatrixProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [savedUserId, setSavedUserId] = useState<string | null>(null);
 
-  // Cargar mapa inicial de permisos
+  // Cargar mapa inicial de permisos desde caché rápida y sincronizar con Supabase
   useEffect(() => {
-    const stored = getStoredPermissionsMap();
-    setPermissionsMap(stored);
+    let mounted = true;
+    setPermissionsMap(getStoredPermissionsMap());
+    fetchAllHubPermissionsMap().then(({ permissionsMap: remoteMap }) => {
+      if (mounted) {
+        setPermissionsMap(remoteMap);
+      }
+    });
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   // Iconos por aplicación
@@ -82,6 +91,18 @@ export function HubPermissionsMatrix({ employees }: HubPermissionsMatrixProps) {
     return DEFAULT_EMPLOYEE_APPS;
   };
 
+  const persistPermissionsForUser = async (userId: string, nextApps: string[]) => {
+    const newMap = { ...permissionsMap, [userId]: nextApps };
+    setPermissionsMap(newMap);
+    const result = await saveUserAppPermissionsRemote(userId, nextApps);
+    if (!result.success) {
+      notify(result.error || 'No se pudieron guardar los permisos en el servidor.', { type: 'error' });
+      return;
+    }
+    setSavedUserId(userId);
+    setTimeout(() => setSavedUserId(null), 1500);
+  };
+
   // Alternar permiso de una app para un usuario
   const handleToggleApp = (userId: string, appId: string) => {
     const current = getUserAllowedApps(userId);
@@ -95,33 +116,19 @@ export function HubPermissionsMatrix({ employees }: HubPermissionsMatrixProps) {
       return;
     }
 
-    const newMap = { ...permissionsMap, [userId]: updated };
-    setPermissionsMap(newMap);
-    saveUserAppPermissions(userId, updated);
-
-    // Feedback visual momentáneo
-    setSavedUserId(userId);
-    setTimeout(() => setSavedUserId(null), 1500);
+    void persistPermissionsForUser(userId, updated);
   };
 
   // Conceder todas las aplicaciones
   const handleSelectAll = (userId: string) => {
     const allIds = BRAIN_UP_HUB_APPS.map((a) => a.id);
-    const newMap = { ...permissionsMap, [userId]: allIds };
-    setPermissionsMap(newMap);
-    saveUserAppPermissions(userId, allIds);
-    setSavedUserId(userId);
-    setTimeout(() => setSavedUserId(null), 1500);
+    void persistPermissionsForUser(userId, allIds);
   };
 
-  // Asignar solo básicas por defecto (Clockify + TaskFlow)
+  // Asignar solo básicas por defecto
   const handleSelectBasicOnly = (userId: string) => {
     const basicIds = [...DEFAULT_EMPLOYEE_APPS];
-    const newMap = { ...permissionsMap, [userId]: basicIds };
-    setPermissionsMap(newMap);
-    saveUserAppPermissions(userId, basicIds);
-    setSavedUserId(userId);
-    setTimeout(() => setSavedUserId(null), 1500);
+    void persistPermissionsForUser(userId, basicIds);
   };
 
   // Filtrado de empleados

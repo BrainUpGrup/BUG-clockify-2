@@ -32,6 +32,12 @@ export interface Profile {
   custom_password?: string; // Contraseña personalizada configurada por el usuario
 }
 
+export interface CompanyQuotaActivity {
+  id: string;
+  title: string;
+  hours?: number | null;
+}
+
 export interface Company {
   id: string;
   name: string;
@@ -42,6 +48,7 @@ export interface Company {
   contact_email?: string; // Email de contacto
   account_manager?: string; // Responsable de cuenta en Brain Up
   logo_url?: string; // URL o Base64 del logo de la empresa
+  quota_activities?: CompanyQuotaActivity[] | null; // Desglose de actividades a las que se dedican las horas
   is_active: boolean;
   created_at: string;
 }

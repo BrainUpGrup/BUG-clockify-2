@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireActiveUser } from '@/lib/api-auth';
+import { requireHubAppAccess } from '@/lib/server-hub-permissions';
 import { createDataSupabaseClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
@@ -22,7 +22,7 @@ function parseResource(val: string | null): TaskflowResource | null {
  * GET /api/data/taskflow?resource=items|lists|postits
  */
 export async function GET(req: NextRequest) {
-  const { errorResponse } = await requireActiveUser(req);
+  const { errorResponse } = await requireHubAppAccess(req, 'taskflow');
   if (errorResponse) return errorResponse;
 
   const supabase = createDataSupabaseClient();
@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
  * POST /api/data/taskflow
  */
 export async function POST(req: NextRequest) {
-  const { errorResponse } = await requireActiveUser(req);
+  const { errorResponse } = await requireHubAppAccess(req, 'taskflow');
   if (errorResponse) return errorResponse;
 
   const supabase = createDataSupabaseClient();
@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
  * DELETE /api/data/taskflow?resource=items|lists|postits&id=...
  */
 export async function DELETE(req: NextRequest) {
-  const { errorResponse } = await requireActiveUser(req);
+  const { errorResponse } = await requireHubAppAccess(req, 'taskflow');
   if (errorResponse) return errorResponse;
 
   const supabase = createDataSupabaseClient();

@@ -92,15 +92,17 @@ export const BRAIN_UP_HUB_APPS: HubApp[] = [
 ];
 
 const STORAGE_KEY_PERMISSIONS = 'bug_hub_user_permissions';
+const STORAGE_KEY_FAVORITES = 'bug_hub_favorite_apps';
 
 /**
  * Aplicaciones básicas por defecto para trabajadores que aún no tienen permisos personalizados configurados
- * Por defecto: Clockify + TaskFlow + Hosting + Chat + Subtítulos
+ * Por defecto: Clockify + TaskFlow + Hosting + Chat + Archivos + Subtítulos
  */
 export const DEFAULT_EMPLOYEE_APPS: string[] = ['clockify', 'taskflow', 'hosting', 'chat', 'archivos', 'subtitulos'];
+export const DEFAULT_FAVORITE_APPS: string[] = ['clockify', 'taskflow', 'chat'];
 
 /**
- * Obtiene el mapa de permisos guardado en localStorage
+ * Obtiene el mapa de permisos guardado en caché local (hidratado desde Supabase)
  */
 export function getStoredPermissionsMap(): Record<string, string[]> {
   if (typeof window === 'undefined') return {};
@@ -115,7 +117,7 @@ export function getStoredPermissionsMap(): Record<string, string[]> {
 }
 
 /**
- * Guarda los permisos de aplicaciones para un usuario específico y notifica a la app
+ * Guarda los permisos de aplicaciones en caché local y notifica a la app
  */
 export function saveUserAppPermissions(userId: string, appIds: string[]): void {
   if (typeof window === 'undefined') return;
@@ -132,6 +134,139 @@ export function saveUserAppPermissions(userId: string, appIds: string[]): void {
     );
   } catch (e) {
     console.error('Error saving permissions to localStorage:', e);
+  }
+}
+
+/**
+ * Obtiene las favoritas cacheadas en el navegador
+ */
+export function getStoredFavoriteApps(): string[] {
+  if (typeof window === 'undefined') return [...DEFAULT_FAVORITE_APPS];
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_FAVORITES);
+    if (raw === null) return [...DEFAULT_FAVORITE_APPS];
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed;
+    return [...DEFAULT_FAVORITE_APPS];
+  } catch {
+    return [...DEFAULT_FAVORITE_APPS];
+  }
+}
+
+/**
+ * Guarda las favoritas en caché local y notifica al Hub y Navbar
+ */
+export function saveLocalFavoriteApps(appIds: string[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(STORAGE_KEY_FAVORITES, JSON.stringify(appIds));
+    window.dispatchEvent(new CustomEvent('bug_hub_favorites_updated', { detail: { appIds } }));
+  } catch (e) {
+    console.warn('Error saving favorite apps to localStorage:', e);
+  }
+}
+
+/**
+ * Sincroniza desde Supabase (vía `/api/data/hub-preferences`) los permisos efectivos
+ * y las aplicaciones favoritas del usuario autenticado.
+ */
+export async function syncHubPreferencesFromServer(
+  userId?: string | null
+): Promise<{ allowed_apps: string[]; favorite_apps: string[]; tableReady?: boolean } | null> {
+  if (typeof window === 'undefined' || !userId) return null;
+  try {
+    const res = await fetch('/api/data/hub-preferences', { cache: 'no-store' });
+    if (!res.ok) return null;
+    const json = await res.json();
+    if (!json?.success) return null;
+
+    if (Array.isArray(json.allowed_apps) && json.allowed_apps.length > 0) {
+      saveUserAppPermissions(userId, json.allowed_apps);
+    }
+    if (Array.isArray(json.favorite_apps)) {
+      saveLocalFavoriteApps(json.favorite_apps);
+    }
+
+    return {
+      allowed_apps: Array.isArray(json.allowed_apps) ? json.allowed_apps : [...DEFAULT_EMPLOYEE_APPS],
+      favorite_apps: Array.isArray(json.favorite_apps) ? json.favorite_apps : [...DEFAULT_FAVORITE_APPS],
+      tableReady: json.tableReady,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Carga la matriz completa de permisos desde Supabase (exclusivo Coordinación / Admin).
+ */
+export async function fetchAllHubPermissionsMap(): Promise<{
+  permissionsMap: Record<string, string[]>;
+  tableReady: boolean;
+}> {
+  const localMap = getStoredPermissionsMap();
+  if (typeof window === 'undefined') {
+    return { permissionsMap: localMap, tableReady: false };
+  }
+
+  try {
+    const res = await fetch('/api/data/hub-preferences?scope=all', { cache: 'no-store' });
+    if (!res.ok) return { permissionsMap: localMap, tableReady: false };
+    const json = await res.json();
+    if (json?.success && json.permissionsMap && typeof json.permissionsMap === 'object') {
+      const merged = json.tableReady ? (json.permissionsMap as Record<string, string[]>) : { ...localMap, ...json.permissionsMap };
+      try {
+        localStorage.setItem(STORAGE_KEY_PERMISSIONS, JSON.stringify(merged));
+      } catch {}
+      return { permissionsMap: merged, tableReady: Boolean(json.tableReady) };
+    }
+  } catch {
+    // Fallback a caché local
+  }
+
+  return { permissionsMap: localMap, tableReady: false };
+}
+
+/**
+ * Persiste los permisos de aplicaciones de un trabajador en Supabase (vía `/api/data/hub-preferences`)
+ * y actualiza la caché local al instante.
+ */
+export async function saveUserAppPermissionsRemote(
+  userId: string,
+  appIds: string[]
+): Promise<{ success: boolean; tableReady?: boolean; error?: string }> {
+  saveUserAppPermissions(userId, appIds);
+
+  try {
+    const res = await fetch('/api/data/hub-preferences', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId, allowed_apps: appIds }),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return { success: false, error: json?.error || 'Error guardando permisos en el servidor.' };
+    }
+    return { success: true, tableReady: json?.tableReady };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Sin conexión con el servidor.' };
+  }
+}
+
+/**
+ * Persiste las aplicaciones favoritas del propio usuario en Supabase y caché local.
+ */
+export async function saveUserFavoriteAppsRemote(appIds: string[]): Promise<boolean> {
+  saveLocalFavoriteApps(appIds);
+  try {
+    const res = await fetch('/api/data/hub-preferences', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ favorite_apps: appIds }),
+    });
+    return res.ok;
+  } catch {
+    return false;
   }
 }
 

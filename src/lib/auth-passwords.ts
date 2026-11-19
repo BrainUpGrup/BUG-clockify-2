@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-interface TempPasswordEntry {
+export interface TempPasswordEntry {
   userId: string;
   email: string;
   tempPassword: string;
@@ -13,7 +13,23 @@ interface TempPasswordEntry {
 const DATA_DIR = path.join(process.cwd(), 'data');
 const DATA_FILE = path.join(DATA_DIR, 'temp-passwords.json');
 
-function ensureDataFile() {
+/**
+ * En producción (Vercel) o cuando Supabase está configurado, NO se lee ni escribe
+ * `data/temp-passwords.json` en disco; toda la gestión de claves temporales depende
+ * al 100% de la bóveda segura de Supabase (`profile_passwords` + RPCs SECURITY DEFINER).
+ */
+export function isLocalTempPasswordFallbackAllowed(): boolean {
+  if (process.env.NODE_ENV === 'production') return false;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const hasSupabase =
+    Boolean(supabaseUrl) &&
+    !supabaseUrl.includes('your-project') &&
+    !supabaseUrl.includes('tu-proyecto');
+  return !hasSupabase;
+}
+
+function ensureDataFile(): boolean {
+  if (!isLocalTempPasswordFallbackAllowed()) return false;
   try {
     if (!fs.existsSync(DATA_DIR)) {
       fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -21,13 +37,15 @@ function ensureDataFile() {
     if (!fs.existsSync(DATA_FILE)) {
       fs.writeFileSync(DATA_FILE, JSON.stringify({}, null, 2), 'utf-8');
     }
+    return true;
   } catch (err) {
     console.error('Error initializing temp-passwords file:', err);
+    return false;
   }
 }
 
 export function getAllTempPasswords(): Record<string, TempPasswordEntry> {
-  ensureDataFile();
+  if (!ensureDataFile()) return {};
   try {
     const raw = fs.readFileSync(DATA_FILE, 'utf-8');
     return JSON.parse(raw);
@@ -37,14 +55,15 @@ export function getAllTempPasswords(): Record<string, TempPasswordEntry> {
 }
 
 export function getTempPasswordForEmail(email: string): TempPasswordEntry | null {
+  if (!isLocalTempPasswordFallbackAllowed()) return null;
   const all = getAllTempPasswords();
   return all[email.trim().toLowerCase()] || null;
 }
 
 export function verifyTempPassword(email: string, candidatePassword: string): boolean {
+  if (!isLocalTempPasswordFallbackAllowed()) return false;
   const entry = getTempPasswordForEmail(email);
   if (!entry) return false;
-  // Solo es válida si no ha configurado aún su contraseña (password_configured === false)
   if (entry.password_configured === false && entry.tempPassword && entry.tempPassword === candidatePassword.trim()) {
     return true;
   }
@@ -55,8 +74,8 @@ export function setTempPasswordForUser(
   userId: string,
   email: string,
   tempPassword: string
-): TempPasswordEntry {
-  ensureDataFile();
+): TempPasswordEntry | null {
+  if (!ensureDataFile()) return null;
   const all = getAllTempPasswords();
   const cleanEmail = email.trim().toLowerCase();
 
@@ -81,7 +100,7 @@ export function setTempPasswordForUser(
 }
 
 export function markPasswordConfigured(email: string): boolean {
-  ensureDataFile();
+  if (!ensureDataFile()) return false;
   const all = getAllTempPasswords();
   const cleanEmail = email.trim().toLowerCase();
 
@@ -89,15 +108,7 @@ export function markPasswordConfigured(email: string): boolean {
     all[cleanEmail].password_configured = true;
     all[cleanEmail].tempPassword = '';
     all[cleanEmail].updatedAt = new Date().toISOString();
-
-    try {
-      fs.writeFileSync(DATA_FILE, JSON.stringify(all, null, 2), 'utf-8');
-      return true;
-    } catch (err) {
-      console.error('Error writing temp-passwords file:', err);
-    }
   } else {
-    // Si no existía entrada previa, registrar que ya está configurada
     all[cleanEmail] = {
       userId: '',
       email: cleanEmail,
@@ -106,12 +117,13 @@ export function markPasswordConfigured(email: string): boolean {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    try {
-      fs.writeFileSync(DATA_FILE, JSON.stringify(all, null, 2), 'utf-8');
-      return true;
-    } catch {
-      // ignore
-    }
   }
-  return false;
+
+  try {
+    fs.writeFileSync(DATA_FILE, JSON.stringify(all, null, 2), 'utf-8');
+    return true;
+  } catch (err) {
+    console.error('Error writing temp-passwords file:', err);
+    return false;
+  }
 }

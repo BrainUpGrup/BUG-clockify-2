@@ -13,7 +13,7 @@ import {
   MOCK_PROFILES,
   MOCK_TIME_ENTRIES
 } from '@/lib/mock-data';
-import { Company, Profile, TimeEntry, ClientType, UserRole } from '@/types/database';
+import { Company, Profile, TimeEntry, ClientType, UserRole, CompanyQuotaActivity } from '@/types/database';
 import {
   BarChart3,
   Building2,
@@ -104,8 +104,19 @@ export default function CoordinatorDashboardPage() {
           ]);
 
           if (compRes?.success && Array.isArray(compRes.companies) && compRes.companies.length > 0) {
-            setCompanies(compRes.companies as Company[]);
-            safeSetLocalStorage('bug_clockify_cache_companies', compRes.companies);
+            const localActivitiesMap = safeGetLocalStorage<Record<string, CompanyQuotaActivity[]>>(
+              'bug_clockify_company_activities_local',
+              {}
+            );
+            const hydratedCompanies = (compRes.companies as Company[]).map((c) => {
+              const hasRemote = Array.isArray(c.quota_activities) && c.quota_activities.length > 0;
+              if (!hasRemote && Array.isArray(localActivitiesMap[c.id]) && localActivitiesMap[c.id].length > 0) {
+                return { ...c, quota_activities: localActivitiesMap[c.id] };
+              }
+              return c;
+            });
+            setCompanies(hydratedCompanies);
+            safeSetLocalStorage('bug_clockify_cache_companies', hydratedCompanies);
           }
           if (profRes?.success && Array.isArray(profRes.profiles) && profRes.profiles.length > 0) {
             setEmployees(profRes.profiles as Profile[]);
@@ -345,9 +356,21 @@ export default function CoordinatorDashboardPage() {
       contact_email?: string | null;
       is_active?: boolean;
       logo_url?: string | null;
+      quota_activities?: CompanyQuotaActivity[];
     }
   ) => {
+    const persistLocalActivitiesFallback = (companyId: string, list?: CompanyQuotaActivity[]) => {
+      if (list === undefined) return;
+      const map = safeGetLocalStorage<Record<string, CompanyQuotaActivity[]>>(
+        'bug_clockify_company_activities_local',
+        {}
+      );
+      map[companyId] = list;
+      safeSetLocalStorage('bug_clockify_company_activities_local', map);
+    };
+
     const syncCompanyLocally = (updated: Company) => {
+      persistLocalActivitiesFallback(id, updated.quota_activities || undefined);
       setCompanies((prev) => {
         const next = prev.map((c) => (c.id === id ? updated : c));
         safeSetLocalStorage('bug_clockify_cache_companies', next);
@@ -384,6 +407,9 @@ export default function CoordinatorDashboardPage() {
               contact_email: updates.contact_email || null,
               ...(typeof updates.is_active === 'boolean' ? { is_active: updates.is_active } : {}),
               ...(updates.logo_url !== undefined ? { logo_url: updates.logo_url || null } : {}),
+              ...(updates.quota_activities !== undefined
+                ? { quota_activities: updates.quota_activities }
+                : {}),
             },
           }),
         });
@@ -395,11 +421,22 @@ export default function CoordinatorDashboardPage() {
         }
 
         const missingLogoColumn = Boolean(json.missingLogoColumn);
-        const updated: Company = missingLogoColumn
-          ? ({ ...json.company, logo_url: updates.logo_url ?? undefined } as Company)
-          : (json.company as Company);
+        const missingQuotaActivitiesColumn = Boolean(json.missingQuotaActivitiesColumn);
+        const updated: Company = {
+          ...(json.company as Company),
+          ...(missingLogoColumn ? { logo_url: updates.logo_url ?? undefined } : {}),
+          ...(missingQuotaActivitiesColumn
+            ? { quota_activities: updates.quota_activities ?? [] }
+            : {}),
+        };
         syncCompanyLocally(updated);
-        if (missingLogoColumn) {
+
+        if (missingQuotaActivitiesColumn) {
+          notify(
+            'Actividades guardadas en local. Ejecuta migration_company_quota_activities.sql en Supabase para guardarlas en la nube.',
+            { type: 'warning' }
+          );
+        } else if (missingLogoColumn) {
           notify('Cambios guardados. Ejecuta migration_company_logo.sql en Supabase para guardar el logo en la nube.', {
             type: 'warning',
           });
@@ -422,6 +459,9 @@ export default function CoordinatorDashboardPage() {
         contact_email: updates.contact_email ?? existing?.contact_email,
         is_active: typeof updates.is_active === 'boolean' ? updates.is_active : (existing?.is_active ?? true),
         ...(updates.logo_url !== undefined ? { logo_url: updates.logo_url || undefined } : {}),
+        ...(updates.quota_activities !== undefined
+          ? { quota_activities: updates.quota_activities }
+          : {}),
       };
       syncCompanyLocally(updated);
       notify('Empresa actualizada (modo local).', { type: 'success' });

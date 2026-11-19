@@ -25,7 +25,7 @@
 
 ## 2. Cómo se entra y qué puede hacer cada persona
 
-Al iniciar sesión se llega al **Hub**, que es la pantalla de entrada con todas las herramientas disponibles. Cada usuario puede marcar sus herramientas favoritas con una estrella para encontrarlas antes y gestionar su foto y datos básicos en **Mi Perfil**.
+Al iniciar sesión se llega al **Hub**, que es la pantalla de entrada con todas las herramientas disponibles. Cada usuario puede marcar sus herramientas favoritas con una estrella para encontrarlas antes —guardadas en la nube para verlas igual desde cualquier ordenador—, revisar su **Centro de Notificaciones** sincronizado y gestionar su foto y datos básicos en **Mi Perfil**.
 
 Existen **3 niveles de acceso**:
 
@@ -86,7 +86,7 @@ Es el centro de control para dirección y coordinación.
 - **Informes listos para enviar:**
   - **PDF Vertical (A4):** documento elegante con ficha completa del cliente (razón social, NIF/CIF, contacto, responsable de cuenta, modelo comercial), gráfico visual de cuota y listado de trabajos.
   - **Excel (`.xlsx`) humano:** archivo organizado en pestañas separadas (*Balance Cuotas Clientes*, *Registro Detallado* y *Rendimiento por Empleado*) con formatos de horas fáciles de leer.
-- **Gestión de Empresas, Logos y Equipo:** alta/edición de clientes, activación o desactivación de clientes inactivos, subida o asignación de logotipos, validación de cuentas pendientes, asignación de contraseñas y matriz para elegir qué apps del Hub puede usar cada empleado.
+- **Gestión de Empresas, Logos, Desglose de Cuota y Equipo:** alta/edición de clientes, activación o desactivación de clientes inactivos, subida o asignación de logotipos, lista de actividades en las que se dedica la cuota de cada empresa (visible al pasar el ratón por las horas pactadas en el listado), validación de cuentas pendientes, asignación de contraseñas y matriz para elegir qué apps del Hub puede usar cada empleado.
 
 ---
 
@@ -148,7 +148,7 @@ Toda la aplicación comparte las mismas reglas visuales para que resulte cómoda
 
 ## 5. Seguridad y privacidad en términos simples
 
-- **Acceso validado antes de entrar:** ninguna cuenta nueva puede acceder hasta que la coordinadora la aprueba manualmente.
-- **Aislamiento según rol:** cada empleado accede exclusivamente a sus horas y a las herramientas permitidas; solo coordinación y dirección ven datos globales de clientes y equipo.
-- **Controles en el servidor antes de mostrar o guardar datos:** todas las lecturas y guardados de horas, empresas, perfiles, tareas de calendario y servicios de hosting pasan primero por filtros del servidor que verifican quién está pidiendo la información y si tiene permiso real antes de tocar la base de datos.
-- **Protección de contraseñas:** las contraseñas se almacenan en una bóveda aparte y nunca se muestran ni se envían en las listas de usuarios.
+- **Acceso validado antes de entrar:** ninguna cuenta nueva puede acceder hasta que la coordinadora la aprueba manualmente. Además, el sistema bloquea temporalmente intentos repetidos con contraseña errónea de forma persistente aunque cambie de servidor.
+- **Aislamiento según rol y permisos reales de herramientas:** cada empleado accede exclusivamente a sus horas y a las herramientas que la coordinadora le haya activado en la matriz del Hub; esos permisos se guardan en la nube y se comprueban también en el servidor (no solo en pantalla), aplicándose en cualquier ordenador desde el que entre.
+- **Controles en el servidor antes de mostrar o guardar datos:** todas las lecturas y guardados de horas, empresas, perfiles, tareas de calendario, servicios de hosting, Brain Chat, notificaciones y auditoría pasan primero por filtros del servidor que verifican quién está pidiendo la información y si tiene permiso real antes de tocar la base de datos.
+- **Protección de contraseñas:** las contraseñas (incluidas las claves temporales de primer acceso) se almacenan únicamente en la bóveda protegida de la base de datos en producción y nunca se muestran ni se envían en las listas de usuarios.

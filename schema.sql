@@ -37,9 +37,14 @@ create table if not exists public.companies (
   contact_name text null,
   contact_email text null,
   account_manager text null default 'Alejandro Ramos',
+  logo_url text null,
+  quota_activities jsonb null default '[]'::jsonb,
   is_active boolean not null default true,
   created_at timestamptz not null default now()
 );
+
+alter table public.companies add column if not exists logo_url text null;
+alter table public.companies add column if not exists quota_activities jsonb null default '[]'::jsonb;
 
 -- 3. TABLA: time_entries (Registros horarios clasificados por Empresa y Tipo de Cómputo)
 create table if not exists public.time_entries (

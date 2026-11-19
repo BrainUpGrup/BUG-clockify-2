@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import { useNotifications } from '@/context/notifications-context';
 import { useLayoutCollapse } from '@/context/layout-collapse-context';
-import { createClient } from '@/lib/supabase/client';
 import { MOCK_COMPANIES, MOCK_PROFILES } from '@/lib/mock-data';
 import { Company, Profile } from '@/types/database';
 import { Channel, ChatMessage } from '@/types/chat';
@@ -143,30 +142,19 @@ function BrainUpChatContent() {
     refreshGlobalItems();
   }, [selectedChannelId]);
 
-  // Suscripción Supabase Realtime si el canal de postgres está disponible
+  // Sincronización periódica segura a través de /api/data/chat (compatible con Zero-Trust RLS)
   useEffect(() => {
-    try {
-      const supabase = createClient();
-      const subscription = supabase
-        .channel('messages_realtime_chat')
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'messages' },
-          (payload) => {
-            // Si el mensaje es para el canal actual, recargar mensajes
-            if (selectedChannelId && payload.new && (payload.new as any).channel_id === selectedChannelId) {
-              ChatService.getMessages(selectedChannelId).then(setMessages);
-            }
-            refreshGlobalItems();
-          }
-        )
-        .subscribe();
+    if (!user) return;
+    const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+      if (selectedChannelId) {
+        ChatService.getMessages(selectedChannelId).then(setMessages).catch(() => {});
+      }
+      refreshGlobalItems();
+    }, 10000);
 
-      return () => {
-        supabase.removeChannel(subscription);
-      };
-    } catch {}
-  }, [selectedChannelId]);
+    return () => clearInterval(interval);
+  }, [selectedChannelId, user]);
 
   // Manejar selección de canal
   const handleSelectChannel = (channelId: string) => {

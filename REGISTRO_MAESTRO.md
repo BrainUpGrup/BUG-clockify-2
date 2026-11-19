@@ -2799,3 +2799,47 @@
      - Incorporada la obligación de actualizar [`NOTAS_DEL_PROYECTO.md`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/NOTAS_DEL_PROYECTO.md) ante cualquier cambio estructural y añadido enlace directo desde [`README.md`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/README.md).
 - **Validación y Pruebas:**
   - `npx tsc --noEmit`: **0 errores de compilación**.
+
+### [v4.5.0] - 2026-11-19 - Persistencia en Supabase (Permisos Hub, Favoritas, Notificaciones, Rate Limit) y Blindaje Total End-to-End
+- **Solicitud del Usuario:**
+  1. Migrar permisos del Hub (`hub-apps.ts`), favoritas (`hub/page.tsx`) y notificaciones internas (`notifications-context.tsx`) de `localStorage` a Supabase con validación real en servidor.
+  2. Eliminar dependencia en disco (`data/temp-passwords.json`) en producción (`auth-passwords.ts`).
+  3. Migrar los últimos accesos directos de navegador (`chat-service.ts` y `audit-logger.ts`) a API Routes autenticadas.
+  4. Implementar rate limiting persistente de login en Supabase (`session/route.ts`) y ampliar el cierre Zero-Trust RLS (`migration_zero_trust_rls.sql`).
+- **Solución Implementada:**
+  1. **Nueva Migración SQL ([`migration_v4_5_persistence_hardening.sql`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/migration_v4_5_persistence_hardening.sql)) y Cierre Ampliado ([`migration_zero_trust_rls.sql`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/migration_zero_trust_rls.sql)):**
+     - Creadas `public.user_hub_preferences`, `public.user_notifications` y `public.login_rate_limits` bajo política Zero-Trust RLS desde su creación.
+     - Ampliado `migration_zero_trust_rls.sql` a 15 tablas incluyendo `channels`, `channel_members`, `messages`, `audit_logs`, `user_hub_preferences`, `user_notifications` y `login_rate_limits`.
+  2. **Permisos del Hub y Favoritas en Supabase + Validación Servidor ([`src/lib/server-hub-permissions.ts`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/lib/server-hub-permissions.ts), [`src/app/api/data/hub-preferences/route.ts`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/app/api/data/hub-preferences/route.ts), [`src/lib/hub-apps.ts`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/lib/hub-apps.ts)):**
+     - Nuevo guard `requireHubAppAccess(req, appId)` aplicado en `/api/data/time-entries` (`clockify`), `/api/data/hosting` (`hosting`), `/api/data/taskflow` (`taskflow`) y `/api/data/chat` (`chat`).
+     - Actualizados [`hub-permissions-matrix.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/components/coordinator/hub-permissions-matrix.tsx), [`hub/page.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/app/hub/page.tsx) y [`navbar.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/components/navbar.tsx) para sincronizar permisos efectivos y favoritas desde Supabase entre dispositivos.
+  3. **Notificaciones Internas Sincronizadas ([`src/app/api/data/notifications/route.ts`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/app/api/data/notifications/route.ts), [`src/context/notifications-context.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/context/notifications-context.tsx)):**
+     - Persistencia por `user_id` en `public.user_notifications` (alta, lectura unitaria/masiva, borrado y recordatorios de Post-its) manteniendo caché rápida local por usuario.
+  4. **Eliminación de Disco Local en Producción ([`src/lib/auth-passwords.ts`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/lib/auth-passwords.ts), [`src/app/api/auth/reset-password/route.ts`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/app/api/auth/reset-password/route.ts)):**
+     - Bloqueada toda lectura/escritura de `data/temp-passwords.json` en producción o cuando Supabase está configurado, exigiendo persistencia real en la bóveda Supabase.
+  5. **Migración Final de Cliente (`Brain Chat` y `Audit Logger`):**
+     - Nuevo [`src/app/api/data/chat/route.ts`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/app/api/data/chat/route.ts) con proyección segura de perfiles (`SAFE_PROFILE_JOIN`, eliminando `profiles(*)`), forzando `sender_id`/`created_by` desde sesión.
+     - Migrados [`src/lib/chat-service.ts`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/lib/chat-service.ts), [`src/app/apps/chat/page.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/app/apps/chat/page.tsx) y [`src/lib/audit-logger.ts`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/lib/audit-logger.ts) (contra `/api/audit/logs`), logrando **0 consultas directas `.from(...)` de navegador** en toda la suite.
+  6. **Rate Limit Persistente de Login ([`src/app/api/auth/session/route.ts`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/app/api/auth/session/route.ts)):**
+     - Control de intentos fallidos por `email|IP` y `email` en `public.login_rate_limits` compatible con Vercel serverless (con fallback en memoria si la tabla no se ha creado aún).
+  7. **Actualización Documental Estructural:**
+     - Actualizado [`NOTAS_DEL_PROYECTO.md`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/NOTAS_DEL_PROYECTO.md) conforme a `AGENTS.md` Paso 4.
+- **Validación y Pruebas:**
+  - `git grep`: 0 llamadas directas `.from(...)` en código cliente/navegador en toda la aplicación.
+  - `npx tsc --noEmit`: **0 errores de compilación**.
+
+### [v4.5.1] - 2026-11-19 - Desglose de Actividades de Cuota en Editor de Empresas y Tooltip Interactivo sobre las Horas
+- **Solicitud del Usuario:**
+  *"necesito que me hagas un tooltip que cuando pase por encima el ratón por las horas, yo tenga un apartado en el editor de empresas que me permita añadir en qué dedico esas horas (como una lista de actividades) y me generes fases de conexión entre eso y cómo les podría servir a los empleados."*
+- **Solución Implementada:**
+  1. **Modelo de Datos y Migración SQL ([`src/types/database.ts`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/types/database.ts), [`migration_company_quota_activities.sql`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/migration_company_quota_activities.sql), [`schema.sql`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/schema.sql)):**
+     - Añadida interfaz `CompanyQuotaActivity` (`{ id, title, hours? }`) y columna JSONB `quota_activities` en `public.companies`.
+  2. **Persistencia Segura con Fallback 0 Caídas ([`src/app/api/data/companies/route.ts`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/app/api/data/companies/route.ts), [`src/app/dashboard/coordinator/page.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/app/dashboard/coordinator/page.tsx)):**
+     - Sanitización y guardado en `PATCH /api/data/companies` con reintento automático si aún no se ejecutó la migración SQL (`missingQuotaActivitiesColumn`) y respaldo local transparente (`bug_clockify_company_activities_local`).
+  3. **Editor de Empresas Compacto en 2 Columnas Zero-Scroll ([`src/components/coordinator/edit-company-modal.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/components/coordinator/edit-company-modal.tsx)):**
+     - Reestructurado el modal a `max-w-5xl` en 2 columnas paralelas (DM-15): datos comerciales a la izquierda y panel **"Dedicación de Horas"** a la derecha para añadir, editar inline y eliminar actividades (con horas opcionales y balance live frente a la cuota mensual).
+  4. **Tooltip Portal sobre la Columna de Horas ([`src/components/coordinator/quota-activities-tooltip.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/components/coordinator/quota-activities-tooltip.tsx), [`src/components/coordinator/company-crud.tsx`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/src/components/coordinator/company-crud.tsx)):**
+     - Tooltip renderizado con `createPortal` en `document.body` (nunca se recorta dentro de la tabla) que muestra la lista de actividades, horas/porcentaje por partida, barra de reparto y acceso directo con 1 clic para editar la lista.
+  5. **Documentación:** Actualizado [`NOTAS_DEL_PROYECTO.md`](file:///c:/Users/Usuario/Desktop/Proyectos/BUG%20clockify/NOTAS_DEL_PROYECTO.md).
+- **Validación y Pruebas:**
+  - `npx tsc --noEmit`: **0 errores de compilación**.

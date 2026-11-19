@@ -10,7 +10,10 @@ import { Profile } from '@/types/database';
 import { 
   BRAIN_UP_HUB_APPS, 
   HubApp, 
-  getAuthorizedAppsForUser 
+  getAuthorizedAppsForUser,
+  getStoredFavoriteApps,
+  syncHubPreferencesFromServer,
+  saveUserFavoriteAppsRemote
 } from '@/lib/hub-apps';
 import { HubPermissionsMatrix } from '@/components/coordinator/hub-permissions-matrix';
 import { useTimer, useTimerSeconds } from '@/context/timer-context';
@@ -60,36 +63,28 @@ export default function BrainUpHubPage() {
     }
   }, [user, authLoading, router]);
 
-  // Cargar favoritas persistidas en localStorage
+  // Cargar favoritas y permisos desde caché local e hidratar desde Supabase
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('bug_hub_favorite_apps');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          setFavoriteAppIds(parsed);
-          return;
-        }
-      }
-      setFavoriteAppIds(['clockify', 'taskflow', 'chat']);
-    } catch (e) {
-      console.warn('Error cargando apps favoritas:', e);
-      setFavoriteAppIds(['clockify', 'taskflow', 'chat']);
-    }
-  }, []);
+    setFavoriteAppIds(getStoredFavoriteApps());
+    if (!user?.id) return;
+    let mounted = true;
+    syncHubPreferencesFromServer(user.id).then((prefs) => {
+      if (!mounted || !prefs) return;
+      setFavoriteAppIds(prefs.favorite_apps);
+      setAuthorizedApps(getAuthorizedAppsForUser(user));
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [user?.id, user]);
 
-  // Alternar favorita de forma instantánea sin animaciones ni retrasos
+  // Alternar favorita de forma instantánea y sincronizar en Supabase
   const toggleFavorite = (appId: string) => {
     setFavoriteAppIds((prev) => {
       const updated = prev.includes(appId)
         ? prev.filter((id) => id !== appId)
         : [...prev, appId];
-      try {
-        localStorage.setItem('bug_hub_favorite_apps', JSON.stringify(updated));
-        window.dispatchEvent(new CustomEvent('bug_hub_favorites_updated'));
-      } catch (e) {
-        console.warn('Error guardando apps favoritas:', e);
-      }
+      void saveUserFavoriteAppsRemote(updated);
       return updated;
     });
   };
